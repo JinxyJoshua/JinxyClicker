@@ -41,6 +41,9 @@ coverage*.xml
 
 # Runtime user settings (generated on first run)
 hotkey_settings.json
+app_settings.json
+click_presets.json
+tweak_state.json
 
 # OS cruft
 Thumbs.db

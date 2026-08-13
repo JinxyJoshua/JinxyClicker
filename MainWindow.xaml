@@ -213,7 +213,15 @@
             </Setter>
         </Style>
 
-        <Style x:Key="PixelBox" TargetType="TextBox" BasedOn="{StaticResource ValueBox}">
+        <!-- Rejects anything that would not parse as a number, on typing and on
+             paste alike. The commit handlers still clamp; this just stops the
+             box ever showing text that cannot mean anything. -->
+        <Style x:Key="NumericValueBox" TargetType="TextBox" BasedOn="{StaticResource ValueBox}">
+            <EventSetter Event="PreviewTextInput" Handler="NumericBox_PreviewTextInput"/>
+            <EventSetter Event="DataObject.Pasting" Handler="NumericBox_Pasting"/>
+        </Style>
+
+        <Style x:Key="PixelBox" TargetType="TextBox" BasedOn="{StaticResource NumericValueBox}">
             <Setter Property="MinWidth" Value="52"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="MaxLength" Value="3"/>
@@ -221,9 +229,204 @@
             <Setter Property="Padding" Value="6,3"/>
         </Style>
 
+        <!-- Preset card. The accent rail and border make the applied preset
+             readable at a glance without re-reading every number. -->
+        <Style x:Key="PresetCard" TargetType="Button">
+            <Setter Property="Background" Value="#202A39"/>
+            <Setter Property="Foreground" Value="#E9EDF4"/>
+            <Setter Property="Padding" Value="14,11"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Root" CornerRadius="10" BorderThickness="1"
+                                    BorderBrush="Transparent"
+                                    Background="{TemplateBinding Background}"/>
+                            <Border x:Name="Sheen" CornerRadius="10" Background="White" Opacity="0"/>
+                            <Border x:Name="Rail" Width="3" Margin="0,10" Opacity="0"
+                                    HorizontalAlignment="Left" CornerRadius="2"
+                                    Background="{StaticResource Accent}"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sheen" Property="Opacity" Value="0.06"/>
+                                <Setter TargetName="Rail" Property="Opacity" Value="0.55"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#33FF4B52"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Sheen" Property="Opacity" Value="0.12"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#66FF4B52"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsApplied}" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#26313F"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="Rail" Property="Opacity" Value="1"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PresetDelete" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,6,6,0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="ToolTip" Value="Delete this preset"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" Width="18" Height="18" CornerRadius="9"
+                                Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FieldBox" TargetType="TextBox" BasedOn="{StaticResource ValueBox}">
+            <Setter Property="TextAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="#E9EDF4"/>
+            <Setter Property="MaxLength" Value="24"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,0"/>
+        </Style>
+
+        <!-- Same field, numbers only. The preset name field stays unfiltered. -->
+        <Style x:Key="NumericFieldBox" TargetType="TextBox" BasedOn="{StaticResource FieldBox}">
+            <EventSetter Event="PreviewTextInput" Handler="NumericBox_PreviewTextInput"/>
+            <EventSetter Event="DataObject.Pasting" Handler="NumericBox_Pasting"/>
+        </Style>
+
+        <Style x:Key="Badge" TargetType="Border">
+            <Setter Property="Background" Value="#202A39"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="BadgeText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+        </Style>
+
+        <!-- Shared by the Tweaks and Optimizations pages. Must come after the
+             Badge styles: StaticResource cannot resolve a forward reference, and
+             inside a template the failure only surfaces when the page renders. -->
+        <DataTemplate x:Key="TweakRow">
+            <Border BorderThickness="0,0,0,1" BorderBrush="#1AFFFFFF" Padding="0,12">
+                <Grid>
+                    <StackPanel Margin="0,0,110,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource Badge}">
+                                <TextBlock Text="{Binding Impact}" Style="{StaticResource BadgeText}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,3,0,0"/>
+                        <TextBlock Text="{Binding StatusText}" FontSize="10"
+                                   Foreground="{StaticResource TextMuted}" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <Button Content="{Binding ActionText}" IsEnabled="{Binding CanAct}"
+                            Click="Tweak_Click"
+                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Width="92" Margin="0"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Shared look for the pages that have no components yet. -->
+        <Style x:Key="EmptyPanel" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="18"/>
+        </Style>
+
+        <Style x:Key="EmptyHeading" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <Style x:Key="EmptyTitle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+
+        <Style x:Key="EmptyHint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+
+        <!-- Toggle switch. These are all on/off settings, and the stock check
+             box is a light Win32 square that fights the dark theme. -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="#F5F7FA"/>
             <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="46" Height="26">
+                            <Border x:Name="Track" CornerRadius="13"
+                                    Background="{StaticResource Track}"
+                                    BorderThickness="1" BorderBrush="#3A465A"/>
+                            <Border x:Name="Glow" CornerRadius="13" Background="White" Opacity="0"/>
+                            <Border x:Name="Knob" Width="18" Height="18" CornerRadius="9"
+                                    Background="#8D98AA"
+                                    HorizontalAlignment="Left" Margin="4,0,0,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="Knob" Property="Background" Value="White"/>
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="Knob" Property="Margin" Value="0,0,4,0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Glow" Property="Opacity" Value="0.08"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
@@ -243,19 +446,17 @@
 
                 <Button x:Name="NavClicker" Content="Clicker" Style="{StaticResource NavButton}"
                         Tag="Selected" Click="NavClicker_Click"/>
-                <Button Content="Presets" Style="{StaticResource NavButton}"
+                <Button x:Name="NavPresets" Content="Presets" Style="{StaticResource NavButton}"
                         Click="NavPresets_Click"/>
-                <Button Content="Resolution" Style="{StaticResource NavButton}"
-                        Click="NavResolution_Click"/>
-                <Button Content="Tweaks" Style="{StaticResource NavButton}"
+                <Button x:Name="NavTweaks" Content="Tweaks" Style="{StaticResource NavButton}"
                         Click="NavTweaks_Click"/>
-                <Button Content="Optimizations" Style="{StaticResource NavButton}"
+                <Button x:Name="NavOptimizations" Content="Optimizations" Style="{StaticResource NavButton}"
                         Click="NavOptimizations_Click"/>
-                <Button Content="History" Style="{StaticResource NavButton}"
+                <Button x:Name="NavHistory" Content="History" Style="{StaticResource NavButton}"
                         Click="NavHistory_Click"/>
-                <Button Content="Theme" Style="{StaticResource NavButton}"
+                <Button x:Name="NavTheme" Content="Theme" Style="{StaticResource NavButton}"
                         Click="NavTheme_Click"/>
-                <Button Content="Settings" Style="{StaticResource NavButton}"
+                <Button x:Name="NavSettings" Content="Settings" Style="{StaticResource NavButton}"
                         Click="NavSettings_Click"/>
 
                 <Border Margin="0,24,0,0" Padding="12" Background="#101620" CornerRadius="10">
@@ -289,13 +490,15 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="Clicker" FontSize="30" FontWeight="Bold"/>
-                    <TextBlock Text="Configure your own click engine"
+                    <TextBlock x:Name="PageTitleText" Text="Clicker" FontSize="30" FontWeight="Bold"/>
+                    <TextBlock x:Name="PageSubtitleText" Text="Configure your own click engine"
                                Foreground="{StaticResource TextMuted}" Margin="0,2,0,0"/>
                 </StackPanel>
 
-                <!-- Pill and button share an explicit height so they align. -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Pill and button share an explicit height so they align.
+                     Only shown on the Clicker page. -->
+                <StackPanel x:Name="StatusBlock" Grid.Column="1"
+                            Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Background="#151C27" CornerRadius="8" Height="40" Padding="14,0"
                             Margin="0,0,10,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -313,7 +516,10 @@
                 </StackPanel>
             </Grid>
 
+            <!-- One page visible at a time. Every page shares the header, the
+                 status pill and the start button above. -->
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+              <Grid>
                 <StackPanel x:Name="PageClicker">
 
                     <!-- Stats -->
@@ -340,7 +546,7 @@
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="CPS" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <TextBox x:Name="CpsValueBox" DockPanel.Dock="Right" Text="10.0"
-                                         Style="{StaticResource ValueBox}"
+                                         Style="{StaticResource NumericValueBox}"
                                          KeyDown="CpsValueBox_KeyDown"
                                          LostFocus="CpsValueBox_LostFocus"/>
                             </DockPanel>
@@ -365,7 +571,7 @@
                                            Foreground="{StaticResource Accent}"
                                            FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
                                 <TextBox x:Name="CdcValueBox" DockPanel.Dock="Right" Text="67.0"
-                                         Style="{StaticResource ValueBox}"
+                                         Style="{StaticResource NumericValueBox}"
                                          KeyDown="CdcValueBox_KeyDown"
                                          LostFocus="CdcValueBox_LostFocus"/>
                             </DockPanel>
@@ -435,11 +641,21 @@
                                             <TextBox x:Name="ShakeUpBox" Text="40" Style="{StaticResource PixelBox}"
                                                      KeyDown="ShakeBox_KeyDown" LostFocus="ShakeBox_LostFocus"/>
                                         </StackPanel>
-                                        <StackPanel>
+                                        <StackPanel Margin="0,0,16,0">
                                             <TextBlock Text="DOWN" FontSize="9" FontWeight="Bold"
                                                        Foreground="{StaticResource TextMuted}" Margin="0,0,0,3"/>
                                             <TextBox x:Name="ShakeDownBox" Text="8" Style="{StaticResource PixelBox}"
                                                      KeyDown="ShakeBox_KeyDown" LostFocus="ShakeBox_LostFocus"/>
+                                        </StackPanel>
+
+                                        <!-- Bottom-aligned so they line up with the boxes, not the labels. -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                                            <Button Content="Save" Click="SaveShake_Click"
+                                                    ToolTip="Remember these four values"
+                                                    Padding="12,5" Margin="0,0,8,0" FontSize="11"/>
+                                            <Button x:Name="RestoreShakeButton" Content="Restore"
+                                                    Click="RestoreShake_Click" IsEnabled="False"
+                                                    Padding="12,5" Margin="0" FontSize="11"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </StackPanel>
@@ -462,7 +678,8 @@
                                     <TextBlock Text="Local timing compensation for missed input"
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
                                 </StackPanel>
-                                <CheckBox x:Name="HitFix" HorizontalAlignment="Right" IsChecked="True"/>
+                                <CheckBox x:Name="HitFix" HorizontalAlignment="Right" IsChecked="True"
+                                          Checked="EngineSetting_Changed" Unchecked="EngineSetting_Changed"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -481,24 +698,254 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Preset shortcuts -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                </StackPanel>
+
+                <!-- Remaining pages: same chrome, no components yet. -->
+                <StackPanel x:Name="PagePresets" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="QUICK PRESETS" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <Button Content="Open Presets" DockPanel.Dock="Right"
-                                        Click="NavPresets_Click" Padding="10,5" Margin="0"/>
+                                <TextBlock Text="CLICK PRESETS — CPS / CDC"
+                                           Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PresetAppliedText" DockPanel.Dock="Right"
+                                           Text="No preset applied" FontSize="11"
+                                           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+                                           Margin="12,0,0,0"/>
+                                <Button DockPanel.Dock="Right" Content="Restore defaults"
+                                        Click="RestoreDefaults_Click" Padding="10,5" Margin="0"
+                                        FontSize="11"
+                                        ToolTip="Adds back any default preset you have removed"/>
                             </DockPanel>
-                            <WrapPanel Margin="0,12,0,0">
-                                <Button Content="Low CPS 8" Click="PresetLow_Click" Margin="0,0,8,8"/>
-                                <Button Content="Normal 10" Click="PresetNormal_Click" Margin="0,0,8,8"/>
-                                <Button Content="High 16" Click="PresetHigh_Click" Margin="0,0,8,8"/>
-                                <Button Content="100 CPS" Click="Preset100_Click" Margin="0,0,8,8"/>
-                            </WrapPanel>
+
+                            <TextBlock x:Name="PresetEmptyText" Visibility="Collapsed"
+                                       Text="No presets. Add one below, or restore the defaults."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       Margin="0,14,0,0"/>
+
+                            <ItemsControl x:Name="PresetList" Margin="0,14,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="176" Margin="0,0,10,10">
+                                            <Button Click="PresetCard_Click"
+                                                    Style="{StaticResource PresetCard}"
+                                                    ToolTip="Apply this preset">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                               FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                        <TextBlock Text="{Binding CpsText}" FontSize="11"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{StaticResource Accent}"/>
+                                                        <TextBlock Text=" CPS" FontSize="11"
+                                                                   Foreground="{StaticResource TextMuted}"/>
+                                                        <TextBlock Text="  ·  " FontSize="11"
+                                                                   Foreground="{StaticResource TextMuted}"/>
+                                                        <TextBlock Text="{Binding CdcText}" FontSize="11"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{StaticResource Accent}"/>
+                                                        <TextBlock Text="% CDC" FontSize="11"
+                                                                   Foreground="{StaticResource TextMuted}"/>
+                                                    </StackPanel>
+                                                    <Border Height="3" Width="134" CornerRadius="2"
+                                                            Background="{StaticResource Track}"
+                                                            HorizontalAlignment="Left" Margin="0,9,0,0">
+                                                        <Border Height="3" CornerRadius="2"
+                                                                Background="{StaticResource Accent}"
+                                                                Width="{Binding BarWidth}"
+                                                                HorizontalAlignment="Left"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Content="&#215;" Click="DeletePreset_Click"
+                                                    Style="{StaticResource PresetDelete}"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="CUSTOM PRESET" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock x:Name="CustomPresetHint"
+                                       Text="Name it, set CPS and CDC, and it is saved between sessions"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,2,0,0"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox x:Name="NewPresetName" Grid.Column="0"
+                                         Style="{StaticResource FieldBox}" Margin="0,0,10,0"
+                                         KeyDown="NewPreset_KeyDown"/>
+                                <TextBox x:Name="NewPresetCps" Grid.Column="1"
+                                         Style="{StaticResource NumericFieldBox}" Margin="0,0,10,0"
+                                         MaxLength="6" KeyDown="NewPreset_KeyDown"/>
+                                <TextBox x:Name="NewPresetCdc" Grid.Column="2"
+                                         Style="{StaticResource NumericFieldBox}" Margin="0,0,10,0"
+                                         MaxLength="6" KeyDown="NewPreset_KeyDown"/>
+                                <Button Grid.Column="3" Content="+  Save" Click="SavePreset_Click"
+                                        Style="{StaticResource AccentButton}"
+                                        Height="34" Width="96" Margin="0"/>
+                            </Grid>
+
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="106"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="NAME" FontSize="9" FontWeight="Bold"
+                                           Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Grid.Column="1" Text="CPS" FontSize="9" FontWeight="Bold"
+                                           Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Grid.Column="2" Text="CDC %" FontSize="9" FontWeight="Bold"
+                                           Foreground="{StaticResource TextMuted}"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
 
                 </StackPanel>
+
+                <StackPanel x:Name="PageTweaks" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="WINDOWS SYSTEM TWEAKS" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Each tweak reads your current setting before changing it, so Revert puts back exactly what you had — not a guessed default."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="RestartAdminButton" Content="Restart as administrator"
+                                        Click="RestartAdmin_Click" Padding="12,6" Margin="0,0,10,0"/>
+                                <Button Content="Revert all" Click="RevertAll_Click"
+                                        Padding="12,6" Margin="0"
+                                        ToolTip="Puts every applied tweak back to its recorded previous value"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="TweakStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="PERFORMANCE" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <ItemsControl x:Name="TweakList" Margin="0,4,0,0"
+                                          ItemTemplate="{StaticResource TweakRow}"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+                <StackPanel x:Name="PageOptimizations" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="TEMP FILE CLEANER" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Deletes files in your temp folders that nothing has touched for a day. Nothing outside those folders is looked at."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="ReclaimableText" Text="—" FontSize="30" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,12,0,0"/>
+                            <TextBlock x:Name="ReclaimableHint" Text="Scanning…"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="CleanTempButton" Content="Clean temp files"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="CleanTemp_Click" Height="36" Width="150" Margin="0,0,10,0"/>
+                                <Button Content="Rescan" Click="RescanTemp_Click"
+                                        Height="36" Padding="14,0" Margin="0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="INPUT" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <ItemsControl x:Name="InputTweakList" Margin="0,4,0,0"
+                                          ItemTemplate="{StaticResource TweakRow}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="MEMORY" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock x:Name="MemoryLine" Text="—" FontWeight="SemiBold" Margin="0,8,0,0"/>
+
+                            <TextBlock Text="Free RAM trims every process working set. The available figure rises, then Windows pages it straight back in as those apps carry on. It does not raise FPS — unused RAM is cache Windows wants to be using."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <Button Content="Free RAM anyway" Click="FreeRam_Click"
+                                    HorizontalAlignment="Left" Height="34" Padding="14,0"
+                                    Margin="0,12,0,0"/>
+
+                            <TextBlock x:Name="CleanupStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+                <StackPanel x:Name="PageHistory" Visibility="Collapsed">
+                    <Border Style="{StaticResource EmptyPanel}">
+                        <StackPanel>
+                            <TextBlock Text="HISTORY" Style="{StaticResource EmptyHeading}"/>
+                            <TextBlock Text="Nothing here yet" Style="{StaticResource EmptyTitle}"/>
+                            <TextBlock Text="This page uses the same layout as Clicker. Components go here."
+                                       Style="{StaticResource EmptyHint}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PageTheme" Visibility="Collapsed">
+                    <Border Style="{StaticResource EmptyPanel}">
+                        <StackPanel>
+                            <TextBlock Text="THEME" Style="{StaticResource EmptyHeading}"/>
+                            <TextBlock Text="Nothing here yet" Style="{StaticResource EmptyTitle}"/>
+                            <TextBlock Text="This page uses the same layout as Clicker. Components go here."
+                                       Style="{StaticResource EmptyHint}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PageSettings" Visibility="Collapsed">
+                    <Border Style="{StaticResource EmptyPanel}">
+                        <StackPanel>
+                            <TextBlock Text="SETTINGS" Style="{StaticResource EmptyHeading}"/>
+                            <TextBlock Text="Nothing here yet" Style="{StaticResource EmptyTitle}"/>
+                            <TextBlock Text="Hotkeys are rebound from their own buttons. Other settings go here."
+                                       Style="{StaticResource EmptyHint}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+              </Grid>
             </ScrollViewer>
         </Grid>
     </Grid>
