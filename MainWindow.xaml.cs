@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -19,6 +21,8 @@ public partial class MainWindow : Window
     private bool _running;
     private bool _holdMode;
     private double _shakeLeft = 8, _shakeRight = 20, _shakeUp = 40, _shakeDown = 8;
+    private ShakeRange? _savedShake;
+    private readonly CancellationTokenSource _shakeCts = new();
     private volatile bool _shakeActive;
     private uint _cachedForegroundPid;
     private bool _cachedForegroundIsRoblox;
@@ -42,6 +46,34 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _hotkeyTimer = new() { Interval = TimeSpan.FromMilliseconds(15) };
     private bool _clickKeyWasDown;
     private bool _shakeKeyWasDown;
+
+    private readonly ObservableCollection<ClickPreset> _clickPresets = new();
+
+    private readonly TweakState _tweakState = TweakState.Load();
+
+    private readonly ObservableCollection<PcTweak> _tweaks = new()
+    {
+        new HighPerformancePlanTweak(),
+        new CoreParkingTweak(),
+        new GameDvrTweak(),
+        new TransparencyTweak(),
+        new VisualEffectsTweak(),
+        new GpuSchedulingTweak(),
+        new SysMainTweak(),
+        new PowerThrottlingTweak()
+    };
+
+    // Lives on Optimizations rather than Tweaks: it is about input fidelity,
+    // not machine performance.
+    private readonly ObservableCollection<PcTweak> _inputTweaks = new()
+    {
+        new MouseAccelerationTweak()
+    };
+
+    // Saving is deferred to the stats tick so dragging a slider does not write
+    // the file on every pixel of movement.
+    private bool _settingsLoaded;
+    private bool _settingsDirty;
 
     private readonly List<Preset> _presets = new()
     {
@@ -72,6 +104,27 @@ public partial class MainWindow : Window
 
             _hotkeyTimer.Tick += HotkeyTimer_Tick;
             _hotkeyTimer.Start();
+
+            foreach (ClickPreset p in PresetStore.Load()) _clickPresets.Add(p);
+            PresetList.ItemsSource = _clickPresets;
+
+            ApplyAppSettings(AppSettings.Load());
+            _settingsLoaded = true;
+
+            RefreshAppliedPreset();
+
+            // Shake has its own lifetime, independent of the clicker: it is
+            // gated by the checkbox inside the loop, not by whether clicking is
+            // running. Aim practice does not require auto-clicking.
+            new Thread(() => ShakeLoop(_shakeCts.Token))
+            {
+                IsBackground = true,
+                Name = "ShakeEngine"
+            }.Start();
+
+            TweakList.ItemsSource = _tweaks;
+            InputTweakList.ItemsSource = _inputTweaks;
+            RefreshTweaks();
         }
         catch (Exception ex)
         {
@@ -85,6 +138,7 @@ public partial class MainWindow : Window
         if (CpsValueBox != null)
             CpsValueBox.Text = FormatValue(CpsSlider.Value);
 
+        RefreshAppliedPreset();
         UpdateEngineSettings();
     }
 
@@ -93,6 +147,7 @@ public partial class MainWindow : Window
         if (CdcValueBox != null)
             CdcValueBox.Text = FormatValue(CdcSlider.Value);
 
+        RefreshAppliedPreset();
         UpdateEngineSettings();
     }
 
@@ -321,13 +376,6 @@ public partial class MainWindow : Window
             Name = "ClickEngine"
         }.Start();
 
-        // Separate from the click loop: shake runs at its own 25-45 ms cadence,
-        // which at low CPS is far faster than the click loop wakes up.
-        new Thread(() => ShakeLoop(token))
-        {
-            IsBackground = true,
-            Name = "ShakeEngine"
-        }.Start();
     }
 
     /// <summary>
@@ -350,10 +398,74 @@ public partial class MainWindow : Window
     private volatile ClickSettings _settings =
         new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6);
 
+    private void ApplyAppSettings(AppSettings s)
+    {
+        CpsSlider.Value = Math.Clamp(s.Cps, CpsSlider.Minimum, CpsSlider.Maximum);
+        CdcSlider.Value = Math.Clamp(s.Cdc, CdcSlider.Minimum, CdcSlider.Maximum);
+
+        _shakeLeft = Math.Clamp(s.ShakeLeft, 0, MaxShakePixels);
+        _shakeRight = Math.Clamp(s.ShakeRight, 0, MaxShakePixels);
+        _shakeUp = Math.Clamp(s.ShakeUp, 0, MaxShakePixels);
+        _shakeDown = Math.Clamp(s.ShakeDown, 0, MaxShakePixels);
+        WriteShakeBoxes();
+
+        _savedShake = s.HasSavedShake
+            ? new ShakeRange(
+                Math.Clamp(s.SavedShakeLeft, 0, MaxShakePixels),
+                Math.Clamp(s.SavedShakeRight, 0, MaxShakePixels),
+                Math.Clamp(s.SavedShakeUp, 0, MaxShakePixels),
+                Math.Clamp(s.SavedShakeDown, 0, MaxShakePixels))
+            : null;
+
+        UpdateShakeButtons();
+
+        ShakyTracking.IsChecked = s.ShakyTracking;
+        UltraAccuracy.IsChecked = s.UltraAccuracy;
+        PingSync.IsChecked = s.PingSync;
+        HitFix.IsChecked = s.HitFix;
+
+        SetClickMode(s.HoldMode);
+
+        UpdateShakeLabel();
+        UpdatePingLabel();
+        UpdateEngineSettings();
+    }
+
+    private void SaveAppSettings()
+    {
+        if (!_settingsLoaded) return;
+
+        new AppSettings
+        {
+            Cps = CpsSlider.Value,
+            Cdc = CdcSlider.Value,
+            ShakeLeft = _shakeLeft,
+            ShakeRight = _shakeRight,
+            ShakeUp = _shakeUp,
+            ShakeDown = _shakeDown,
+            HasSavedShake = _savedShake != null,
+            SavedShakeLeft = _savedShake?.Left ?? 0,
+            SavedShakeRight = _savedShake?.Right ?? 0,
+            SavedShakeUp = _savedShake?.Up ?? 0,
+            SavedShakeDown = _savedShake?.Down ?? 0,
+            ShakyTracking = ShakyTracking.IsChecked == true,
+            UltraAccuracy = UltraAccuracy.IsChecked == true,
+            PingSync = PingSync.IsChecked == true,
+            HitFix = HitFix.IsChecked == true,
+            HoldMode = _holdMode
+        }.Save();
+
+        _settingsDirty = false;
+    }
+
     // Called on the UI thread whenever anything the engine reads changes.
     private void UpdateEngineSettings()
     {
         if (CpsSlider == null || CdcSlider == null) return;
+
+        // Every change point already routes through here, so this is the one
+        // place that needs to notice the configuration moved.
+        _settingsDirty = true;
 
         // Ping Sync forces the spin-wait on while latency is high, so the only
         // variance left in the click stream is the network's, not ours.
@@ -436,36 +548,65 @@ public partial class MainWindow : Window
         static string Format(double v) => ((int)Math.Round(v)).ToString(CultureInfo.CurrentCulture);
     }
 
+    private void SaveShake_Click(object sender, RoutedEventArgs e)
+    {
+        _savedShake = new ShakeRange(_shakeLeft, _shakeRight, _shakeUp, _shakeDown);
+        _settingsDirty = true;
+        UpdateShakeButtons();
+    }
+
+    private void RestoreShake_Click(object sender, RoutedEventArgs e)
+    {
+        if (_savedShake == null) return;
+
+        _shakeLeft = _savedShake.Left;
+        _shakeRight = _savedShake.Right;
+        _shakeUp = _savedShake.Up;
+        _shakeDown = _savedShake.Down;
+
+        WriteShakeBoxes();
+        UpdateShakeLabel();
+        UpdateEngineSettings();
+    }
+
+    /// <summary>
+    /// Restore stays disabled until something has been saved, and its tooltip
+    /// carries the stored numbers — the status line is rewritten every tick, so
+    /// a transient "saved!" message there would vanish before it was read.
+    /// </summary>
+    private void UpdateShakeButtons()
+    {
+        if (RestoreShakeButton == null) return;
+
+        RestoreShakeButton.IsEnabled = _savedShake != null;
+
+        RestoreShakeButton.ToolTip = _savedShake == null
+            ? "Nothing saved yet"
+            : $"Restore L{_savedShake.Left:0} R{_savedShake.Right:0} " +
+              $"U{_savedShake.Up:0} D{_savedShake.Down:0}";
+    }
+
     private void UpdateShakeLabel()
     {
         if (ShakeStatusText == null) return;
 
+        // The pixel values are not repeated here — the four fields below already
+        // show them, and two copies of the same number can disagree.
         if (_shakeLeft <= 0 && _shakeRight <= 0 && _shakeUp <= 0 && _shakeDown <= 0)
         {
             ShakeStatusText.Text = "All four directions are zero — no camera movement";
             return;
         }
 
-        string range = $"L{(int)_shakeLeft} R{(int)_shakeRight} U{(int)_shakeUp} D{(int)_shakeDown} px " +
-                       $"every {ShakeMinIntervalMs}-{ShakeMaxIntervalMs} ms";
-
         if (ShakyTracking?.IsChecked != true)
         {
-            ShakeStatusText.Text = $"{range}, only while Roblox has the mouse locked";
-            return;
-        }
-
-        // The shake thread is spawned by StartClicking, so armed-but-stopped is
-        // a real state and saying "waiting for first person" there would lie.
-        if (!_running)
-        {
-            ShakeStatusText.Text = $"{range}, starts with the clicker";
+            ShakeStatusText.Text = "Only moves while Roblox has the mouse locked";
             return;
         }
 
         ShakeStatusText.Text = _shakeActive
-            ? $"Active — {range}"
-            : $"Waiting for Roblox first person — {range}";
+            ? $"Active — moving every {ShakeMinIntervalMs}-{ShakeMaxIntervalMs} ms"
+            : "Waiting for Roblox first person";
     }
 
     /// <summary>
@@ -835,51 +976,482 @@ public partial class MainWindow : Window
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
     }
 
-    private void ToggleMode_Click(object sender, RoutedEventArgs e)
+    private void ToggleMode_Click(object sender, RoutedEventArgs e) => SetClickMode(hold: false);
+
+    private void HoldMode_Click(object sender, RoutedEventArgs e) => SetClickMode(hold: true);
+
+    private void SetClickMode(bool hold)
     {
-        _holdMode = false;
-        ToggleModeButton.Background = (System.Windows.Media.Brush)FindResource("Accent");
-        HoldModeButton.ClearValue(BackgroundProperty);
+        _holdMode = hold;
+
+        Button active = hold ? HoldModeButton : ToggleModeButton;
+        Button inactive = hold ? ToggleModeButton : HoldModeButton;
+
+        active.Background = (System.Windows.Media.Brush)FindResource("Accent");
+        inactive.ClearValue(BackgroundProperty);
+
         UpdateEngineSettings();
     }
 
-    private void HoldMode_Click(object sender, RoutedEventArgs e)
+    private void PresetCard_Click(object sender, RoutedEventArgs e)
     {
-        _holdMode = true;
-        HoldModeButton.Background = (System.Windows.Media.Brush)FindResource("Accent");
-        ToggleModeButton.ClearValue(BackgroundProperty);
-        UpdateEngineSettings();
+        if ((sender as FrameworkElement)?.DataContext is not ClickPreset preset) return;
+
+        CpsSlider.Value = Math.Clamp(preset.Cps, CpsSlider.Minimum, CpsSlider.Maximum);
+        CdcSlider.Value = Math.Clamp(preset.Cdc, CdcSlider.Minimum, CdcSlider.Maximum);
+        RefreshAppliedPreset();
     }
 
-    private void PresetLow_Click(object sender, RoutedEventArgs e) => ApplyPreset(_presets[0]);
-    private void PresetNormal_Click(object sender, RoutedEventArgs e) => ApplyPreset(_presets[1]);
-    private void PresetHigh_Click(object sender, RoutedEventArgs e) => ApplyPreset(_presets[2]);
-    private void PresetFast_Click(object sender, RoutedEventArgs e) => ApplyPreset(_presets[3]);
-    private void PresetMax_Click(object sender, RoutedEventArgs e) => ApplyPreset(_presets[4]);
-    private void Preset100_Click(object sender, RoutedEventArgs e) => ApplyPreset(_presets[4]);
-
-    private void ApplyPreset(Preset preset)
+    private void DeletePreset_Click(object sender, RoutedEventArgs e)
     {
-        CpsSlider.Value = preset.Cps;
-        CdcSlider.Value = preset.Cdc;
+        if ((sender as FrameworkElement)?.DataContext is not ClickPreset preset) return;
+
+        _clickPresets.Remove(preset);
+        PresetStore.Save(_clickPresets);
+        RefreshAppliedPreset();
+        ShowPresetHint($"Removed \"{preset.Name}\"", isError: false);
     }
 
-
-
-    // Navigation placeholders. These keep the project simple while we build
-    // the remaining pages from your screenshots.
-    private void NavClicker_Click(object sender, RoutedEventArgs e) { }
-    private void NavPresets_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Presets page is next.");
-    private void NavResolution_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Resolution page is next.");
-    private void NavTweaks_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Tweaks page is next.");
-    private void NavOptimizations_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Optimizations page is next.");
-    private void NavHistory_Click(object sender, RoutedEventArgs e) => MessageBox.Show("History page is next.");
-    private void NavTheme_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Theme page is next.");
-    private void NavSettings_Click(object sender, RoutedEventArgs e)
+    private void RestoreDefaults_Click(object sender, RoutedEventArgs e)
     {
-        // Both hotkeys are rebound from their own buttons now, so this is just a
-        // page placeholder like the rest of the nav.
-        MessageBox.Show("Settings page is next.");
+        // Adds back only what is missing, so custom presets and edited defaults
+        // are left alone.
+        int added = 0;
+
+        foreach (ClickPreset preset in PresetStore.Defaults())
+        {
+            if (_clickPresets.Any(p => string.Equals(p.Name, preset.Name, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            _clickPresets.Add(preset);
+            added++;
+        }
+
+        if (added > 0) PresetStore.Save(_clickPresets);
+
+        RefreshAppliedPreset();
+        ShowPresetHint(added == 0 ? "All default presets are already here" : $"Restored {added} default preset(s)",
+            isError: false);
+    }
+
+    private void NumericBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+        e.Handled = !IsNumericCandidate(box, e.Text);
+    }
+
+    private void NumericBox_Pasting(object sender, DataObjectPastingEventArgs e)
+    {
+        if (sender is not TextBox box)
+        {
+            e.CancelCommand();
+            return;
+        }
+
+        string? pasted = e.DataObject.GetDataPresent(typeof(string))
+            ? e.DataObject.GetData(typeof(string)) as string
+            : null;
+
+        if (pasted == null || !IsNumericCandidate(box, pasted)) e.CancelCommand();
+    }
+
+    /// <summary>
+    /// Would the box still hold a number if this text were inserted? Checked
+    /// against the resulting string rather than the keystroke, so a second
+    /// decimal point is rejected while the first is allowed.
+    /// </summary>
+    private static bool IsNumericCandidate(TextBox box, string insert)
+    {
+        string candidate = box.Text
+            .Remove(box.SelectionStart, box.SelectionLength)
+            .Insert(box.SelectionStart, insert);
+
+        if (candidate.Length == 0) return true;
+
+        string separator = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+
+        // Partial entries that are not yet parseable but are on their way.
+        if (candidate == "-" || candidate == separator || candidate == "-" + separator) return true;
+
+        // Deliberately not NumberStyles.Float: that also admits exponents and
+        // whitespace, so "1e5" and " 5" would slip through.
+        return double.TryParse(
+            candidate,
+            NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+            CultureInfo.CurrentCulture,
+            out _);
+    }
+
+    private void NewPreset_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+
+        SavePreset_Click(sender, e);
+        e.Handled = true;
+    }
+
+    private void SavePreset_Click(object sender, RoutedEventArgs e)
+    {
+        string name = NewPresetName.Text.Trim();
+
+        if (name.Length == 0)
+        {
+            ShowPresetHint("Give the preset a name first", isError: true);
+            NewPresetName.Focus();
+            return;
+        }
+
+        if (!TryReadPresetField(NewPresetCps, CpsSlider, out double cps))
+        {
+            ShowPresetHint($"CPS must be a number between {CpsSlider.Minimum:0} and {CpsSlider.Maximum:0}", isError: true);
+            NewPresetCps.Focus();
+            return;
+        }
+
+        if (!TryReadPresetField(NewPresetCdc, CdcSlider, out double cdc))
+        {
+            ShowPresetHint($"CDC must be a number between {CdcSlider.Minimum:0} and {CdcSlider.Maximum:0}", isError: true);
+            NewPresetCdc.Focus();
+            return;
+        }
+
+        // Replacing rather than duplicating: two cards with the same name and
+        // different numbers would be impossible to tell apart.
+        ClickPreset? existing = _clickPresets
+            .FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+        if (existing != null) _clickPresets.Remove(existing);
+
+        _clickPresets.Add(new ClickPreset(name, cps, cdc));
+        PresetStore.Save(_clickPresets);
+
+        NewPresetName.Clear();
+        NewPresetCps.Clear();
+        NewPresetCdc.Clear();
+
+        ShowPresetHint(existing != null ? $"Replaced \"{name}\"" : $"Saved \"{name}\"", isError: false);
+        RefreshAppliedPreset();
+    }
+
+    /// <summary>
+    /// Blank means "use whatever the sliders are set to now", which is the common
+    /// case — dial it in on the Clicker page, then come here and name it.
+    /// </summary>
+    private static bool TryReadPresetField(TextBox box, Slider slider, out double value)
+    {
+        if (box.Text.Trim().Length == 0)
+        {
+            value = slider.Value;
+            return true;
+        }
+
+        if (!double.TryParse(box.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
+            return false;
+
+        if (value < slider.Minimum || value > slider.Maximum)
+            return false;
+
+        return true;
+    }
+
+    private void ShowPresetHint(string message, bool isError)
+    {
+        CustomPresetHint.Text = message;
+        CustomPresetHint.Foreground = (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
+    }
+
+    /// <summary>
+    /// Marks whichever preset the sliders currently match. Driven from the slider
+    /// values rather than from the last card clicked, so editing CPS by hand
+    /// clears the highlight instead of leaving it stale.
+    /// </summary>
+    private void RefreshAppliedPreset()
+    {
+        if (PresetAppliedText == null) return;
+
+        ClickPreset? match = _clickPresets.FirstOrDefault(p =>
+            Math.Abs(p.Cps - CpsSlider.Value) < 0.05 && Math.Abs(p.Cdc - CdcSlider.Value) < 0.05);
+
+        foreach (ClickPreset p in _clickPresets) p.IsApplied = ReferenceEquals(p, match);
+
+        PresetAppliedText.Text = match == null ? "No preset applied" : $"Applied — {match.Name}";
+        PresetAppliedText.Foreground =
+            (System.Windows.Media.Brush)FindResource(match == null ? "TextMuted" : "Accent");
+
+        PresetEmptyText.Visibility = _clickPresets.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void NavClicker_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(NavClicker, PageClicker, "Clicker", "Configure your own click engine");
+
+    private void NavPresets_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(NavPresets, PagePresets, "Presets", "Saved click configurations");
+
+    private void NavTweaks_Click(object sender, RoutedEventArgs e)
+    {
+        // Re-read on entry: a tweak may have been changed outside this app since
+        // the page was last shown.
+        RefreshTweaks();
+        ShowPage(NavTweaks, PageTweaks, "Tweaks", "Windows performance tweaks");
+    }
+
+    private void NavOptimizations_Click(object sender, RoutedEventArgs e)
+    {
+        ShowPage(NavOptimizations, PageOptimizations, "Optimizations", "Disk, input and memory");
+        RefreshTweaks();
+        RefreshMemoryLine();
+        _ = ScanTempAsync();
+    }
+
+    // ---- temp cleaner ----
+
+    private TempScan _lastTempScan;
+    private bool _tempBusy;
+
+    /// <summary>
+    /// Scanning walks six figures of files on a normal machine, so it runs off
+    /// the UI thread.
+    /// </summary>
+    private async Task ScanTempAsync()
+    {
+        if (_tempBusy) return;
+
+        _tempBusy = true;
+        CleanTempButton.IsEnabled = false;
+        ReclaimableHint.Text = "Scanning…";
+
+        try
+        {
+            DateTime cutoff = DateTime.UtcNow - TempCleaner.MinimumAge;
+            _lastTempScan = await Task.Run(() => TempCleaner.Scan(cutoff));
+
+            ReclaimableText.Text = FormatSize(_lastTempScan.Bytes);
+            ReclaimableHint.Text = _lastTempScan.Files == 0
+                ? "Nothing older than a day to clear"
+                : $"{_lastTempScan.Files:N0} files older than {TempCleaner.MinimumAge.TotalHours:0} hours";
+        }
+        catch (Exception ex)
+        {
+            ReclaimableText.Text = "—";
+            ReclaimableHint.Text = $"Could not scan: {ex.Message}";
+        }
+        finally
+        {
+            _tempBusy = false;
+            CleanTempButton.IsEnabled = _lastTempScan.Files > 0;
+        }
+    }
+
+    private void RescanTemp_Click(object sender, RoutedEventArgs e) => _ = ScanTempAsync();
+
+    private async void CleanTemp_Click(object sender, RoutedEventArgs e)
+    {
+        if (_tempBusy || _lastTempScan.Files == 0) return;
+
+        // Deleting files is not undoable, so this one keeps a confirmation even
+        // though the rest of the app has none.
+        string question = $"Delete {_lastTempScan.Files:N0} temp files ({FormatSize(_lastTempScan.Bytes)})?\n\n" +
+                          "Only files untouched for over a day are removed, and only from your temp folders.";
+
+        if (MessageBox.Show(question, "Clean temp files", MessageBoxButton.YesNo, MessageBoxImage.Question)
+            != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _tempBusy = true;
+        CleanTempButton.IsEnabled = false;
+        ShowCleanupStatus("Cleaning…", isError: false);
+
+        try
+        {
+            DateTime cutoff = DateTime.UtcNow - TempCleaner.MinimumAge;
+            CleanResult result = await Task.Run(() => TempCleaner.Clean(cutoff));
+
+            ShowCleanupStatus(
+                $"Deleted {result.Deleted:N0} files, freeing {FormatSize(result.Bytes)}. " +
+                $"{result.Skipped:N0} were skipped as in use or too recent.",
+                isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowCleanupStatus($"Clean-up failed: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            _tempBusy = false;
+        }
+
+        await ScanTempAsync();
+    }
+
+    // ---- memory ----
+
+    private void RefreshMemoryLine()
+    {
+        MemoryStatus memory = MemoryTools.Read();
+
+        MemoryLine.Text = memory.TotalBytes == 0
+            ? "Could not read memory status"
+            : $"{memory.UsedGb:0.00} GB used of {memory.TotalGb:0.00} GB ({memory.LoadPercent}%)";
+    }
+
+    private void FreeRam_Click(object sender, RoutedEventArgs e)
+    {
+        MemoryStatus before = MemoryTools.Read();
+        (int trimmed, int skipped) = MemoryTools.TrimWorkingSets();
+        MemoryStatus after = MemoryTools.Read();
+
+        RefreshMemoryLine();
+
+        double delta = after.AvailableGb - before.AvailableGb;
+
+        // Reported as a change in the number rather than as a benefit, because
+        // that is all it is.
+        ShowCleanupStatus(
+            $"Trimmed {trimmed} processes ({skipped} were not ours to touch). " +
+            $"Available went from {before.AvailableGb:0.00} GB to {after.AvailableGb:0.00} GB " +
+            $"({delta:+0.00;-0.00;0.00} GB). Expect it to drift back as those apps carry on.",
+            isError: false);
+    }
+
+    private void ShowCleanupStatus(string message, bool isError)
+    {
+        CleanupStatusText.Text = message;
+        CleanupStatusText.Foreground =
+            (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        double mb = bytes / 1024.0 / 1024.0;
+        return mb >= 1024 ? $"{mb / 1024.0:0.00} GB" : $"{mb:0} MB";
+    }
+
+    private void NavHistory_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(NavHistory, PageHistory, "History", "Past sessions");
+
+    private void NavTheme_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(NavTheme, PageTheme, "Theme", "Appearance");
+
+    private void NavSettings_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(NavSettings, PageSettings, "Settings", "Application preferences");
+
+    /// <summary>
+    /// Swaps the visible page and moves the sidebar highlight. The highlight is
+    /// driven by Tag rather than by which button was clicked last, so it can
+    /// never point at a page that failed to open.
+    /// </summary>
+    private void ShowPage(Button navButton, UIElement page, string title, string subtitle)
+    {
+        foreach (Button b in NavButtons) b.ClearValue(TagProperty);
+        navButton.Tag = "Selected";
+
+        foreach (UIElement p in Pages) p.Visibility = Visibility.Collapsed;
+        page.Visibility = Visibility.Visible;
+
+        // The status pill and start button belong to the clicker, not the shell.
+        StatusBlock.Visibility = ReferenceEquals(page, PageClicker)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        PageTitleText.Text = title;
+        PageSubtitleText.Text = subtitle;
+    }
+
+    private Button[] NavButtons => new[]
+    {
+        NavClicker, NavPresets, NavTweaks,
+        NavOptimizations, NavHistory, NavTheme, NavSettings
+    };
+
+    private UIElement[] Pages => new UIElement[]
+    {
+        PageClicker, PagePresets, PageTweaks,
+        PageOptimizations, PageHistory, PageTheme, PageSettings
+    };
+
+    // ---- Windows tweaks ----
+
+    private void RefreshTweaks()
+    {
+        foreach (PcTweak tweak in _tweaks) tweak.Refresh();
+        foreach (PcTweak tweak in _inputTweaks) tweak.Refresh();
+
+        RestartAdminButton.Visibility = TweakEnvironment.IsElevated
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        if (TweakStatusText.Text.Length == 0)
+        {
+            // Counted rather than written out, so it cannot drift when a tweak's
+            // requirement changes.
+            int needAdmin = _tweaks.Count(t => t.RequiresAdmin);
+
+            ShowTweakStatus(TweakEnvironment.IsElevated
+                ? "Running as administrator — every tweak is available."
+                : $"Running as a normal user. {needAdmin} of these need you to restart as admin first.",
+                isError: false);
+        }
+    }
+
+    private void Tweak_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not PcTweak tweak) return;
+
+        bool wasApplied = tweak.IsApplied == true;
+        string? error = tweak.Toggle(_tweakState);
+
+        if (error != null)
+        {
+            ShowTweakStatus(error, isError: true);
+            return;
+        }
+
+        ShowTweakStatus($"{tweak.Name} — {(wasApplied ? "reverted" : "applied")}.", isError: false);
+    }
+
+    private void RevertAll_Click(object sender, RoutedEventArgs e)
+    {
+        var errors = new List<string>();
+        int reverted = 0;
+
+        foreach (PcTweak tweak in _tweaks)
+        {
+            if (tweak.IsApplied != true || !tweak.CanAct) continue;
+
+            string? error = tweak.Toggle(_tweakState);
+            if (error != null) errors.Add(error);
+            else reverted++;
+        }
+
+        RefreshTweaks();
+
+        if (errors.Count > 0)
+        {
+            ShowTweakStatus(string.Join("  ", errors), isError: true);
+            return;
+        }
+
+        ShowTweakStatus(reverted == 0 ? "Nothing to revert." : $"Reverted {reverted} tweak(s).", isError: false);
+    }
+
+    private void RestartAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        if (!TweakEnvironment.RestartElevated())
+        {
+            ShowTweakStatus("Could not restart as administrator — the prompt was declined.", isError: true);
+            return;
+        }
+
+        Close();
+    }
+
+    private void ShowTweakStatus(string message, bool isError)
+    {
+        TweakStatusText.Text = message;
+        TweakStatusText.Foreground =
+            (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
     }
 
 
@@ -904,6 +1476,8 @@ public partial class MainWindow : Window
         RefreshStatus();
         UpdateShakeLabel();
         ProbePingAsync();
+
+        if (_settingsDirty) SaveAppSettings();
     }
 
     /// <summary>
@@ -972,8 +1546,12 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         StopClicking();
+        _shakeCts.Cancel();
         _statsTimer.Stop();
         _hotkeyTimer.Stop();
+
+        // Catches anything changed inside the last tick.
+        SaveAppSettings();
     }
 
     // Below this the interval exceeds a minute and the app is effectively idle.
