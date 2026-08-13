@@ -1,78 +1,84 @@
 # MyBlinkStyleClicker — Architectural Overview
 
-**Status:** early prototype. One window, one feature (auto-click), everything else is UI scaffolding.
+**Status:** four working pages (Clicker, Presets, Tweaks, Optimizations) and three unbuilt ones (History, Theme, Settings).
 **Stack:** C# / .NET 10 (`net10.0-windows`), WPF, nullable enabled, implicit usings, no third-party packages.
 **Entry point:** `App.xaml` → `StartupUri="MainWindow.xaml"` (no explicit `Main`; WPF SDK generates it).
 
-**Purpose.** A configurable auto-clicker for single-player and private-server use. The Clicker page drives a synthetic left-click stream: rate in clicks per second, hold duration as a percentage of each cycle, activated by hotkey in toggle or hold mode. The remaining sidebar pages are unbuilt.
+**Purpose.** A configurable auto-clicker aimed at single-player and private-server use, with aim-training support. The Clicker page drives a synthetic left-click stream — rate in clicks per second, hold duration as a percentage of each cycle, activated by hotkey in toggle or hold mode — and can add bounded camera shake to make tracking practice harder. The remaining pages manage saved profiles and a small set of Windows settings.
 
-**Domain terms.** *CPS* — clicks per second. *CDC* — Click Duty Cycle, the share of each click period the button stays held; 0% is an instantaneous press-release, 100% holds for the whole period.
+**Domain terms.**
+*CPS* — clicks per second.
+*CDC* — Click Duty Cycle, the share of each click period the button stays held; 0% is an instantaneous press-release, 100% holds for the whole period.
+*Shaky Tracking* — synthetic camera movement, not timing jitter. "Tracking" is the aim-trainer sense: following a moving target.
 
 ---
 
 ## 1. File map
 
-| File | Role | LOC |
+| File | Role | Lines |
 |---|---|---|
-| `MyBlinkStyleClicker.csproj` | SDK-style project. `WinExe`, `UseWPF=true`. No package refs. | 11 |
+| `MyBlinkStyleClicker.csproj` | SDK-style project. `WinExe`, `UseWPF=true`. No package refs. | 9 |
 | `MyBlinkStyleClicker.slnx` | XML solution format (VS 2026). | 3 |
-| `App.xaml` / `App.xaml.cs` | Application object. Wires two global exception handlers that show a `MessageBox` with the stack trace. | 8 / 24 |
-| `MainWindow.xaml` | The entire UI: sidebar nav + "Clicker" page. Resources (brushes, button styles) are declared window-locally, not in `App.Resources`. | 291 |
-| `MainWindow.xaml.cs` | The entire application logic: click engine, hotkey handling, mode state, presets, stats timer, and the Win32 P/Invoke layer. | 319 |
-| `HotkeySettings.cs` | Single-value JSON persistence for the activation key. | 43 |
+| `App.xaml` / `App.xaml.cs` | Application object. Two global exception handlers that show a `MessageBox` with the stack trace. | 7 / 20 |
+| `MainWindow.xaml` | The entire UI: window-local resources, sidebar nav, and all seven pages stacked in one `Grid`. | 878 |
+| `MainWindow.xaml.cs` | Click engine, shake engine, hotkey polling, navigation, presets, tweaks and clean-up handlers, plus the Win32 P/Invoke layer. | 1367 |
+| `HotkeySettings.cs` | `HotkeyBinding` (virtual-key + display name) and its JSON persistence. | 82 |
+| `AppSettings.cs` | Clicker page state — sliders, shake directions, toggles, click mode. | 53 |
+| `ClickPreset.cs` | `ClickPreset` plus `PresetStore`, the CPS/CDC profile list. | 97 |
+| `PcTweaks.cs` | `PcTweak` base and nine concrete Windows tweaks, `TweakState`, elevation helpers. | 604 |
+| `SystemCleanup.cs` | Temp-file scanner/cleaner and memory helpers. | 206 |
 
-There is no test project, no MVVM layer, no DI, no navigation framework, and no logging.
+There is no test project, no MVVM layer, no DI, and no logging. Verification during development was done with throwaway console harnesses compiled against these files directly.
 
 ---
 
 ## 2. Layering (as-built)
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ MainWindow.xaml            declarative UI + theme brushes│
-└───────────────┬──────────────────────────────────────────┘
-                │ x:Name field access, Click= / KeyDown= handlers
-┌───────────────▼──────────────────────────────────────────┐
-│ MainWindow.xaml.cs                                       │
-│  ├─ input layer     Window_KeyDown, RebindHotkey         │
-│  ├─ state           _running _holdMode _powerMode        │
-│  ├─ click engine    StartClicking / ClickLoopAsync       │
-│  ├─ presets         List<Preset> + 6 Click handlers      │
-│  ├─ telemetry       DispatcherTimer → UpdateStats        │
-│  └─ interop         SendInput / GetAsyncKeyState + structs│
-└───────────────┬──────────────────────────────────────────┘
-                │
-┌───────────────▼──────────┐   ┌──────────────────────────┐
-│ user32.dll (SendInput)   │   │ HotkeySettings (JSON I/O)│
-└──────────────────────────┘   └──────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│ MainWindow.xaml     resources, sidebar, seven stacked pages    │
+└───────────────┬────────────────────────────────────────────────┘
+                │ x:Name access, Click= handlers, DataTemplates
+┌───────────────▼────────────────────────────────────────────────┐
+│ MainWindow.xaml.cs                                             │
+│  ├─ navigation      ShowPage + Tag-driven sidebar selection    │
+│  ├─ input           HotkeyTimer_Tick (polled), rebind capture  │
+│  ├─ click engine    ClickLoop  on its own thread               │
+│  ├─ shake engine    ShakeLoop  on its own thread               │
+│  ├─ telemetry       DispatcherTimer → stats, ping, autosave    │
+│  └─ interop         SendInput / GetAsyncKeyState / GetCursorInfo│
+└──┬──────────┬──────────┬───────────┬───────────────────────────┘
+   │          │          │           │
+┌──▼───────┐ ┌▼────────┐ ┌▼────────┐ ┌▼──────────────┐
+│ Hotkey   │ │ App     │ │ Click   │ │ PcTweaks      │
+│ Settings │ │ Settings│ │ Preset  │ │ SystemCleanup │
+└──────────┘ └─────────┘ └─────────┘ └───────────────┘
 ```
 
-Everything above the interop boundary lives in one partial class. There is one seam: the engine thread reads a `ClickSettings` record rather than the controls, because it must. Everything else still treats UI state as application state — presets write to sliders, `_holdMode` shadows a button's background brush — so there is no model to test or persist independently.
+The engines read an immutable `ClickSettings` snapshot published by the UI thread through a `volatile` field, because UI controls have thread affinity. Everything else still treats UI state as application state — presets write to sliders, `_holdMode` shadows a button's background brush — so there is no view model to test independently.
 
 ---
 
 ## 3. The click engine
 
-`StartClicking()` creates a `CancellationTokenSource` and fires `ClickLoopAsync` without awaiting it (`_ = ...`). The loop:
+`StartClicking()` creates a `CancellationTokenSource` and starts `ClickLoop` on a dedicated background `Thread` at `AboveNormal` priority, named `ClickEngine`. It cannot run on the dispatcher: Ultra Accuracy spins, which would freeze rendering.
 
-1. If hold-mode and the physical key is up → `await Task.Delay(5)` and spin.
-2. Read CPS from the slider; if below `MinimumCps`, idle and continue (0 CPS means armed but not clicking).
-3. Compute `period = 1000.0 / cps`.
-4. Optionally add up to `min(3ms, 8% of period)` of jitter when *Shaky Tracking* is checked.
-5. Split the period by CDC: `downMs = period × duty`, `upMs = period − downMs`.
-6. `SendLeftDown()` → wait `downMs` → `SendLeftUp()` → wait `upMs`.
+Each iteration:
 
-Press and release are separate `SendInput` calls; a combined call would always yield a zero-length hold and make CDC meaningless. A `finally` block releases the button if cancellation lands between the press and the release — otherwise stopping mid-click would leave the left button logically held across the whole desktop.
+1. If hold-mode and the bound key is up → sleep 5 ms, resync the deadline, continue.
+2. Read CPS from the snapshot; below `MinimumCps` the engine is armed but idle.
+3. `period = 1000.0 / cps`, split by CDC into `downMs` and `upMs`.
+4. `SendLeftDown()` → wait → `SendLeftUp()` → count the click → wait.
 
-`WaitAsync` skips the `await` entirely for sub-millisecond spans. At CDC 0 or 100 one half of the period is empty, but the other half always yields, so the loop cannot spin hot.
+Press and release are separate `SendInput` calls; a combined call always yields a zero-length hold and makes CDC meaningless. A `finally` releases the button if cancellation lands between press and release — otherwise stopping mid-click leaves the left button logically held across the whole desktop.
 
-**The loop runs on its own thread** — a background `Thread` at `AboveNormal` priority, named `ClickEngine`. It cannot run on the dispatcher, because Ultra Accuracy spins and would freeze rendering. Since UI controls have thread affinity, the engine never reads them; it reads an immutable `ClickSettings` snapshot published by the UI thread through a `volatile` field.
+**Timing.** Three mechanisms make the requested rate achievable:
 
-**Timing.** Three things make the requested rate achievable:
-
-1. `timeBeginPeriod(1)` for the life of the loop, taking the system timer from ~15.6 ms to ~1 ms. Without it nothing above ~32 CPS is reachable, whatever the slider says.
-2. Absolute deadline accumulation. Each half-cycle advances a timestamp by exactly its share of the period, so time spent in `SendInput` and loop overhead cannot compound into drift. A resync guard drops the deadline forward if the loop falls more than 100 ms behind, so it never bursts to catch up.
+1. `timeBeginPeriod(1)` for the life of the loop, taking the system timer from ~15.6 ms to ~1 ms. Without it nothing above ~32 CPS is reachable whatever the slider says.
+2. Absolute deadline accumulation — each half-cycle advances a timestamp by exactly its share of the period, so `SendInput` and loop overhead cannot compound into drift. A resync guard drops the deadline forward if the loop falls more than 100 ms behind, so it never bursts to catch up.
 3. Ultra Accuracy, optional, spinning out the last 2 ms instead of sleeping.
+
+`WaitUntil` slices its coarse sleep into 20 ms chunks. At 1 CPS a single hold runs to hundreds of milliseconds, and an uninterruptible sleep there would keep the mouse button physically down that long after a stop. Measured cancellation latency is 2–5 ms.
 
 Measured on a 16-core machine, mirroring this code with `SendInput` removed:
 
@@ -83,143 +89,172 @@ Measured on a 16-core machine, mirroring this code with `SendInput` removed:
 | 100 | 100.0 | 0.33 ms | ~0 | 100.0 | 0.04 ms | 0.28 core |
 | 150 | 150.0 | 0.53 ms | 0.01 core | 150.0 | 0.02 ms | 0.26 core |
 
-The rate is exact in both modes. Ultra Accuracy buys *evenness between individual clicks*, not throughput — roughly a 10–25× jitter reduction for up to a third of a core. It matters most at high CPS, where 0.5 ms is a larger share of a short period.
-
-These are clean-room figures; the real engine also calls `SendInput` twice per cycle and shares the machine with whatever else is running.
-
-Cancellation is cooperative: `StopClicking()` cancels and disposes the CTS; the loop catches `OperationCanceledException` and exits. Any other exception routes to `Dispatcher.InvokeAsync(StopClicking)`.
+The rate is exact in both modes. Ultra Accuracy buys *evenness between individual clicks*, not throughput — roughly a 10–25× jitter reduction for up to a third of a core. These are clean-room figures; the real engine also calls `SendInput` twice per cycle.
 
 ---
 
-## 4. Input / hotkey model
+## 4. The shake engine
 
-Activation is handled by **`Window_KeyDown`**, a routed WPF event. This means the hotkey only works while the window has keyboard focus. There is no `RegisterHotKey` and no low-level keyboard hook, so the clicker cannot be triggered from inside the target application — which is the usual use case for this class of tool. Adding a global hotkey is the largest missing architectural piece.
+`ShakeLoop` runs on its own background thread for the **lifetime of the window**, not the lifetime of a clicking session — aim practice does not require auto-clicking, so the two are independent. It is gated inside the loop by the checkbox rather than by thread lifetime.
 
-`Window_KeyDown` discards auto-repeat first (`e.IsRepeat`), then splits four ways:
+Each tick picks a fresh absolute offset within the configured range and moves the cursor by the difference:
 
-- **Rebind capture** — when `_rebindingHotkey` is set, the next key press is stored, persisted, mirrored into the UI, and pushed into the engine snapshot.
-- **Escape** — unconditional emergency stop, checked before everything else so it survives being bound as the hotkey and works while a value box has focus.
-- **Text entry guard** — returns if a `TextBox` has focus, so typing a number cannot trigger the hotkey.
-- **Activation** — `e.Key == _hotkeySettings.HotkeyKey`; toggles, or in hold mode starts.
+```
+targetX = random in [-Left,  +Right]
+targetY = random in [-Up,    +Down]     // Windows dy is positive-down
+SendMouseMove(targetX - offsetX, targetY - offsetY)
+```
 
-Hold mode additionally uses `Window_KeyUp` to stop, and `Window_Deactivated` as a backstop — losing focus mid-hold means `KeyUp` never arrives, which would otherwise leave the clicker running with no key held. Toggle mode deliberately ignores both: continuing to click after you switch away is the point.
+**This is deliberately not a random walk.** Taking an independent random step each tick accumulates: simulated over 10 seconds at 30 Hz, independent steps drifted 79 px off origin with an 82 px maximum excursion, while the bounded form stayed within ±4 px. For aim training a crosshair that slides off-screen is not a handicap, it is a fault. The outstanding offset is also undone when the gate closes or the thread exits, so the cursor ends where it began.
 
-The engine's own hold gate reads `ClickSettings.HotkeyVk`, produced by `KeyInterop.VirtualKeyFromKey`. That translation is what keeps hold mode pointed at the bound key; the gate previously used a hardcoded `VK_F6` and silently ignored rebinds.
+The four directions are magnitudes — sign is ignored, so `-8` and `8` both mean eight pixels that way. Asymmetric ranges bias the resting position, which is inherent rather than a bug.
+
+**Gating.** Shake only runs while Roblox owns the foreground window *and* the system cursor is hidden (`GetForegroundWindow` → pid → process name, plus `GetCursorInfo`). That is the closest an external process can get to "is the player in first person" without reading the game. It is a superset: third-person shift-lock and holding right-mouse to rotate lock the cursor the same way. Distinguishing them would mean reading a Hyperion-protected process, which this app does not do. The pid→name lookup is cached until the pid changes, since the loop runs every 20–40 ms.
+
+---
+
+## 5. Input / hotkey model
+
+**Hotkeys are polled, not routed.** A `DispatcherTimer` at 15 ms reads `GetAsyncKeyState` for both bindings and acts on edges. Routed `KeyDown` only arrives while this window has focus — which is exactly when a game does not — and mouse side buttons never route to the window at all. Polling reads the same global state for keys and mouse buttons alike, without hooks or injection.
+
+A binding is a `HotkeyBinding` — a virtual-key code plus a display name — so a keyboard key and a mouse side button are the same kind of thing. `HotkeyBinding.FromKey` uses `KeyInterop.VirtualKeyFromKey`; `FromMouse` maps `XButton1`/`XButton2` to `0x05`/`0x06` and returns null for everything else. Left is deliberately unbindable: it is the button this app synthesises.
+
+Two bindings exist: start/stop (default F6) and Shaky Tracking (default F7).
+
+**Rebinding** is inline — the button becomes "Select A Hotkey" and captures the next input. Capture runs on `PreviewKeyDown`, ahead of the focused control, because a `Button` treats Space and Enter as activation during `KeyDown`; capturing there would let the rebind button re-trigger itself. Escape cancels. A key already bound to the other action is refused. After capture the edge detectors are primed from live key state, or releasing the just-bound key would read as a fresh press.
+
+**Escape stays a routed window event on purpose.** Polling it would make Escape stop the clicker from inside any application.
+
+`Window_Deactivated` was removed. It used to stop hold mode when focus was lost, as a backstop for a `KeyUp` that would never arrive; with polling that backstop became actively harmful, since it would kill the clicker the instant you alt-tabbed into the game.
 
 ### Status
 
-`RefreshStatus` derives the pill and the start-button label from `_running`, `_holdMode`, and the live key state. Hold mode has two live states — **ARMED** (started, waiting on the key) and **RUNNING** (actually clicking) — and conflating them is what made the old status misleading. It is re-evaluated on every stats tick, so ARMED cannot go stale.
-
-### Persistence
-
-`HotkeySettings` serializes `{ "HotkeyKey": "F6" }` to `hotkey_settings.json` using a **relative path**, so the file lands in the process working directory — the build output folder under F5, but wherever the shell happens to point when launched otherwise. Both `Save` and `Load` swallow all exceptions silently. Migrating to `%APPDATA%` and a typed settings record is a small, contained change.
+`RefreshStatus` derives the pill and the start-button label from `_running`, `_holdMode`, and live key state. Hold mode has two live states — **ARMED** (started, waiting on the key) and **RUNNING** (actually clicking). Re-evaluated on every stats tick, so ARMED cannot go stale.
 
 ---
 
-## 5. State and modes
+## 6. Navigation
 
-| Field | Written by | Read by |
+Seven pages live as sibling `StackPanel`s in one `Grid` inside the page `ScrollViewer`, all collapsed except the active one. `ShowPage` clears `Tag` on every nav button and sets `Tag="Selected"` on the one being opened, which drives the accent rail and lifted background through a template trigger. Selection keys off the page that opened rather than the button that was clicked, so the highlight cannot point at a page that failed to load.
+
+The status pill and start button are collapsed on every page except Clicker — they belong to the clicker, not the shell. Hotkeys remain global, so clicking can still be started and stopped from any tab.
+
+Tweaks and Optimizations re-read system state on entry, since a setting may have changed outside the app.
+
+> **Resource ordering matters.** The shared `TweakRow` `DataTemplate` uses `{StaticResource Badge}`, and WPF cannot resolve a forward `StaticResource` reference. Because template content is deferred, a forward reference compiles cleanly and only throws when the page first renders. `TweakRow` must stay below the badge styles.
+
+---
+
+## 7. Presets
+
+`ClickPreset` is an observable name/CPS/CDC triple; `PresetStore` persists the **whole list**, not just user-created entries. Every preset is deletable, so the defaults have to be able to stay deleted — regenerating them from code each launch would resurrect what the user removed. A missing file seeds the defaults; a file holding an empty list is respected as "the user deleted everything". **Restore defaults** adds back only what is missing.
+
+Cards show the numbers and a fill bar scaled against 150 CPS, so relative speed is legible before reading any digits. `IsApplied` is derived from the *slider values*, not from the last card clicked, so editing CPS by hand clears the highlight rather than leaving a stale claim on screen.
+
+Numeric fields reject anything that would not parse, on typing and on paste, by testing the resulting string rather than the keystroke — so a second decimal point is refused while the first is allowed. `NumberStyles.AllowDecimalPoint | AllowLeadingSign` is used deliberately in place of `NumberStyles.Float`, which would also admit exponents and whitespace.
+
+---
+
+## 8. Windows tweaks
+
+`PcTweak` is an abstract base: read current state, apply, revert, with prior values recorded to `tweak_state.json` **before** anything is written. Revert restores what the machine actually had rather than an assumed default. A null recorded value means "did not exist", so revert deletes the value instead of inventing a zero.
+
+Nine tweaks, each carrying an honest `Impact` string rather than marketing:
+
+| Tweak | Mechanism | Admin |
 |---|---|---|
-| `_running` | Start/Stop | `ToggleRunning`, `StartClicking` |
-| `_holdMode` | Toggle/Hold buttons | key handler, click loop |
-| `_rebindingHotkey` | `RebindHotkey` | key handler |
-| `_clickCts` | Start/Stop | click loop |
+| High Performance power plan | `powercfg /setactive`, duplicating the scheme if Windows hides it | No |
+| Keep all CPU cores awake | scheme registry `CPMINCORES` = 100, and unhides the setting | Yes |
+| Disable Game DVR recording | `HKCU\System\GameConfigStore` | No |
+| Disable transparency effects | `HKCU\…\Themes\Personalize` | No |
+| Visual effects for best performance | `HKCU\…\Explorer\VisualEffects` | No |
+| Hardware-accelerated GPU scheduling | `HKLM\…\GraphicsDrivers\HwSchMode` | Yes |
+| Disable Superfetch (SysMain) | service `Start` = 4 | Yes |
+| Disable power throttling | `HKLM\…\Power\PowerThrottling` | Yes |
+| Turn off mouse acceleration | `SystemParametersInfo(SPI_SETMOUSE)` | No |
 
-Click mode (Toggle/Hold) uses a field plus a button `Background` brush set imperatively, with each handler clearing the other via `ClearValue`. It works, but it duplicates state. The `SegmentButton` style is deliberately kept even though Power Mode's removal left it unreferenced — it is a mutually-exclusive segmented control looking for exactly this control to adopt it.
+Mouse acceleration lives on **Optimizations**, not Tweaks: it is about input fidelity, not machine performance, and it is the most consequential setting here for an aim-training tool. It uses `SystemParametersInfo` rather than raw registry writes so the change applies immediately with no sign-out.
+
+Core parking is driven through the registry rather than `powercfg` aliases for a specific reason: Windows ships `CPMINCORES` hidden (`Attributes = 1`), and while hidden `powercfg -q` prints nothing for it even with explicit GUIDs. Query-based detection silently reports "unreadable" on a stock machine.
+
+**There is no Apply All.** One click silently changing several system settings, two of them registry writes, is how people end up unable to undo something. Revert All exists — it only moves in the safe direction.
 
 ---
 
-## 6. UI surface vs. implemented behavior
+## 9. Optimizations
 
-The XAML advertises considerably more than the engine implements. Inventory:
+**Temp cleaner.** Scans `%TEMP%` and `%SystemRoot%\Temp` and nowhere else. Files touched within the last 24 hours are left alone, so an in-flight installer keeps its working set. Locked files are skipped and counted rather than aborting the run. The walk **refuses to cross a reparse point** — a junction inside temp can point anywhere, and following one is how a temp cleaner becomes a disaster; a directory whose attributes cannot be read is treated as one. Deleting is irreversible, so this is the one action in the app that keeps a confirmation dialog.
 
-| Control | Wired to logic? |
+Measured on a development machine: 181,189 files / 3,186 MB eligible, 1.5 s to walk — hence the scan runs off the UI thread.
+
+**Memory.** `GlobalMemoryStatusEx` for the readout; `EmptyWorkingSet` per process for the Free RAM button. That button is included because it was requested, and labelled for what it does: trimming working sets pushes pages onto the standby list, so the available figure rises and then falls again as processes fault them back in. The result message reports the before/after numbers and says to expect drift, rather than claiming a benefit. The temp cleaner is the accent button; Free RAM is secondary — the visual hierarchy reflects which one does something.
+
+---
+
+## 10. Persistence
+
+Four JSON files, all written beside the executable via relative paths, all gitignored as user state:
+
+| File | Contents |
 |---|---|
-| CPS slider + value box | **Yes** — read every loop iteration, fractional |
-| CDC slider + value box | **Yes** — splits each period into hold and release |
-| Shaky Tracking | **Yes** — adds jitter |
-| Click mode Toggle/Hold | **Yes** |
-| Ultra Accuracy | **Yes** — gates the spin-wait in `WaitUntil` |
-| CPU stat tile | **Yes** — `GetSystemTimes` delta at 1 Hz, machine-wide |
-| RAM stat tile | **Yes** — `Process.WorkingSet64` at 1 Hz, this process only |
-| Measured rate | **Yes** — delivered clicks per second, Stopwatch-timed |
-| Ping Sync | **Yes** — measures latency, forces the spin-wait above the threshold |
-| HitFix | No |
-| Nav: Presets…Theme | No — `MessageBox` placeholders |
-| Nav: Settings | Partial — hotkey rebind prompt |
+| `hotkey_settings.json` | Both bindings, as virtual-key + name |
+| `app_settings.json` | CPS, CDC, four shake directions, saved shake snapshot, toggles, click mode |
+| `click_presets.json` | The full preset list |
+| `tweak_state.json` | Prior values for applied tweaks |
 
-*Frame Sync* was removed from the Precision panel rather than left inert. *Ultra Accuracy* was removed and then restored once it had something real to gate. *Power Mode* was removed outright — every meaning it plausibly had was either already occupied by Ultra Accuracy (CPU-for-accuracy tradeoff) or by the presets (rate tiers), and the one it did not claim, Windows power plans, was explicitly disclaimed by a comment in the original source. CDC now spans the full width it vacated.
+`AppSettings` saves automatically: every change point already routes through `UpdateEngineSettings`, so that is the single place marking the config dirty, and the 1 Hz stats tick flushes it. Dragging a slider therefore does not write the file on every pixel. Closing the window catches anything from the last second.
 
-### Ping Sync
+Every loader degrades to defaults on missing or corrupt input, and `HotkeySettings` additionally falls back to the older "name of a WPF `Key`" format so files written by earlier builds still load.
 
-One ICMP probe per stats tick toward `www.roblox.com`, issued only while the toggle is on, and skipped whenever the previous probe is still outstanding. Above `HighPingMs` it forces the spin-wait on regardless of the Ultra Accuracy checkbox, so `UpdateEngineSettings` publishes `spin = UltraAccuracy || (PingSync && ping >= threshold)`.
-
-The rationale is *minimise the error we control*: under a degraded connection, don't add local timing jitter on top of the network's.
-
-Two limits worth stating plainly for anyone extending this:
-
-- **It is not Roblox's in-game ping.** That figure is measured application-side inside the client. An ICMP round trip to Roblox's front end is a different quantity that moves in sympathy, not a substitute. Reading the real one means reading a Hyperion-protected process — out of scope by design.
-- **The effect is small by construction.** Local jitter is ~0.5 ms with the spin-wait off and ~0.03 ms with it on. When ping is high enough to trigger this, network variance is tens of milliseconds and dominates both. Latency cannot be compensated for in a local click stream — a constant delay shifts every click equally and so preserves the intervals between them, and the part that does distort arrival timing, jitter, is unpredictable by definition. This feature reduces the one term it can reach.
-
-Dead code that remains: `PresetFast_Click` and `PresetMax_Click` (no XAML binds them — the "Fast" preset at index 3 is unreachable).
+Relative paths mean the files land in the process working directory — the build output under F5, but wherever the shell points otherwise. Moving to `%APPDATA%` remains a small, contained change.
 
 ---
 
-## 7. Interop layer
+## 11. Interop layer
 
-Standard `SendInput` marshalling, declared as private nested types at the bottom of `MainWindow`:
+Private nested types and `DllImport`s at the bottom of `MainWindow`, plus a few in `PcTweaks` and `SystemCleanup`:
 
-- `INPUT` (sequential) → `InputUnion` (explicit, `FieldOffset(0)`) → `MOUSEINPUT` (sequential).
-- The union declares only the `mi` member. Because `INPUT`'s size must match the OS expectation, this works on x64 by luck of layout — `MOUSEINPUT` is the largest member of the real union, so `Marshal.SizeOf<INPUT>()` yields the correct 40 bytes. Adding keyboard support means adding `KEYBDINPUT`/`HARDWAREINPUT` to the union, not just a new method.
-- `SendMouseEvent` sends exactly one event; `SendLeftDown` and `SendLeftUp` wrap it. Its return value is discarded, so injection blocked by UIPI (target window running elevated while this app is not) fails silently and looks like a dead hotkey.
-- `GetSystemTimes` (kernel32) backs the CPU tile, using a private `FileTime` struct — named to stay distinct from `System.Runtime.InteropServices.ComTypes.FILETIME`.
+- `INPUT` (sequential) → `InputUnion` (explicit, `FieldOffset(0)`) → `MOUSEINPUT` (sequential). The union declares only `mi`; `MOUSEINPUT` is the largest member of the real union, so `Marshal.SizeOf<INPUT>()` yields the correct size. Adding keyboard support means extending the union, not just adding a method.
+- `SendMouseEvent` sends exactly one event; `SendLeftDown`/`SendLeftUp`/`SendMouseMove` wrap it. Return values are discarded, so injection blocked by UIPI fails silently.
+- `GetAsyncKeyState` — hotkey polling, keyboard and mouse buttons alike.
+- `GetSystemTimes` — the CPU tile, via a private `FileTime` struct named to stay distinct from `ComTypes.FILETIME`.
+- `GetForegroundWindow` / `GetWindowThreadProcessId` / `GetCursorInfo` — the shake gate.
+- `timeBeginPeriod` / `timeEndPeriod` (winmm) — per-process since Windows 10 2004, balanced in the loop's `finally`.
+- `SystemParametersInfo` — mouse acceleration.
+- `GlobalMemoryStatusEx` / `EmptyWorkingSet` — the memory panel.
 
-This is the one part of the codebase with a clean seam. Extracting it to an `IInputSender` / `Win32InputSender` pair would make the click loop testable without a display.
+Extracting the input calls to an `IInputSender` would make the click loop testable without a display. That is still the cleanest available seam.
 
 ---
 
-## 8. Error handling
-
-Three layers, all terminal-user-facing:
+## 12. Error handling
 
 1. `MainWindow` constructor wraps `InitializeComponent` in try/catch → `MessageBox` → rethrow.
 2. `App.DispatcherUnhandledException` → `MessageBox` with stack trace, then `e.Handled = false` (the app still dies).
 3. `AppDomain.UnhandledException` → same.
 
-Plus silent `catch { }` in `HotkeySettings` and in `UpdateStats`. There is no log file, so anything swallowed is unrecoverable after the fact.
+Engine threads swallow their own exceptions so a failed input call cannot take the app down; the click loop routes anything unexpected to `Dispatcher.InvokeAsync(StopClicking)`. Persistence and tweak detection degrade silently to defaults. There is no log file, so anything swallowed is unrecoverable after the fact — the largest remaining gap in diagnosability.
 
 ---
 
-## 9. Notable defects found during review
+## 13. Known defects
 
-Ordered by user impact.
+1. **Settings paths are working-directory-relative** (section 10).
+2. **`SendInput` failures are invisible** (section 11) — a blocked injection looks identical to a dead hotkey.
+3. **HitFix is inert** — a labelled toggle with no implementation and no agreed meaning.
+4. **Rapid start/stop can overlap engine threads**, so an outgoing loop's release can land between a new loop's press and release, producing one short click. Self-correcting within a cycle.
+5. **`StopClicking` disposes the `CancellationTokenSource`** while engine threads may still read the token. Benign in practice — `IsCancellationRequested` reads a field and does not throw after dispose — but it is the documented anti-pattern.
 
-1. **No global hotkey.** `Window_KeyDown` is a routed WPF event, so activation requires window focus (section 4). Hold mode is therefore unusable from inside another application, and toggle mode cannot be stopped by hotkey once you switch away — only by returning to the window or pressing Escape there.
-2. **Settings path is working-directory-relative** (section 4).
-3. **`SendInput` failures are invisible** (section 7).
+### Fixed during review
 
-### Fixed since the first review
-
-- Escape ordering — the emergency stop was in an `else if` after the hotkey comparison, unreachable if the hotkey was rebound to Escape. It is now checked first, before the hotkey and before the text-box focus guard.
-- Power-mode buttons accumulating highlights — replaced by a radio group (section 5).
-- Stuck mouse button — introduced with the duty cycle and closed in the same change by the `finally` release (section 3).
-- Requested CPS not being delivered — the loop topped out near 32 CPS and ran 20% low even at the default 10. Fixed by the timer resolution and deadline accumulation in section 3, and now observable in the UI via the measured-rate readout.
-- Hold mode never stopping — releasing the key left `_running` true and the status stuck on RUNNING, with the hotkey a no-op thereafter. `Window_KeyUp` now stops it, `Window_Deactivated` backstops lost focus, and ARMED distinguishes waiting from clicking (section 4).
-- Auto-repeat thrashing the toggle — holding the hotkey started and stopped the loop tens of times per second. `e.IsRepeat` is discarded first.
-- Rebind not reaching the hold gate — the engine watched a hardcoded `VK_F6`. It now reads a translated virtual-key from the settings snapshot, and the sidebar badge and start button follow the bound key instead of reading "F6" forever.
-
-None of the remaining items are architectural dead ends. But 1–3 are the ones a user hits in the first minute.
+Escape unreachable behind the hotkey comparison · power-mode buttons accumulating highlights · stuck mouse button on mid-click cancellation · requested CPS not delivered (capped near 32) · hold mode never releasing · auto-repeat thrashing the toggle · rebind not reaching the hold gate · no global hotkey (now polled) · `_shakeActive` never cleared, leaving a stale "Active" label · shake value stored, displayed and reported as three different numbers · uninterruptible sleep holding the button down for seconds after a stop at low CPS · `TweakRow` declared above the resources it referenced, crashing the Tweaks page on first render.
 
 ---
 
-## 10. Where the seams should go
+## 14. Where the seams should go
 
-If this grows past the prototype, in rough priority order:
-
-1. **Finish extracting the click engine.** The thread, the `ClickSettings` snapshot, and the timing are already separated; what remains is lifting them out of `MainWindow` into a `ClickEngine` class taking an `IInputSender`, which would make the timing logic unit-testable without a display.
-2. **Global hotkey** via `RegisterHotKey` on the window handle (`HwndSource.AddHook`), with a `Key` → virtual-key translation shared by both the toggle and hold paths.
-4. **Introduce a view model** for the Clicker page so the engine stops reading `Slider.Value`, and mode selection stops living in `Background` brushes.
-5. **Real navigation** — the eight sidebar buttons imply a `ContentControl` host and one `UserControl` per page; the `MessageBox` placeholders are a stand-in for that shell.
-6. **Widen `HotkeySettings` into an app-settings store** under `%APPDATA%`, persisting CPS, CDC, mode, and the precision toggles.
-
-Steps 1 and 3 are prerequisites for the rest being worth doing; 4 and 5 are the ones that stop `MainWindow.xaml.cs` from being the only place code can go.
+1. **Finish extracting the click engine.** The thread, the snapshot and the timing are already separated; what remains is lifting them out of `MainWindow` into a `ClickEngine` taking an `IInputSender`, making the timing logic testable without a display.
+2. **Add a log file.** Every layer currently swallows exceptions silently, which was tolerable at prototype scale and is not once the app writes to `HKLM`.
+3. **Introduce a view model** for the Clicker page so the engines stop reading `Slider.Value` and click mode stops living in `Background` brushes. `MainWindow.xaml.cs` is past 1,300 lines and is the only place code can go.
+4. **Split `MainWindow.xaml` per page.** Seven pages in one 878-line file is the same problem in the other language.
+5. **Move persistence to `%APPDATA%`** behind a single settings service, rather than four classes each doing their own relative-path file I/O.
