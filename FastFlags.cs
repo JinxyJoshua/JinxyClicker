@@ -32,10 +32,15 @@ public static class FastFlagStore
     /// </summary>
     public static IReadOnlyList<FastFlag> FpsBoost { get; } = new[]
     {
+        // These two together are as close to "no textures" as the allowlist
+        // allows. Nothing on it removes texturing outright — the flags the
+        // community calls "no textures" are these, at quality zero.
         new FastFlag("DFFlagTextureQualityOverrideEnabled", "True",
             "Lets the texture quality below be applied at all."),
         new FastFlag("DFIntTextureQualityOverride", "0",
             "Lowest texture detail. The largest single saving on a weak GPU."),
+        new FastFlag("FFlagDebugSkyGray", "True",
+            "Replaces the skybox with flat grey. Removes sky rendering entirely."),
         new FastFlag("DFIntDebugFRMQualityLevelOverride", "1",
             "Pins the overall render quality to its lowest level."),
         new FastFlag("FIntDebugForceMSAASamples", "0",
