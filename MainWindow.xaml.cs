@@ -45,7 +45,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Shake, Replay, Record }
+    private enum RebindTarget { None, Click, Shake, Replay, Record, Combo }
     private RebindTarget _rebinding = RebindTarget.None;
 
     private const int HotkeyPollMs = 8;
@@ -292,6 +292,7 @@ public partial class MainWindow : Window
         bool shakeWasDown = false;
         bool replayWasDown = false;
         bool recordWasDown = false;
+        bool comboWasDown = false;
         bool wasInCorner = false;
         bool wasArmed = false;
 
@@ -315,6 +316,7 @@ public partial class MainWindow : Window
             bool shakeDown = IsKeyDown(s.ShakeHotkeyVk);
             bool recordDown = IsKeyDown(s.RecordHotkeyVk);
             bool replayDown = IsKeyDown(s.ReplayHotkeyVk);
+            bool comboDown = IsKeyDown(s.ComboHotkeyVk);
 
             // The first armed pass adopts whatever is held without acting on it.
             //
@@ -331,6 +333,10 @@ public partial class MainWindow : Window
             {
                 if (clickDown != clickWasDown)
                     Dispatcher.InvokeAsync(() => OnClickHotkey(clickDown), DispatcherPriority.Send);
+
+                // Both edges, like the plain click key, so hold mode works.
+                if (comboDown != comboWasDown)
+                    Dispatcher.InvokeAsync(() => OnComboHotkey(comboDown), DispatcherPriority.Send);
 
                 if (shakeDown && !shakeWasDown)
                     Dispatcher.InvokeAsync(OnShakeHotkey, DispatcherPriority.Send);
@@ -349,6 +355,7 @@ public partial class MainWindow : Window
             shakeWasDown = shakeDown;
             recordWasDown = recordDown;
             replayWasDown = replayDown;
+            comboWasDown = comboDown;
             wasArmed = s.HotkeysArmed;
 
             Thread.Sleep(HotkeyPollMs);
@@ -490,11 +497,68 @@ public partial class MainWindow : Window
         else BeginRebind(RebindTarget.Record);
     }
 
+    private void ComboHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Combo) CancelRebind();
+        else BeginRebind(RebindTarget.Combo);
+    }
+
+    /// <summary>
+    /// Starts and stops the clicker and shake as one action.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately symmetric: whatever it turns on it turns off again. Leaving
+    /// shake ticked after stopping would mean the plain click key silently
+    /// started shaking too the next time it was used.
+    ///
+    /// Shake is set through the checkbox rather than a field because its handler
+    /// is what republishes the engine snapshot the shake thread actually reads.
+    /// </remarks>
+    private void OnComboHotkey(bool pressed)
+    {
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
+        if (pressed)
+        {
+            if (_holdMode)
+            {
+                if (!_running) SetShaky(true);
+                if (!_running) StartClicking();
+                return;
+            }
+
+            if (_running)
+            {
+                StopClicking();
+                SetShaky(false);
+            }
+            else
+            {
+                SetShaky(true);
+                StartClicking();
+            }
+
+            return;
+        }
+
+        if (_holdMode && _running)
+        {
+            StopClicking();
+            SetShaky(false);
+        }
+    }
+
+    private void SetShaky(bool on)
+    {
+        if (ShakyTracking != null) ShakyTracking.IsChecked = on;
+    }
+
     private Button RebindButtonFor(RebindTarget target) => target switch
     {
         RebindTarget.Shake => ShakeHotkeyButton,
         RebindTarget.Replay => ReplayHotkeyButton,
         RebindTarget.Record => RecordHotkeyButton,
+        RebindTarget.Combo => ComboHotkeyButton,
         _ => HotkeyButton
     };
 
@@ -521,6 +585,7 @@ public partial class MainWindow : Window
                 case RebindTarget.Click: _hotkeySettings.Hotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Shake: _hotkeySettings.ShakeHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Record: _hotkeySettings.RecordHotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.Combo: _hotkeySettings.ComboHotkey = HotkeyBinding.Unbound; break;
                 default: _hotkeySettings.ReplayHotkey = HotkeyBinding.Unbound; break;
             }
         }
@@ -535,7 +600,8 @@ public partial class MainWindow : Window
         (RebindTarget.Click, _hotkeySettings.Hotkey),
         (RebindTarget.Shake, _hotkeySettings.ShakeHotkey),
         (RebindTarget.Replay, _hotkeySettings.ReplayHotkey),
-        (RebindTarget.Record, _hotkeySettings.RecordHotkey)
+        (RebindTarget.Record, _hotkeySettings.RecordHotkey),
+        (RebindTarget.Combo, _hotkeySettings.ComboHotkey)
     };
 
     /// <summary>How long a refused rebind sits on the button before reverting.</summary>
@@ -646,6 +712,7 @@ public partial class MainWindow : Window
             case RebindTarget.Click: _hotkeySettings.Hotkey = binding; break;
             case RebindTarget.Shake: _hotkeySettings.ShakeHotkey = binding; break;
             case RebindTarget.Record: _hotkeySettings.RecordHotkey = binding; break;
+            case RebindTarget.Combo: _hotkeySettings.ComboHotkey = binding; break;
             default: _hotkeySettings.ReplayHotkey = binding; break;
         }
 
@@ -704,10 +771,11 @@ public partial class MainWindow : Window
     private sealed record ClickSettings(
         double Cps, double Duty, bool Shaky, ShakeRange Shake,
         bool UltraAccuracy, bool HoldMode,
-        int HotkeyVk, int ShakeHotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk, bool HotkeysArmed);
+        int HotkeyVk, int ShakeHotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
+        int ComboHotkeyVk, bool HotkeysArmed);
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6, 0, 0, 0, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6, 0, 0, 0, 0, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -899,6 +967,7 @@ public partial class MainWindow : Window
             _hotkeySettings.ShakeHotkey.VirtualKey,
             _hotkeySettings.ReplayHotkey.VirtualKey,
             _hotkeySettings.RecordHotkey.VirtualKey,
+            _hotkeySettings.ComboHotkey.VirtualKey,
             // Armed only when nothing is being rebound and the master switch is
             // on. Null-conditional because this runs once from the constructor,
             // before every control is necessarily built.
@@ -1458,6 +1527,7 @@ public partial class MainWindow : Window
         ShakeHotkeyButton.Content = _hotkeySettings.ShakeHotkey.Name;
         ReplayHotkeyButton.Content = _hotkeySettings.ReplayHotkey.Name;
         RecordHotkeyButton.Content = _hotkeySettings.RecordHotkey.Name;
+        ComboHotkeyButton.Content = _hotkeySettings.ComboHotkey.Name;
 
         // The bindings live on three different pages, so Settings is the only
         // place they can all be read at once.
@@ -1467,7 +1537,8 @@ public partial class MainWindow : Window
                 $"{_hotkeySettings.Hotkey.Name} — click",
                 $"{_hotkeySettings.ShakeHotkey.Name} — shake",
                 $"{_hotkeySettings.ReplayHotkey.Name} — replay",
-                $"{_hotkeySettings.RecordHotkey.Name} — record");
+                $"{_hotkeySettings.RecordHotkey.Name} — record",
+                $"{_hotkeySettings.ComboHotkey.Name} — click + shake");
         }
 
         RefreshStatus();
