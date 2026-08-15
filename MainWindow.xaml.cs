@@ -748,12 +748,12 @@ public partial class MainWindow : Window
     /// </summary>
     private sealed record ClickSettings(
         double Cps, double Duty, bool Shaky, ShakeRange Shake, double ShakeSpeed,
-        bool UltraAccuracy, bool HoldMode,
+        bool UltraAccuracy, bool HitFix, bool HoldMode,
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
         int ComboHotkeyVk, bool HotkeysArmed);
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, false, VK_F6, 0, 0, 0, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -943,6 +943,7 @@ public partial class MainWindow : Window
             new ShakeRange(_shakeLeft, _shakeRight, _shakeUp, _shakeDown),
             Math.Clamp(_shakeSpeed, MinShakeSpeed, MaxShakeSpeed),
             spin,
+            HitFix?.IsChecked == true,
             _holdMode,
             _hotkeySettings.Hotkey.VirtualKey,
             _hotkeySettings.ReplayHotkey.VirtualKey,
@@ -1281,6 +1282,26 @@ public partial class MainWindow : Window
 
                 // Click Duty Cycle: the share of each period the button is held.
                 double downMs = period * s.Duty;
+
+                if (s.HitFix)
+                {
+                    // A client reads input once a frame. At 60 fps that is every
+                    // ~17ms, so a press shorter than a frame can begin and end
+                    // between two reads and never be seen — at 100 CPS on a 50%
+                    // duty cycle the button is down for 5ms, and most of those
+                    // presses do not exist as far as the game is concerned.
+                    //
+                    // Both edges need a read inside them, so the gap after the
+                    // press gets a floor too. A press with no observed release
+                    // is a held button, not a click.
+                    downMs = Math.Max(downMs, HitFixMinDownMs);
+
+                    // Raising the period is what makes the floors reachable, and
+                    // it lowers the delivered rate below the slider. That is the
+                    // honest outcome: the surplus was never landing anyway, and
+                    // the Measured figure now reports what actually goes in.
+                    period = Math.Max(period, downMs + HitFixMinUpMs);
+                }
 
                 SendLeftDown();
                 buttonDown = true;
@@ -3133,6 +3154,15 @@ public partial class MainWindow : Window
     // touch — but it tracks the same connection getting worse.
     private const string PingHost = "www.roblox.com";
     private const int HighPingMs = 60;
+
+    /// <summary>
+    /// Shortest the button is held, and the shortest gap after it, while HitFix
+    /// is on. A frame and a half at 60 fps, so a read lands inside a press
+    /// wherever the frame boundary happens to fall.
+    /// </summary>
+    private const double HitFixMinDownMs = 25.0;
+
+    private const double HitFixMinUpMs = 25.0;
 
     private const double MinShakeSpeed = 5.0;
     private const double MaxShakeSpeed = 50.0;
