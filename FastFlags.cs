@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>A single client setting, with the value this app would write.</summary>
 public sealed record FastFlag(string Name, string Value, string Description);

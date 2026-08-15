@@ -15,7 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 public partial class MainWindow : Window
 {

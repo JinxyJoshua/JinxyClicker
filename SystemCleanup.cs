@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 public readonly record struct MemoryStatus(ulong TotalBytes, ulong AvailableBytes, uint LoadPercent)
 {

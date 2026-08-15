@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 public partial class App : Application
 {

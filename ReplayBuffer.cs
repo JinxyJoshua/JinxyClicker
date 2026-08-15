@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>
 /// A rolling buffer of the last N seconds, so a hotkey can save something that

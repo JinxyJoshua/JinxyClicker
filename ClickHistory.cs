@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>One day's totals. Date is stored as yyyy-MM-dd so the file stays readable.</summary>
 public sealed class HistoryDay
