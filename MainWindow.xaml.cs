@@ -1272,29 +1272,54 @@ public partial class MainWindow : Window
             : ShakeGate.MouseFree;
     }
 
+    /// <summary>How far off centre still counts as pinned.</summary>
+    /// <remarks>
+    /// Small on purpose. Measured against a live client, a camera-locked pointer
+    /// reads exactly on centre on every sample, while a free mouse crosses the
+    /// middle of the window constantly on its way elsewhere. An earlier version
+    /// allowed an eighth of the window and let a free mouse open the gate — the
+    /// bug this replaces.
+    /// </remarks>
+    private const int CentreTolerancePx = 8;
+
     /// <summary>
-    /// True while the pointer is being held near the centre of a window.
+    /// How long a centred reading keeps the gate open once it has been seen.
     /// </summary>
     /// <remarks>
-    /// The box is deliberately loose. Shake itself pushes the pointer off centre
-    /// by up to the configured amplitude before Roblox pulls it back, so a tight
-    /// box would flicker the gate shut on this app's own movement and stall the
-    /// shake it was meant to permit.
+    /// Shake displaces the pointer itself, and the client needs a frame to pull
+    /// it back. Without this grace the gate would flicker shut on this app's own
+    /// movement and stall the shake it exists to permit.
     /// </remarks>
-    private static bool PointerHeldAtWindowCentre(IntPtr hwnd, POINT pointer)
+    private static readonly TimeSpan CentreGrace = TimeSpan.FromMilliseconds(400);
+
+    private long _lastCentredTimestamp;
+
+    /// <summary>True while the pointer is being held at the centre of a window.</summary>
+    private bool PointerHeldAtWindowCentre(IntPtr hwnd, POINT pointer)
     {
-        if (!GetWindowRect(hwnd, out RECT bounds)) return false;
+        // The client rectangle, not the window rectangle: borders and title bar
+        // shift the window's midpoint away from the one the game recentres to.
+        if (GetClientRect(hwnd, out RECT client))
+        {
+            POINT origin = default;
 
-        int width = bounds.Right - bounds.Left;
-        int height = bounds.Bottom - bounds.Top;
+            if (ClientToScreen(hwnd, ref origin))
+            {
+                int centreX = origin.X + (client.Right - client.Left) / 2;
+                int centreY = origin.Y + (client.Bottom - client.Top) / 2;
 
-        if (width <= 0 || height <= 0) return false;
+                if (Math.Abs(pointer.X - centreX) <= CentreTolerancePx
+                    && Math.Abs(pointer.Y - centreY) <= CentreTolerancePx)
+                {
+                    _lastCentredTimestamp = Stopwatch.GetTimestamp();
+                    return true;
+                }
+            }
+        }
 
-        int centreX = bounds.Left + width / 2;
-        int centreY = bounds.Top + height / 2;
+        long last = _lastCentredTimestamp;
 
-        return Math.Abs(pointer.X - centreX) <= width / 8
-               && Math.Abs(pointer.Y - centreY) <= height / 8;
+        return last != 0 && Stopwatch.GetElapsedTime(last) <= CentreGrace;
     }
 
     private static IntPtr SystemArrowCursor()
@@ -3021,6 +3046,14 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
