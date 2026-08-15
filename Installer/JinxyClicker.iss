@@ -33,10 +33,9 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-; Per-user install, and deliberately so. The app resolves its settings files
-; against the working directory, so an install under Program Files would leave
-; it unable to write them — it would start from defaults every launch and
-; silently discard every change. Installing per-user also means no UAC prompt.
+; Per-user install: no UAC prompt, and nothing here needs machine-wide scope.
+; Settings live under %APPDATA%, so the install location no longer decides
+; whether the app can write them.
 PrivilegesRequired=lowest
 
 InfoBeforeFile=THIRD-PARTY-NOTICES.txt
@@ -65,13 +64,9 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; WorkingDir: "
 Filename: "{app}\{#AppExeName}"; WorkingDir: "{app}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; Generated at runtime, so Setup did not install them and would otherwise leave
-; them behind along with the folder holding them.
-Type: files; Name: "{app}\app_settings.json"
-Type: files; Name: "{app}\click_presets.json"
-Type: files; Name: "{app}\hotkey_settings.json"
-Type: files; Name: "{app}\tweak_state.json"
-Type: files; Name: "{app}\history.json"
+; Settings, presets, bindings and history. Generated at runtime, so Setup never
+; installed them and would otherwise leave the whole folder behind.
+Type: filesandordirs; Name: "{userappdata}\JinxyClicker"
 
 ; The rolling replay buffer. Bounded, but it is still up to a minute of video
 ; that nobody asked to keep.

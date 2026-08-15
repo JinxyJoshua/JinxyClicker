@@ -35,7 +35,7 @@ public sealed record HotkeyBinding(int VirtualKey, string Name)
 
 public class HotkeySettings
 {
-    private const string SETTINGS_FILE = "hotkey_settings.json";
+    private static readonly string SETTINGS_FILE = SettingsPath.For("hotkey_settings.json");
 
     public HotkeyBinding Hotkey { get; set; } = HotkeyBinding.FromKey(Key.F6);
     public HotkeyBinding ShakeHotkey { get; set; } = HotkeyBinding.FromKey(Key.F7);

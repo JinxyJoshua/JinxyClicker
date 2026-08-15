@@ -32,16 +32,13 @@ ships a stale build.
 
 ## Decisions worth knowing
 
-**Per-user install, not Program Files.** The application resolves its settings
-files against the working directory. Installed under Program Files it could not
-write them, so it would start from defaults every launch and discard every
-change without saying so. `PrivilegesRequired=lowest` puts it under
-`%LOCALAPPDATA%\Programs` instead, which also means no UAC prompt. If the
-settings paths are ever changed to resolve against `AppContext.BaseDirectory`,
-this decision can be revisited.
+**Per-user install, not Program Files.** No UAC prompt, and nothing the app does
+needs machine-wide scope. Settings live in `%APPDATA%\JinxyClicker`, so the
+install location does not decide whether they can be written — this was a hard
+constraint before that changed, and is now just a preference.
 
-**Shortcuts set `WorkingDir`.** Same reason. A shortcut without it would leave
-the app reading and writing settings wherever the shell happened to start it.
+**Uninstall removes `%APPDATA%\JinxyClicker`.** Setup never installed those
+files, so without an explicit rule the folder would survive uninstalling.
 
 **ffmpeg is GPL.** The build bundled here includes libx264, which makes the
 whole ffmpeg binary GPL-licensed. Distributing this installer therefore

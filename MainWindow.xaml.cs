@@ -20,7 +20,10 @@ namespace JinxyClicker;
 public partial class MainWindow : Window
 {
     private CancellationTokenSource? _clickCts;
-    private bool _running;
+    // Volatile: written on the UI thread, read by the hotkey poll thread for the
+    // corner failsafe and by the click loop. Without it the read is free to
+    // observe a cached value and miss that clicking has started or stopped.
+    private volatile bool _running;
     private bool _holdMode;
     private double _shakeLeft = 8, _shakeRight = 20, _shakeUp = 40, _shakeDown = 8;
     private ShakeRange? _savedShake;

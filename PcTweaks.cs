@@ -18,7 +18,7 @@ namespace JinxyClicker;
 /// </summary>
 public sealed class TweakState
 {
-    private const string STATE_FILE = "tweak_state.json";
+    private static readonly string STATE_FILE = SettingsPath.For("tweak_state.json");
 
     /// <summary>Tweak id to prior value. A null value means "did not exist".</summary>
     public Dictionary<string, string?> Previous { get; set; } = new();

@@ -100,7 +100,7 @@ public sealed class ClickPreset : INotifyPropertyChanged
 /// </summary>
 public static class PresetStore
 {
-    private const string PRESETS_FILE = "click_presets.json";
+    private static readonly string PRESETS_FILE = SettingsPath.For("click_presets.json");
 
     /// <summary>
     /// A class with initialisers rather than a positional record, so a file
