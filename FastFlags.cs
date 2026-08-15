@@ -50,8 +50,68 @@ public static class FastFlagStore
         new FastFlag("FIntFRMMinGrassDistance", "0",
             "Stops grass rendering up close."),
         new FastFlag("FIntGrassMovementReducedMotionFactor", "0",
-            "Removes grass animation.")
+            "Removes grass animation."),
+        new FastFlag("DFFlagDisableDPIScale", "True",
+            "Stops the client scaling for display DPI. A real saving on a high-DPI screen."),
+        new FastFlag("DFFlagDebugPauseVoxelizer", "True",
+            "Freezes voxel lighting. Lighting stops updating, which is the cost.")
     };
+
+    /// <summary>
+    /// The graphics backend, as a choice rather than a toggle.
+    /// </summary>
+    /// <remarks>
+    /// Which one is fastest is a property of the GPU and driver, not something
+    /// that can be decided here — Vulkan is a large gain on some machines and a
+    /// loss on others. So this offers the choice and does not pick.
+    ///
+    /// Mutually exclusive by nature: the three flags are separate preferences
+    /// and setting more than one at a time means nothing, which is why applying
+    /// one clears the others rather than merging with them.
+    /// </remarks>
+    public static IReadOnlyList<FastFlag> AllGraphicsApis { get; } = new[]
+    {
+        new FastFlag("FFlagDebugGraphicsPreferD3D11", "True", "Direct3D 11."),
+        new FastFlag("FFlagDebugGraphicsPreferVulkan", "True", "Vulkan."),
+        new FastFlag("FFlagDebugGraphicsPreferOpenGL", "True", "OpenGL.")
+    };
+
+    /// <summary>The flag for one API name, or null for "let Roblox decide".</summary>
+    public static FastFlag? GraphicsApi(string? name) => name switch
+    {
+        "D3D11" => AllGraphicsApis[0],
+        "Vulkan" => AllGraphicsApis[1],
+        "OpenGL" => AllGraphicsApis[2],
+        _ => null
+    };
+
+    /// <summary>
+    /// Clears every API preference, then sets the chosen one. Passing null
+    /// leaves none set, which returns the client to its own default.
+    /// </summary>
+    public static void ApplyGraphicsApi(string? name)
+    {
+        Reset(AllGraphicsApis);
+
+        FastFlag? chosen = GraphicsApi(name);
+        if (chosen != null) Apply(new[] { chosen });
+    }
+
+    /// <summary>Which API preference the file currently holds, if any.</summary>
+    public static string? CurrentGraphicsApi()
+    {
+        Dictionary<string, string> current = Read();
+
+        foreach (string name in new[] { "D3D11", "Vulkan", "OpenGL" })
+        {
+            FastFlag? flag = GraphicsApi(name);
+
+            if (flag != null && current.TryGetValue(flag.Name, out string? value) && value == flag.Value)
+                return name;
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// The ClientSettings folder of the newest installed client, or null when
@@ -129,6 +189,58 @@ public static class FastFlagStore
 
         File.WriteAllText(Path.Combine(folder, SettingsFileName),
             JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private const string BackupFileName = "ClientAppSettings.jinxy-backup.json";
+
+    /// <summary>
+    /// Copies the client's settings aside, once.
+    /// </summary>
+    /// <remarks>
+    /// Written only if no backup exists, so it captures the file as it was
+    /// before this app first touched it. Overwriting on every apply would
+    /// quickly leave a "backup" of this app's own output.
+    /// </remarks>
+    public static void Backup()
+    {
+        try
+        {
+            string? path = SettingsPath();
+            if (path == null || !File.Exists(path)) return;
+
+            string backup = Path.Combine(Path.GetDirectoryName(path)!, BackupFileName);
+            if (!File.Exists(backup)) File.Copy(path, backup);
+        }
+        catch
+        {
+            // A missing backup must not stop the flags being applied.
+        }
+    }
+
+    public static bool HasBackup()
+    {
+        string? folder = FindClientSettingsFolder();
+        return folder != null && File.Exists(Path.Combine(folder, BackupFileName));
+    }
+
+    /// <summary>Puts the pre-Jinxy file back, if one was captured.</summary>
+    public static bool RestoreBackup()
+    {
+        try
+        {
+            string? path = SettingsPath();
+            if (path == null) return false;
+
+            string backup = Path.Combine(Path.GetDirectoryName(path)!, BackupFileName);
+            if (!File.Exists(backup)) return false;
+
+            File.Copy(backup, path, overwrite: true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>Removes only the flags this app added, leaving the rest alone.</summary>

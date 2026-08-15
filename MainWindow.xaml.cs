@@ -782,6 +782,7 @@ public partial class MainWindow : Window
         PingSync.IsChecked = s.PingSync;
         HitFix.IsChecked = s.HitFix;
         HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
+        RobloxPriority.IsChecked = s.RobloxPriority;
 
         SetClickMode(s.HoldMode);
 
@@ -907,6 +908,7 @@ public partial class MainWindow : Window
             LightTheme = ThemeLight.IsChecked == true,
             RecordDisplay = _captureDisplay?.DeviceName,
             HotkeysEnabled = HotkeysEnabledToggle.IsChecked == true,
+            RobloxPriority = RobloxPriority.IsChecked == true,
             ClipFolder = ClipFolderBox.Text.Trim(),
             RecordFps = RecordFps,
             // RestoreBounds rather than Width/Height: while maximised those
@@ -2181,12 +2183,29 @@ public partial class MainWindow : Window
         FlagStateText.Text = applied ? "Applied" : "Not applied";
         FlagStateText.Foreground =
             (System.Windows.Media.Brush)FindResource(applied ? "Accent" : "TextMuted");
+
+        RestoreFlagsButton.IsEnabled = FastFlagStore.HasBackup();
+
+        // Read from the file rather than from what was last clicked, so the row
+        // reflects the client's actual state even if it was edited elsewhere.
+        string? api = FastFlagStore.CurrentGraphicsApi();
+        SelectGraphicsApi(api);
+
+        if (GraphicsApiStateText != null)
+        {
+            GraphicsApiStateText.Text = api ?? "Client default";
+            GraphicsApiStateText.Foreground =
+                (System.Windows.Media.Brush)FindResource(api == null ? "TextMuted" : "Accent");
+        }
     }
 
     private void ApplyFlags_Click(object sender, RoutedEventArgs e)
     {
         try
         {
+            // Before the first write, not after, or the "backup" would be a copy
+            // of this app's own output.
+            FastFlagStore.Backup();
             FastFlagStore.Apply(FastFlagStore.FpsBoost);
             RefreshFlags();
             ShowFlagStatus("Applied. Restart Roblox for it to take effect.", isError: false);
@@ -2195,6 +2214,139 @@ public partial class MainWindow : Window
         {
             ShowFlagStatus(ex.Message, isError: true);
         }
+    }
+
+    private void RestoreFlags_Click(object sender, RoutedEventArgs e)
+    {
+        if (FastFlagStore.RestoreBackup())
+        {
+            RefreshFlags();
+            ShowFlagStatus("Client settings put back as they were. Restart Roblox.", isError: false);
+        }
+        else
+        {
+            ShowFlagStatus("No backup to restore.", isError: true);
+        }
+    }
+
+    /// <summary>Guards the API buttons against the code that sets them.</summary>
+    private bool _writingGraphicsApi;
+
+    private void GraphicsApi_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_writingGraphicsApi || sender is not RadioButton { Tag: string tag }) return;
+
+        try
+        {
+            FastFlagStore.Backup();
+
+            // Empty tag is "Default", which means no preference set at all.
+            FastFlagStore.ApplyGraphicsApi(string.IsNullOrEmpty(tag) ? null : tag);
+
+            RefreshFlags();
+            ShowFlagStatus(
+                string.IsNullOrEmpty(tag)
+                    ? "Graphics API left to the client. Restart Roblox."
+                    : $"Graphics API set to {tag}. Restart Roblox.",
+                isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowFlagStatus(ex.Message, isError: true);
+        }
+    }
+
+    /// <summary>Checks the button matching the file, without reapplying it.</summary>
+    private void SelectGraphicsApi(string? api)
+    {
+        if (GraphicsApiPanel == null) return;
+
+        _writingGraphicsApi = true;
+
+        try
+        {
+            foreach (object child in GraphicsApiPanel.Children)
+            {
+                if (child is RadioButton { Tag: string tag } button)
+                    button.IsChecked = string.Equals(tag, api ?? string.Empty, StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            _writingGraphicsApi = false;
+        }
+    }
+
+    private void RobloxPriority_Changed(object sender, RoutedEventArgs e)
+    {
+        _settingsDirty = true;
+
+        if (RobloxPriority?.IsChecked == true) ApplyRobloxPriority();
+        else RestoreRobloxPriority();
+    }
+
+    /// <summary>
+    /// Nudges the Roblox process above normal priority.
+    /// </summary>
+    /// <remarks>
+    /// Called from the stats tick as well as on toggle, so it reapplies after
+    /// Roblox restarts — priority is a property of the process, and a new one
+    /// starts at normal. Above normal rather than high: high can starve input
+    /// handling on a weak machine, which would cost more than it gained.
+    /// </remarks>
+    private void ApplyRobloxPriority()
+    {
+        int changed = 0, found = 0;
+
+        foreach (Process process in Process.GetProcessesByName("RobloxPlayerBeta"))
+        {
+            try
+            {
+                found++;
+
+                if (process.PriorityClass != ProcessPriorityClass.AboveNormal)
+                {
+                    process.PriorityClass = ProcessPriorityClass.AboveNormal;
+                    changed++;
+                }
+            }
+            catch
+            {
+                // Exited between listing and setting, or not ours to touch.
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        if (RobloxPriorityStateText == null) return;
+
+        RobloxPriorityStateText.Text = found == 0
+            ? "Roblox is not running — this applies as soon as it starts."
+            : $"Roblox is running at above normal priority.{(changed > 0 ? " Just raised it." : "")}";
+    }
+
+    private void RestoreRobloxPriority()
+    {
+        foreach (Process process in Process.GetProcessesByName("RobloxPlayerBeta"))
+        {
+            try
+            {
+                if (process.PriorityClass == ProcessPriorityClass.AboveNormal)
+                    process.PriorityClass = ProcessPriorityClass.Normal;
+            }
+            catch
+            {
+                // Nothing worth reporting; the process owns its own priority.
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        if (RobloxPriorityStateText != null) RobloxPriorityStateText.Text = "";
     }
 
     private void ResetFlags_Click(object sender, RoutedEventArgs e)
@@ -3043,6 +3195,10 @@ public partial class MainWindow : Window
         if (PageHistory.Visibility == Visibility.Visible) RefreshHistoryUi();
 
         RefreshRecordElapsed();
+
+        // Reapplied every tick rather than once: priority belongs to the
+        // process, so a restarted Roblox comes back at normal.
+        if (RobloxPriority?.IsChecked == true) ApplyRobloxPriority();
 
         // Written every 30 s rather than every tick: a crash costs at most half
         // a minute, and the file is not worth 60 writes a minute.
