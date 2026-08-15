@@ -122,9 +122,11 @@ public partial class MainWindow : Window
 
             RefreshAppliedPreset();
 
-            // Shake has its own lifetime, independent of the clicker: it is
-            // gated by the checkbox inside the loop, not by whether clicking is
-            // running. Aim practice does not require auto-clicking.
+            // Runs for the whole session, but only moves the cursor while the
+            // clicker is running — the loop gates on that. It stays alive even
+            // when idle because stopping the clicker mid-offset has to put the
+            // cursor back where it started, and only this thread knows where
+            // that was.
             new Thread(() => ShakeLoop(_shakeCts.Token))
             {
                 IsBackground = true,
@@ -1026,7 +1028,7 @@ public partial class MainWindow : Window
 
         if (ShakyTracking?.IsChecked != true)
         {
-            ShakeStatusText.Text = "Only moves while Roblox has the mouse locked";
+            ShakeStatusText.Text = "Only moves while the clicker runs and Roblox has the mouse locked";
             return;
         }
 
@@ -1035,6 +1037,7 @@ public partial class MainWindow : Window
         ShakeStatusText.Text = _shakeGate switch
         {
             ShakeGate.Ready => $"Active — moving every {ShakeMinIntervalMs}-{ShakeMaxIntervalMs} ms",
+            ShakeGate.ClickerOff => "Waiting — the clicker is not running",
             ShakeGate.MouseFree => "Waiting — Roblox is in front but not in first person",
             _ => "Waiting — Roblox is not the front window"
         };
@@ -1196,7 +1199,7 @@ public partial class MainWindow : Window
     private static int NextOffset(double min, double max) =>
         (int)Math.Round(min + Random.Shared.NextDouble() * (max - min));
 
-    private enum ShakeGate { Ready, NotRoblox, MouseFree }
+    private enum ShakeGate { Ready, NotRoblox, MouseFree, ClickerOff }
 
     /// <summary>
     /// Whether the shake engine is allowed to move the camera right now.
@@ -1286,7 +1289,13 @@ public partial class MainWindow : Window
                 ClickSettings s = _settings;
                 ShakeRange range = s.Shake;
 
-                ShakeGate gate = s.Shaky && !range.IsZero ? ReadShakeGate() : ShakeGate.NotRoblox;
+                // The clicker gates shake, checked before anything else. The
+                // thread still runs the whole time — it is what returns the
+                // cursor to its origin when the clicker stops mid-offset.
+                ShakeGate gate =
+                    !_running ? ShakeGate.ClickerOff
+                    : s.Shaky && !range.IsZero ? ReadShakeGate()
+                    : ShakeGate.NotRoblox;
                 bool eligible = gate == ShakeGate.Ready;
 
                 _shakeGate = gate;
