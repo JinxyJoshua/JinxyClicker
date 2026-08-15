@@ -1072,7 +1072,7 @@
                             <Grid Margin="0,7">
                                 <StackPanel>
                                     <TextBlock Text="HitFix" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Local timing compensation for missed input"
+                                    <TextBlock Text="Holds every click long enough for the game to read it. Caps very high CPS"
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
                                 </StackPanel>
                                 <CheckBox x:Name="HitFix" HorizontalAlignment="Right" IsChecked="True"
