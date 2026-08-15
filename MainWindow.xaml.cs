@@ -45,7 +45,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Shake, Replay, Record, Combo }
+    private enum RebindTarget { None, Click, Replay, Record, Combo }
     private RebindTarget _rebinding = RebindTarget.None;
 
     private const int HotkeyPollMs = 8;
@@ -289,7 +289,6 @@ public partial class MainWindow : Window
     private void HotkeyLoop(CancellationToken token)
     {
         bool clickWasDown = false;
-        bool shakeWasDown = false;
         bool replayWasDown = false;
         bool recordWasDown = false;
         bool comboWasDown = false;
@@ -313,7 +312,6 @@ public partial class MainWindow : Window
             wasInCorner = inCorner;
 
             bool clickDown = IsKeyDown(s.HotkeyVk);
-            bool shakeDown = IsKeyDown(s.ShakeHotkeyVk);
             bool recordDown = IsKeyDown(s.RecordHotkeyVk);
             bool replayDown = IsKeyDown(s.ReplayHotkeyVk);
             bool comboDown = IsKeyDown(s.ComboHotkeyVk);
@@ -338,9 +336,6 @@ public partial class MainWindow : Window
                 if (comboDown != comboWasDown)
                     Dispatcher.InvokeAsync(() => OnComboHotkey(comboDown), DispatcherPriority.Send);
 
-                if (shakeDown && !shakeWasDown)
-                    Dispatcher.InvokeAsync(OnShakeHotkey, DispatcherPriority.Send);
-
                 if (recordDown && !recordWasDown)
                     Dispatcher.InvokeAsync(OnRecordHotkey, DispatcherPriority.Send);
 
@@ -352,7 +347,6 @@ public partial class MainWindow : Window
             // against the poll before it rather than against whenever the last
             // action happened to fire.
             clickWasDown = clickDown;
-            shakeWasDown = shakeDown;
             recordWasDown = recordDown;
             replayWasDown = replayDown;
             comboWasDown = comboDown;
@@ -448,26 +442,11 @@ public partial class MainWindow : Window
         ShowReplayStatus($"Saved the last {ReplaySeconds}s — ready to upload.", isError: false);
     }
 
-    private void OnShakeHotkey()
-    {
-        if (IsActive && Keyboard.FocusedElement is TextBox) return;
-
-        // Toggling IsChecked raises Checked/Unchecked, which republishes the
-        // engine snapshot — no separate plumbing needed.
-        if (ShakyTracking != null) ShakyTracking.IsChecked = ShakyTracking.IsChecked != true;
-    }
-
     // A second click on an armed button cancels rather than re-arming.
     private void Hotkey_Click(object sender, RoutedEventArgs e)
     {
         if (_rebinding == RebindTarget.Click) CancelRebind();
         else BeginRebind(RebindTarget.Click);
-    }
-
-    private void ShakeHotkey_Click(object sender, RoutedEventArgs e)
-    {
-        if (_rebinding == RebindTarget.Shake) CancelRebind();
-        else BeginRebind(RebindTarget.Shake);
     }
 
     private void ReplayHotkey_Click(object sender, RoutedEventArgs e)
@@ -555,7 +534,6 @@ public partial class MainWindow : Window
 
     private Button RebindButtonFor(RebindTarget target) => target switch
     {
-        RebindTarget.Shake => ShakeHotkeyButton,
         RebindTarget.Replay => ReplayHotkeyButton,
         RebindTarget.Record => RecordHotkeyButton,
         RebindTarget.Combo => ComboHotkeyButton,
@@ -583,7 +561,6 @@ public partial class MainWindow : Window
             switch (target)
             {
                 case RebindTarget.Click: _hotkeySettings.Hotkey = HotkeyBinding.Unbound; break;
-                case RebindTarget.Shake: _hotkeySettings.ShakeHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Record: _hotkeySettings.RecordHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Combo: _hotkeySettings.ComboHotkey = HotkeyBinding.Unbound; break;
                 default: _hotkeySettings.ReplayHotkey = HotkeyBinding.Unbound; break;
@@ -598,7 +575,6 @@ public partial class MainWindow : Window
     private (RebindTarget Target, HotkeyBinding Binding)[] AllBindings() => new[]
     {
         (RebindTarget.Click, _hotkeySettings.Hotkey),
-        (RebindTarget.Shake, _hotkeySettings.ShakeHotkey),
         (RebindTarget.Replay, _hotkeySettings.ReplayHotkey),
         (RebindTarget.Record, _hotkeySettings.RecordHotkey),
         (RebindTarget.Combo, _hotkeySettings.ComboHotkey)
@@ -710,7 +686,6 @@ public partial class MainWindow : Window
         switch (target)
         {
             case RebindTarget.Click: _hotkeySettings.Hotkey = binding; break;
-            case RebindTarget.Shake: _hotkeySettings.ShakeHotkey = binding; break;
             case RebindTarget.Record: _hotkeySettings.RecordHotkey = binding; break;
             case RebindTarget.Combo: _hotkeySettings.ComboHotkey = binding; break;
             default: _hotkeySettings.ReplayHotkey = binding; break;
@@ -771,11 +746,11 @@ public partial class MainWindow : Window
     private sealed record ClickSettings(
         double Cps, double Duty, bool Shaky, ShakeRange Shake,
         bool UltraAccuracy, bool HoldMode,
-        int HotkeyVk, int ShakeHotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
+        int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
         int ComboHotkeyVk, bool HotkeysArmed);
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6, 0, 0, 0, 0, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6, 0, 0, 0, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -964,7 +939,6 @@ public partial class MainWindow : Window
             spin,
             _holdMode,
             _hotkeySettings.Hotkey.VirtualKey,
-            _hotkeySettings.ShakeHotkey.VirtualKey,
             _hotkeySettings.ReplayHotkey.VirtualKey,
             _hotkeySettings.RecordHotkey.VirtualKey,
             _hotkeySettings.ComboHotkey.VirtualKey,
@@ -1524,7 +1498,6 @@ public partial class MainWindow : Window
     private void ApplyHotkeyToUi()
     {
         HotkeyButton.Content = _hotkeySettings.Hotkey.Name;
-        ShakeHotkeyButton.Content = _hotkeySettings.ShakeHotkey.Name;
         ReplayHotkeyButton.Content = _hotkeySettings.ReplayHotkey.Name;
         RecordHotkeyButton.Content = _hotkeySettings.RecordHotkey.Name;
         ComboHotkeyButton.Content = _hotkeySettings.ComboHotkey.Name;
@@ -1535,7 +1508,6 @@ public partial class MainWindow : Window
         {
             HotkeySummaryText.Text = string.Join("     ",
                 $"{_hotkeySettings.Hotkey.Name} — click",
-                $"{_hotkeySettings.ShakeHotkey.Name} — shake",
                 $"{_hotkeySettings.ReplayHotkey.Name} — replay",
                 $"{_hotkeySettings.RecordHotkey.Name} — record",
                 $"{_hotkeySettings.ComboHotkey.Name} — click + shake");
