@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Globalization;
+using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace MyBlinkStyleClicker;
@@ -24,6 +26,8 @@ public partial class MainWindow : Window
     private ShakeRange? _savedShake;
     private readonly CancellationTokenSource _shakeCts = new();
     private volatile bool _shakeActive;
+    // Written by the shake thread, read by the UI thread for the status line.
+    private volatile ShakeGate _shakeGate = ShakeGate.NotRoblox;
     private uint _cachedForegroundPid;
     private bool _cachedForegroundIsRoblox;
     private volatile int _lastPingMs = -1;
@@ -38,18 +42,16 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Shake }
+    private enum RebindTarget { None, Click, Shake, Replay, Record }
     private RebindTarget _rebinding = RebindTarget.None;
 
-    // Polled activation needs edge detection, or a held key would re-fire at
-    // the timer's rate rather than once per press.
-    private readonly DispatcherTimer _hotkeyTimer = new() { Interval = TimeSpan.FromMilliseconds(15) };
-    private bool _clickKeyWasDown;
-    private bool _shakeKeyWasDown;
+    private const int HotkeyPollMs = 8;
 
     private readonly ObservableCollection<ClickPreset> _clickPresets = new();
 
     private readonly TweakState _tweakState = TweakState.Load();
+    private readonly ClickHistory _history = ClickHistory.Load();
+    private bool _historyDirty;
 
     private readonly ObservableCollection<PcTweak> _tweaks = new()
     {
@@ -67,22 +69,18 @@ public partial class MainWindow : Window
     // not machine performance.
     private readonly ObservableCollection<PcTweak> _inputTweaks = new()
     {
-        new MouseAccelerationTweak()
+        new TrackingHelperTweak()
+    };
+
+    private readonly ObservableCollection<PcTweak> _networkTweaks = new()
+    {
+        new QosPolicyTweak()
     };
 
     // Saving is deferred to the stats tick so dragging a slider does not write
     // the file on every pixel of movement.
     private bool _settingsLoaded;
     private bool _settingsDirty;
-
-    private readonly List<Preset> _presets = new()
-    {
-        new("Low", 8, 50),
-        new("Normal", 10, 67),
-        new("High", 16, 75),
-        new("Fast", 20, 80),
-        new("Max", 100, 100)
-    };
 
     public MainWindow()
     {
@@ -92,6 +90,7 @@ public partial class MainWindow : Window
 
             // Load hotkey settings
             _hotkeySettings.Load();
+            DropDuplicateHotkeys();
             ApplyHotkeyToUi();
             // The slider's own ValueChanged fires before its backing field is
             // assigned during parsing, so the label needs setting explicitly.
@@ -102,11 +101,18 @@ public partial class MainWindow : Window
             _statsTimer.Start();
             UpdateStats();
 
-            _hotkeyTimer.Tick += HotkeyTimer_Tick;
-            _hotkeyTimer.Start();
+            new Thread(() => HotkeyLoop(_shakeCts.Token))
+            {
+                IsBackground = true,
+                Name = "HotkeyPoll"
+            }.Start();
 
             foreach (ClickPreset p in PresetStore.Load()) _clickPresets.Add(p);
             PresetList.ItemsSource = _clickPresets;
+
+            // Before the settings load, which needs the buttons to exist in
+            // order to check the stored one.
+            BuildDisplayButtons();
 
             ApplyAppSettings(AppSettings.Load());
             _settingsLoaded = true;
@@ -124,6 +130,7 @@ public partial class MainWindow : Window
 
             TweakList.ItemsSource = _tweaks;
             InputTweakList.ItemsSource = _inputTweaks;
+            NetworkTweakList.ItemsSource = _networkTweaks;
             RefreshTweaks();
         }
         catch (Exception ex)
@@ -135,7 +142,8 @@ public partial class MainWindow : Window
 
     private void CpsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (CpsValueBox != null)
+        // Skipped while masked, or the running value would replace the mask.
+        if (CpsValueBox != null && !_valuesHidden)
             CpsValueBox.Text = FormatValue(CpsSlider.Value);
 
         RefreshAppliedPreset();
@@ -144,7 +152,7 @@ public partial class MainWindow : Window
 
     private void CdcSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (CdcValueBox != null)
+        if (CdcValueBox != null && !_valuesHidden)
             CdcValueBox.Text = FormatValue(CdcSlider.Value);
 
         RefreshAppliedPreset();
@@ -154,11 +162,56 @@ public partial class MainWindow : Window
     private static string FormatValue(double value) =>
         value.ToString("0.0", CultureInfo.CurrentCulture);
 
+    // ---- hiding the rates ----
+
+    private const string MaskedValue = "•••";
+
+    private bool _valuesHidden;
+
+    /// <summary>
+    /// Masks the CPS and duty cycle so they cannot be read off the screen.
+    /// </summary>
+    /// <remarks>
+    /// The sliders are hidden too, not just the numbers — a thumb position gives
+    /// the value away just as plainly as the digits do. Hidden rather than
+    /// collapsed, so the cards keep their height and the page does not jump.
+    /// </remarks>
+    private void HideValues_Click(object sender, RoutedEventArgs e)
+    {
+        _valuesHidden = !_valuesHidden;
+        ApplyValueVisibility();
+        _settingsDirty = true;
+    }
+
+    private void ApplyValueVisibility()
+    {
+        if (CpsValueBox == null || CdcValueBox == null) return;
+
+        HideValuesButton.Content = _valuesHidden ? "Show values" : "Hide values";
+
+        Visibility sliders = _valuesHidden ? Visibility.Hidden : Visibility.Visible;
+        CpsSlider.Visibility = sliders;
+        CdcSlider.Visibility = sliders;
+        MeasuredCpsText.Visibility = sliders;
+
+        // Read-only while masked, or typing would replace the mask with a value
+        // that then gets committed on focus loss.
+        CpsValueBox.IsReadOnly = _valuesHidden;
+        CdcValueBox.IsReadOnly = _valuesHidden;
+
+        CpsValueBox.Text = _valuesHidden ? MaskedValue : FormatValue(CpsSlider.Value);
+        CdcValueBox.Text = _valuesHidden ? MaskedValue : FormatValue(CdcSlider.Value);
+    }
+
     // Committing writes through the slider, which coerces to its own range. The
     // box is then reformatted from the slider so unparseable or out-of-range
     // text is visibly corrected rather than silently kept.
-    private static void CommitValue(System.Windows.Controls.TextBox box, Slider slider)
+    private void CommitValue(System.Windows.Controls.TextBox box, Slider slider)
     {
+        // A masked box holds bullets, not a number — committing it would parse
+        // as nothing and rewrite the mask over itself.
+        if (_valuesHidden) return;
+
         if (double.TryParse(box.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double parsed))
             slider.Value = Math.Clamp(parsed, slider.Minimum, slider.Maximum);
 
@@ -171,8 +224,10 @@ public partial class MainWindow : Window
     private void CpsValueBox_KeyDown(object sender, KeyEventArgs e) => HandleValueBoxKey(e, CpsValueBox, CpsSlider);
     private void CdcValueBox_KeyDown(object sender, KeyEventArgs e) => HandleValueBoxKey(e, CdcValueBox, CdcSlider);
 
-    private static void HandleValueBoxKey(KeyEventArgs e, System.Windows.Controls.TextBox box, Slider slider)
+    private void HandleValueBoxKey(KeyEventArgs e, System.Windows.Controls.TextBox box, Slider slider)
     {
+        if (_valuesHidden) return;
+
         if (e.Key == Key.Enter)
         {
             CommitValue(box, slider);
@@ -195,60 +250,199 @@ public partial class MainWindow : Window
         // Rebind capture happens in Window_PreviewKeyDown, ahead of this.
         // Hotkey activation is polled in HotkeyTimer_Tick, not handled here.
 
+        if (e.Key != Key.Escape || e.IsRepeat) return;
+
+        // While a confirmation is open Escape means "cancel that", not "stop
+        // clicking" — the dialog is the thing in front of the user.
+        if (IsConfirming)
+        {
+            CloseConfirm(false);
+            return;
+        }
+
         // Emergency stop stays a window event on purpose: polling it would make
         // Escape stop the clicker from inside any application.
-        if (e.Key == Key.Escape && !e.IsRepeat) StopClicking();
+        StopClicking();
     }
 
     /// <summary>
-    /// Hotkeys are polled rather than driven by window events. A routed KeyDown
-    /// only arrives while this window has focus, which is exactly when a game is
-    /// not in front; and mouse side buttons never route here at all. Polling
-    /// GetAsyncKeyState reads the same global state for keys and mouse buttons
-    /// alike, without hooks or injection.
+    /// Hotkeys are polled rather than driven by window events, on a dedicated
+    /// thread rather than a timer.
     /// </summary>
-    private void HotkeyTimer_Tick(object? sender, EventArgs e)
+    /// <remarks>
+    /// Routed KeyDown only arrives while this window has focus, which is exactly
+    /// when a game is not in front, and mouse side buttons never route here at
+    /// all — hence polling GetAsyncKeyState.
+    ///
+    /// It runs on its own thread because a DispatcherTimer ticks on the UI
+    /// thread at Background priority, below rendering and input. Under load its
+    /// ticks stretch out, and a press and release that both land inside one gap
+    /// cancel out — the edge is never seen and the key appears to do nothing.
+    /// That is the "sometimes it does not stop" case. Detection now happens off
+    /// the dispatcher; only the resulting action is marshalled back.
+    /// </remarks>
+    private void HotkeyLoop(CancellationToken token)
     {
-        if (_rebinding != RebindTarget.None) return;
+        bool clickWasDown = false;
+        bool shakeWasDown = false;
+        bool replayWasDown = false;
+        bool recordWasDown = false;
+        bool wasInCorner = false;
+        bool wasArmed = false;
 
-        // A bound key being typed into a value box must not also fire the hotkey.
-        bool typing = IsActive && Keyboard.FocusedElement is TextBox;
-
-        bool clickDown = IsKeyDown(_hotkeySettings.Hotkey.VirtualKey);
-        if (clickDown != _clickKeyWasDown)
+        while (!token.IsCancellationRequested)
         {
-            _clickKeyWasDown = clickDown;
+            ClickSettings s = _settings;
 
-            if (!typing)
+            // Deliberately outside the armed check. This is the way out of a
+            // clicker that will not stop, and switching hotkeys off must not
+            // take the escape hatch with them.
+            //
+            // Edge-triggered like the hotkeys are: parking in a corner would
+            // otherwise post a stop every 8 ms for as long as the mouse sat there.
+            bool inCorner = PointerInCorner();
+            if (inCorner && !wasInCorner && _running)
+                Dispatcher.InvokeAsync(StopClicking, DispatcherPriority.Send);
+
+            wasInCorner = inCorner;
+
+            bool clickDown = IsKeyDown(s.HotkeyVk);
+            bool shakeDown = IsKeyDown(s.ShakeHotkeyVk);
+            bool recordDown = IsKeyDown(s.RecordHotkeyVk);
+            bool replayDown = IsKeyDown(s.ReplayHotkeyVk);
+
+            // The first armed pass adopts whatever is held without acting on it.
+            //
+            // This is what stops a rebind from firing the action it just bound.
+            // Choosing a hotkey publishes the new key and re-arms in the same
+            // snapshot, and at that moment the key is still physically down —
+            // the press that chose it. Without this the edge detector compares
+            // that against state primed from the *previous* binding, reads a
+            // fresh press, and starts the clicker the instant you pick its key.
+            //
+            // It covers the master switch too: turning hotkeys back on while
+            // resting on one no longer triggers it.
+            if (s.HotkeysArmed && wasArmed)
             {
-                if (clickDown)
-                {
-                    if (_holdMode)
-                    {
-                        if (!_running) StartClicking();
-                    }
-                    else
-                    {
-                        ToggleRunning();
-                    }
-                }
-                else if (_holdMode && _running)
-                {
-                    StopClicking();
-                }
+                if (clickDown != clickWasDown)
+                    Dispatcher.InvokeAsync(() => OnClickHotkey(clickDown), DispatcherPriority.Send);
+
+                if (shakeDown && !shakeWasDown)
+                    Dispatcher.InvokeAsync(OnShakeHotkey, DispatcherPriority.Send);
+
+                if (recordDown && !recordWasDown)
+                    Dispatcher.InvokeAsync(OnRecordHotkey, DispatcherPriority.Send);
+
+                if (replayDown && !replayWasDown)
+                    Dispatcher.InvokeAsync(OnReplayHotkey, DispatcherPriority.Send);
+            }
+
+            // Updated every pass, armed or not, so the edge is always measured
+            // against the poll before it rather than against whenever the last
+            // action happened to fire.
+            clickWasDown = clickDown;
+            shakeWasDown = shakeDown;
+            recordWasDown = recordDown;
+            replayWasDown = replayDown;
+            wasArmed = s.HotkeysArmed;
+
+            Thread.Sleep(HotkeyPollMs);
+        }
+    }
+
+    /// <summary>How close to a corner counts as being in it.</summary>
+    private const int CornerStopMargin = 2;
+
+    /// <summary>
+    /// True while the pointer is sitting in a corner of the desktop.
+    /// </summary>
+    /// <remarks>
+    /// Corners rather than edges. With two monitors side by side an edge gets
+    /// crossed constantly in normal play, and the top edge is where menus and
+    /// title bars live — a failsafe that fires by accident mid-game is worse
+    /// than no failsafe at all. A corner takes deliberately throwing the mouse
+    /// into it, which is exactly the gesture wanted.
+    ///
+    /// Measured with GetSystemMetrics rather than SystemParameters because this
+    /// runs on the poll thread, and the WPF statics are not its to touch.
+    /// </remarks>
+    private static bool PointerInCorner()
+    {
+        if (!GetCursorPos(out POINT p)) return false;
+
+        int left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        int right = left + GetSystemMetrics(SM_CXVIRTUALSCREEN) - 1;
+        int bottom = top + GetSystemMetrics(SM_CYVIRTUALSCREEN) - 1;
+
+        bool nearLeftOrRight = p.X - left <= CornerStopMargin || right - p.X <= CornerStopMargin;
+        bool nearTopOrBottom = p.Y - top <= CornerStopMargin || bottom - p.Y <= CornerStopMargin;
+
+        // Both, not either — either one of them is an edge.
+        return nearLeftOrRight && nearTopOrBottom;
+    }
+
+    private void OnClickHotkey(bool pressed)
+    {
+        // A bound key being typed into a value box must not also fire the hotkey.
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
+        if (pressed)
+        {
+            if (_holdMode)
+            {
+                if (!_running) StartClicking();
+            }
+            else
+            {
+                ToggleRunning();
             }
         }
-
-        bool shakeDown = IsKeyDown(_hotkeySettings.ShakeHotkey.VirtualKey);
-        if (shakeDown != _shakeKeyWasDown)
+        else if (_holdMode && _running)
         {
-            _shakeKeyWasDown = shakeDown;
-
-            // Toggling IsChecked raises Checked/Unchecked, which republishes the
-            // engine snapshot — no separate plumbing needed.
-            if (shakeDown && !typing && ShakyTracking != null)
-                ShakyTracking.IsChecked = ShakyTracking.IsChecked != true;
+            StopClicking();
         }
+    }
+
+    /// <summary>
+    /// Saves what already happened. The buffer is always rolling while enabled,
+    /// so this is a stream copy of segments that are already on disk — it takes
+    /// tens of milliseconds, not the length of the clip.
+    /// </summary>
+    private async void OnReplayHotkey()
+    {
+        if (!_replay.IsRunning)
+        {
+            ShowReplayStatus("Instant replay is off — turn it on first.", isError: true);
+            return;
+        }
+
+        ShowReplayStatus("Saving…", isError: false);
+
+        string? path = await _replay.SaveLastAsync(ReplaySeconds, ClipFolder);
+
+        if (path == null)
+        {
+            ShowReplayStatus("Nothing saved — the buffer had no usable footage yet.", isError: true);
+            return;
+        }
+
+        var file = new FileInfo(path);
+        _chosenClipPath = path;
+
+        ChosenClipText.Text = $"{file.Name} — {file.Length / 1024.0 / 1024.0:0.0} MB";
+        UploadClipButton.IsEnabled = file.Length > 0 && file.Length <= ClipUploader.MaxBytes;
+
+        ShowReplayStatus($"Saved the last {ReplaySeconds}s — ready to upload.", isError: false);
+    }
+
+    private void OnShakeHotkey()
+    {
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
+        // Toggling IsChecked raises Checked/Unchecked, which republishes the
+        // engine snapshot — no separate plumbing needed.
+        if (ShakyTracking != null) ShakyTracking.IsChecked = ShakyTracking.IsChecked != true;
     }
 
     // A second click on an armed button cancels rather than re-arming.
@@ -264,19 +458,130 @@ public partial class MainWindow : Window
         else BeginRebind(RebindTarget.Shake);
     }
 
+    private void ReplayHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Replay) CancelRebind();
+        else BeginRebind(RebindTarget.Replay);
+    }
+
     // The button itself becomes the prompt, so no dialog interrupts the flow.
     private void BeginRebind(RebindTarget target)
     {
         _rebinding = target;
+        RebindButtonFor(target).Content = "Select A Hotkey";
 
-        Button button = target == RebindTarget.Shake ? ShakeHotkeyButton : HotkeyButton;
-        button.Content = "Select A Hotkey";
+        // Load-bearing. The poll thread reads HotkeysArmed from the snapshot,
+        // and only this republishes it — without the call the key being chosen
+        // still fires its action while it is being chosen, so binding the click
+        // key starts the clicker instead of binding anything.
+        UpdateEngineSettings();
+    }
+
+    private void HotkeysEnabled_Changed(object sender, RoutedEventArgs e) => UpdateEngineSettings();
+
+    private void RecordHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Record) CancelRebind();
+        else BeginRebind(RebindTarget.Record);
+    }
+
+    private Button RebindButtonFor(RebindTarget target) => target switch
+    {
+        RebindTarget.Shake => ShakeHotkeyButton,
+        RebindTarget.Replay => ReplayHotkeyButton,
+        RebindTarget.Record => RecordHotkeyButton,
+        _ => HotkeyButton
+    };
+
+    /// <summary>
+    /// Unbinds any hotkey repeating one an earlier action already claims.
+    /// </summary>
+    /// <remarks>
+    /// The rebind path rejects collisions, but a settings file written before an
+    /// action existed cannot know that action's default is already taken — and a
+    /// key bound twice fires both, which looks like the app malfunctioning
+    /// rather than like a clash. Earlier in the list wins, so the clicker keeps
+    /// its key and the newer action is the one that loses.
+    /// </remarks>
+    private void DropDuplicateHotkeys()
+    {
+        var claimed = new HashSet<int>();
+
+        foreach ((RebindTarget target, HotkeyBinding binding) in AllBindings())
+        {
+            if (!binding.IsValid || claimed.Add(binding.VirtualKey)) continue;
+
+            switch (target)
+            {
+                case RebindTarget.Click: _hotkeySettings.Hotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.Shake: _hotkeySettings.ShakeHotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.Record: _hotkeySettings.RecordHotkey = HotkeyBinding.Unbound; break;
+                default: _hotkeySettings.ReplayHotkey = HotkeyBinding.Unbound; break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every action and its current binding. One place, so the collision check
+    /// and the button labels cannot disagree about how many actions exist.
+    /// </summary>
+    private (RebindTarget Target, HotkeyBinding Binding)[] AllBindings() => new[]
+    {
+        (RebindTarget.Click, _hotkeySettings.Hotkey),
+        (RebindTarget.Shake, _hotkeySettings.ShakeHotkey),
+        (RebindTarget.Replay, _hotkeySettings.ReplayHotkey),
+        (RebindTarget.Record, _hotkeySettings.RecordHotkey)
+    };
+
+    /// <summary>How long a refused rebind sits on the button before reverting.</summary>
+    private static readonly TimeSpan RebindNoticeDuration = TimeSpan.FromSeconds(1.6);
+
+    private DispatcherTimer? _rebindNoticeTimer;
+
+    /// <summary>
+    /// Says no on the button that asked the question.
+    /// </summary>
+    /// <remarks>
+    /// The button is already the prompt — it reads "Select A Hotkey" while it
+    /// waits — so it is the honest place for the answer too. A modal dialog took
+    /// focus and had to be dismissed before another key could be tried, which is
+    /// a lot of ceremony for "pick a different one".
+    ///
+    /// The wording is kept short deliberately: every rebind button sizes to its
+    /// content with a MinWidth floor, and a longer message would make the button
+    /// jump wider and snap back.
+    /// </remarks>
+    private void ShowRebindRefused(RebindTarget target)
+    {
+        Button button = RebindButtonFor(target);
+
+        button.Content = "In use";
+        button.Foreground = (Brush)FindResource("Accent");
+
+        // Restarted rather than stacked, so trying three keys in a row leaves
+        // one pending revert instead of three fighting over the label.
+        _rebindNoticeTimer?.Stop();
+        _rebindNoticeTimer = new DispatcherTimer { Interval = RebindNoticeDuration };
+
+        _rebindNoticeTimer.Tick += (_, _) =>
+        {
+            _rebindNoticeTimer?.Stop();
+            _rebindNoticeTimer = null;
+
+            button.ClearValue(Control.ForegroundProperty);
+            ApplyHotkeyToUi();
+        };
+
+        _rebindNoticeTimer.Start();
     }
 
     private void CancelRebind()
     {
         _rebinding = RebindTarget.None;
         ApplyHotkeyToUi();
+
+        // Re-arms the poll thread, which BeginRebind disarmed.
+        UpdateEngineSettings();
     }
 
     /// <summary>
@@ -321,28 +626,28 @@ public partial class MainWindow : Window
             return;
         }
 
-        HotkeyBinding other = target == RebindTarget.Click
-            ? _hotkeySettings.ShakeHotkey
-            : _hotkeySettings.Hotkey;
-
-        if (binding.VirtualKey == other.VirtualKey)
+        // Every other binding, not just one — a key could collide with any of
+        // the actions it is not replacing. Built from the same table that does
+        // the assignment, so adding an action cannot leave a gap here.
+        if (AllBindings().Any(b => b.Target != target && b.Binding.VirtualKey == binding.VirtualKey))
         {
             CancelRebind();
-            MessageBox.Show($"{binding.Name} is already bound to the other action.",
-                "Hotkey Unchanged", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowRebindRefused(target);
             return;
         }
 
-        if (target == RebindTarget.Click) _hotkeySettings.Hotkey = binding;
-        else _hotkeySettings.ShakeHotkey = binding;
+        switch (target)
+        {
+            case RebindTarget.Click: _hotkeySettings.Hotkey = binding; break;
+            case RebindTarget.Shake: _hotkeySettings.ShakeHotkey = binding; break;
+            case RebindTarget.Record: _hotkeySettings.RecordHotkey = binding; break;
+            default: _hotkeySettings.ReplayHotkey = binding; break;
+        }
 
         _hotkeySettings.Save();
 
-        // Prime the edge detector, or releasing the button that was just bound
-        // would read as a fresh transition and fire it immediately.
-        _clickKeyWasDown = IsKeyDown(_hotkeySettings.Hotkey.VirtualKey);
-        _shakeKeyWasDown = IsKeyDown(_hotkeySettings.ShakeHotkey.VirtualKey);
-
+        // The poll thread re-primes its own edge state while disarmed, so
+        // releasing the just-bound key cannot read as a fresh press.
         // The badge and button now read the new binding, which is the confirmation.
         ApplyHotkeyToUi();
         UpdateEngineSettings();
@@ -393,10 +698,11 @@ public partial class MainWindow : Window
     /// </summary>
     private sealed record ClickSettings(
         double Cps, double Duty, bool Shaky, ShakeRange Shake,
-        bool UltraAccuracy, bool HoldMode, int HotkeyVk);
+        bool UltraAccuracy, bool HoldMode,
+        int HotkeyVk, int ShakeHotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk, bool HotkeysArmed);
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6, 0, 0, 0, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -423,12 +729,99 @@ public partial class MainWindow : Window
         UltraAccuracy.IsChecked = s.UltraAccuracy;
         PingSync.IsChecked = s.PingSync;
         HitFix.IsChecked = s.HitFix;
+        HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
 
         SetClickMode(s.HoldMode);
+
+        _valuesHidden = s.HideValues;
+        ApplyValueVisibility();
+
+        // Falls back rather than trusting the file: a value with no matching
+        // button would leave the radio group and the stored length disagreeing.
+        if (!SelectReplayLength(s.ReplaySeconds)) SelectReplayLength(30);
+
+        // A monitor that has been unplugged since matches nothing, so the whole
+        // desktop is the fallback rather than a crop that no longer exists.
+        if (!SelectDisplay(s.RecordDisplay)) SelectDisplay(null);
+
+        ClipFolderBox.Text = string.IsNullOrWhiteSpace(s.ClipFolder) ? DefaultClipFolder : s.ClipFolder;
+
+        if (!SelectRecordFps(s.RecordFps)) SelectRecordFps(30);
+
+        // Same posture toward the stored accent: a colour matching no swatch
+        // would otherwise leave the row with nothing ringed.
+        // Checking the button applies the mode. Dark is already checked in the
+        // XAML, so a stored dark raises no event — and needs none, since the
+        // palette declared there is the dark one.
+        if (s.LightTheme) ThemeLight.IsChecked = true;
+
+        if (!SelectAccent(s.AccentColor)) SelectAccent(DefaultAccent);
+
+        // Clamped to the slider's own range rather than trusted: the floor is
+        // what stops a stored zero from bringing back an invisible window.
+        OpacitySlider.Value = Math.Clamp(s.WindowOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
+
+        // Deliberately not restored from the file. Ticking this box starts an
+        // ffmpeg gdigrab capture of the whole desktop, and a GDI screen grab
+        // makes the mouse cursor flicker for as long as it runs — so restoring
+        // it meant the pointer blinked from the moment the app was opened.
+        // Recording the screen is opt-in per run, not a remembered setting.
+
+        RestoreWindowPlacement(s);
 
         UpdateShakeLabel();
         UpdatePingLabel();
         UpdateEngineSettings();
+    }
+
+    /// <summary>Checks the matching length button. False when none matches.</summary>
+    private bool SelectReplayLength(int seconds)
+    {
+        foreach (object child in ReplayLengthPanel.Children)
+        {
+            if (child is RadioButton { Tag: string tag } button
+                && int.TryParse(tag, out int value)
+                && value == seconds)
+            {
+                // Checking it raises Checked, which sets ReplaySeconds — so the
+                // property and the button can never drift apart.
+                button.IsChecked = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Restores size and position, but only onto a screen that still exists —
+    /// a window remembered on a monitor since unplugged would open off-screen
+    /// with no way to drag it back.
+    /// </summary>
+    private void RestoreWindowPlacement(AppSettings s)
+    {
+        if (s.WindowWidth is > 0 and { } width) Width = Math.Max(MinWidth, width);
+        if (s.WindowHeight is > 0 and { } height) Height = Math.Max(MinHeight, height);
+
+        if (s.WindowLeft is { } left && s.WindowTop is { } top)
+        {
+            double virtualLeft = SystemParameters.VirtualScreenLeft;
+            double virtualTop = SystemParameters.VirtualScreenTop;
+            double virtualRight = virtualLeft + SystemParameters.VirtualScreenWidth;
+            double virtualBottom = virtualTop + SystemParameters.VirtualScreenHeight;
+
+            bool onScreen = left + Width > virtualLeft && left < virtualRight
+                            && top + Height > virtualTop && top < virtualBottom;
+
+            if (onScreen)
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = left;
+                Top = top;
+            }
+        }
+
+        if (s.WindowMaximized) WindowState = WindowState.Maximized;
     }
 
     private void SaveAppSettings()
@@ -452,7 +845,25 @@ public partial class MainWindow : Window
             UltraAccuracy = UltraAccuracy.IsChecked == true,
             PingSync = PingSync.IsChecked == true,
             HitFix = HitFix.IsChecked == true,
-            HoldMode = _holdMode
+            HoldMode = _holdMode,
+            HideValues = _valuesHidden,
+            ReplayEnabled = ReplayEnabled.IsChecked == true,
+            ReplaySeconds = ReplaySeconds,
+            AccentColor = _accentHex,
+            WindowOpacity = OpacitySlider.Value,
+            LightTheme = ThemeLight.IsChecked == true,
+            RecordDisplay = _captureDisplay?.DeviceName,
+            HotkeysEnabled = HotkeysEnabledToggle.IsChecked == true,
+            ClipFolder = ClipFolderBox.Text.Trim(),
+            RecordFps = RecordFps,
+            // RestoreBounds rather than Width/Height: while maximised those
+            // report the maximised size, which would be restored as the
+            // "normal" size next launch.
+            WindowWidth = RestoreBounds.Width > 0 ? RestoreBounds.Width : Width,
+            WindowHeight = RestoreBounds.Height > 0 ? RestoreBounds.Height : Height,
+            WindowLeft = RestoreBounds.Width > 0 ? RestoreBounds.Left : Left,
+            WindowTop = RestoreBounds.Width > 0 ? RestoreBounds.Top : Top,
+            WindowMaximized = WindowState == WindowState.Maximized
         }.Save();
 
         _settingsDirty = false;
@@ -479,7 +890,14 @@ public partial class MainWindow : Window
             new ShakeRange(_shakeLeft, _shakeRight, _shakeUp, _shakeDown),
             spin,
             _holdMode,
-            _hotkeySettings.Hotkey.VirtualKey);
+            _hotkeySettings.Hotkey.VirtualKey,
+            _hotkeySettings.ShakeHotkey.VirtualKey,
+            _hotkeySettings.ReplayHotkey.VirtualKey,
+            _hotkeySettings.RecordHotkey.VirtualKey,
+            // Armed only when nothing is being rebound and the master switch is
+            // on. Null-conditional because this runs once from the constructor,
+            // before every control is necessarily built.
+            _rebinding == RebindTarget.None && HotkeysEnabledToggle?.IsChecked != false);
     }
 
     private void EngineSetting_Changed(object sender, RoutedEventArgs e)
@@ -488,6 +906,10 @@ public partial class MainWindow : Window
         UpdatePingLabel();
         UpdateShakeLabel();
         UpdateEngineSettings();
+
+        // The toggles are part of a preset now, so changing one can make the
+        // applied preset stop matching.
+        RefreshAppliedPreset();
     }
 
     private void ShakeBox_LostFocus(object sender, RoutedEventArgs e) => CommitShakeBox(sender as TextBox);
@@ -519,6 +941,7 @@ public partial class MainWindow : Window
         WriteShakeBoxes();
         UpdateShakeLabel();
         UpdateEngineSettings();
+        RefreshAppliedPreset();
     }
 
     /// <summary>
@@ -604,9 +1027,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        ShakeStatusText.Text = _shakeActive
-            ? $"Active — moving every {ShakeMinIntervalMs}-{ShakeMaxIntervalMs} ms"
-            : "Waiting for Roblox first person";
+        // Naming the failing condition, rather than a single "waiting", is what
+        // makes this diagnosable without attaching a debugger.
+        ShakeStatusText.Text = _shakeGate switch
+        {
+            ShakeGate.Ready => $"Active — moving every {ShakeMinIntervalMs}-{ShakeMaxIntervalMs} ms",
+            ShakeGate.MouseFree => "Waiting — Roblox is in front but not in first person",
+            _ => "Waiting — Roblox is not the front window"
+        };
     }
 
     /// <summary>
@@ -683,6 +1111,10 @@ public partial class MainWindow : Window
         // it the loop cannot exceed ~32 clicks per second whatever the slider says.
         bool raisedTimer = TimeBeginPeriod(TimerResolutionMs) == 0;
 
+        // Timestamp the current run of actual clicking started, or 0 when idle.
+        // History counts only these runs, so being armed or open costs nothing.
+        long activeSince = 0;
+
         try
         {
             long freq = Stopwatch.Frequency;
@@ -694,6 +1126,7 @@ public partial class MainWindow : Window
 
                 if (s.HoldMode && !IsKeyDown(s.HotkeyVk))
                 {
+                    BankActiveTime(ref activeSince);
                     Thread.Sleep(5);
                     deadline = Stopwatch.GetTimestamp();
                     continue;
@@ -705,10 +1138,13 @@ public partial class MainWindow : Window
                 // what the user asked for.
                 if (s.Cps < MinimumCps)
                 {
+                    BankActiveTime(ref activeSince);
                     Thread.Sleep(50);
                     deadline = Stopwatch.GetTimestamp();
                     continue;
                 }
+
+                if (activeSince == 0) activeSince = Stopwatch.GetTimestamp();
 
                 // If the loop has fallen badly behind — a long stall, or the rate
                 // was just raised — resync rather than bursting to catch up.
@@ -738,32 +1174,49 @@ public partial class MainWindow : Window
         }
         finally
         {
+            // Banked here too, or the final partial run would be lost on stop.
+            BankActiveTime(ref activeSince);
+
             if (buttonDown) SendLeftUp();
             if (raisedTimer) TimeEndPeriod(TimerResolutionMs);
         }
     }
 
+    private void BankActiveTime(ref long activeSince)
+    {
+        if (activeSince == 0) return;
+
+        Interlocked.Add(ref _activeTicks, Stopwatch.GetTimestamp() - activeSince);
+        activeSince = 0;
+    }
+
     private static int NextOffset(double min, double max) =>
         (int)Math.Round(min + Random.Shared.NextDouble() * (max - min));
 
+    private enum ShakeGate { Ready, NotRoblox, MouseFree }
+
     /// <summary>
-    /// True when Roblox owns the foreground window and the system cursor is
-    /// hidden, which is how Roblox presents a camera-locked mouse.
+    /// Whether the shake engine is allowed to move the camera right now.
     /// </summary>
     /// <remarks>
-    /// This is the closest an external process can get to "is the player in
-    /// first person" without reading Roblox's memory. It is a superset: third
-    /// person with shift-lock, and holding right-mouse to rotate, both lock the
-    /// cursor the same way. Distinguishing them would mean reading game state
-    /// out of a protected process, which this app does not do.
+    /// Detecting "first person" from outside the game is a heuristic. The
+    /// obvious test — is the system cursor hidden — does not work: Roblox swaps
+    /// the cursor bitmap (arrow, crosshair) rather than hiding the cursor, so
+    /// CURSOR_SHOWING stays set the whole time and a gate on it never opens.
+    ///
+    /// What does distinguish a camera-locked mouse is that Roblox keeps
+    /// recentring it, so the pointer sits on the window centre instead of
+    /// wandering. Cursor-hidden is still accepted, for games that do hide it.
+    /// This remains a superset of first person: shift-lock and right-mouse
+    /// look also lock the cursor.
     /// </remarks>
-    private bool IsRobloxMouseLocked()
+    private ShakeGate ReadShakeGate()
     {
         IntPtr hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return false;
+        if (hwnd == IntPtr.Zero) return ShakeGate.NotRoblox;
 
         GetWindowThreadProcessId(hwnd, out uint pid);
-        if (pid == 0) return false;
+        if (pid == 0) return ShakeGate.NotRoblox;
 
         // Resolving a pid to a name is comparatively expensive, and this runs
         // every 20-40 ms, so the answer is cached until the pid changes.
@@ -784,13 +1237,29 @@ public partial class MainWindow : Window
             }
         }
 
-        if (!_cachedForegroundIsRoblox) return false;
+        if (!_cachedForegroundIsRoblox) return ShakeGate.NotRoblox;
 
         CURSORINFO info = default;
         info.cbSize = Marshal.SizeOf<CURSORINFO>();
-        if (!GetCursorInfo(ref info)) return false;
 
-        return (info.flags & CURSOR_SHOWING) == 0;
+        if (!GetCursorInfo(ref info)) return ShakeGate.MouseFree;
+
+        // Some games hide the pointer outright.
+        if ((info.flags & CURSOR_SHOWING) == 0) return ShakeGate.Ready;
+
+        // Roblox does not. It swaps the cursor bitmap: the ordinary Windows
+        // arrow while the mouse is free, its own crosshair once the camera owns
+        // the mouse. So the test is which cursor is displayed, not whether one
+        // is displayed at all.
+        return info.hCursor != IntPtr.Zero && info.hCursor != SystemArrowCursor()
+            ? ShakeGate.Ready
+            : ShakeGate.MouseFree;
+    }
+
+    private static IntPtr SystemArrowCursor()
+    {
+        // Shared handle, so this is a cheap lookup rather than an allocation.
+        return LoadCursor(IntPtr.Zero, IDC_ARROW);
     }
 
     /// <summary>
@@ -813,7 +1282,11 @@ public partial class MainWindow : Window
             {
                 ClickSettings s = _settings;
                 ShakeRange range = s.Shake;
-                bool eligible = s.Shaky && !range.IsZero && IsRobloxMouseLocked();
+
+                ShakeGate gate = s.Shaky && !range.IsZero ? ReadShakeGate() : ShakeGate.NotRoblox;
+                bool eligible = gate == ShakeGate.Ready;
+
+                _shakeGate = gate;
                 _shakeActive = eligible;
 
                 if (!eligible)
@@ -911,6 +1384,20 @@ public partial class MainWindow : Window
     {
         HotkeyButton.Content = _hotkeySettings.Hotkey.Name;
         ShakeHotkeyButton.Content = _hotkeySettings.ShakeHotkey.Name;
+        ReplayHotkeyButton.Content = _hotkeySettings.ReplayHotkey.Name;
+        RecordHotkeyButton.Content = _hotkeySettings.RecordHotkey.Name;
+
+        // The bindings live on three different pages, so Settings is the only
+        // place they can all be read at once.
+        if (HotkeySummaryText != null)
+        {
+            HotkeySummaryText.Text = string.Join("     ",
+                $"{_hotkeySettings.Hotkey.Name} — click",
+                $"{_hotkeySettings.ShakeHotkey.Name} — shake",
+                $"{_hotkeySettings.ReplayHotkey.Name} — replay",
+                $"{_hotkeySettings.RecordHotkey.Name} — record");
+        }
+
         RefreshStatus();
     }
 
@@ -976,35 +1463,130 @@ public partial class MainWindow : Window
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
     }
 
-    private void ToggleMode_Click(object sender, RoutedEventArgs e) => SetClickMode(hold: false);
+    private void ToggleMode_Checked(object sender, RoutedEventArgs e) => SetClickMode(hold: false);
 
-    private void HoldMode_Click(object sender, RoutedEventArgs e) => SetClickMode(hold: true);
+    private void HoldMode_Checked(object sender, RoutedEventArgs e) => SetClickMode(hold: true);
 
+    /// <summary>
+    /// Selection lives in the radio group's IsChecked now, so this only records
+    /// the mode — no more shadowing it in a Background brush.
+    /// </summary>
     private void SetClickMode(bool hold)
     {
         _holdMode = hold;
 
-        Button active = hold ? HoldModeButton : ToggleModeButton;
-        Button inactive = hold ? ToggleModeButton : HoldModeButton;
-
-        active.Background = (System.Windows.Media.Brush)FindResource("Accent");
-        inactive.ClearValue(BackgroundProperty);
+        if (HoldModeButton != null && ToggleModeButton != null)
+        {
+            RadioButton wanted = hold ? HoldModeButton : ToggleModeButton;
+            if (wanted.IsChecked != true) wanted.IsChecked = true;
+        }
 
         UpdateEngineSettings();
     }
+
+    /// <summary>The highlighted card. Null means nothing is highlighted.</summary>
+    private ClickPreset? _selectedPreset;
 
     private void PresetCard_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not ClickPreset preset) return;
 
-        CpsSlider.Value = Math.Clamp(preset.Cps, CpsSlider.Minimum, CpsSlider.Maximum);
-        CdcSlider.Value = Math.Clamp(preset.Cdc, CdcSlider.Minimum, CdcSlider.Maximum);
+        // Second click clears the highlight only. Settings stay exactly as they
+        // are — this is deselecting a card, not undoing anything.
+        if (ReferenceEquals(preset, _selectedPreset))
+        {
+            _selectedPreset = null;
+            RefreshAppliedPreset();
+            ShowPresetHint($"Unselected \"{preset.Name}\". Your settings are unchanged.", isError: false);
+            return;
+        }
+
+        ApplyProfile(preset);
+        _selectedPreset = preset;
         RefreshAppliedPreset();
+
+        ShowPresetHint($"Applied \"{preset.Name}\". Click it again to unselect.", isError: false);
+    }
+
+    private void ApplyProfile(ClickPreset profile)
+    {
+        CpsSlider.Value = Math.Clamp(profile.Cps, CpsSlider.Minimum, CpsSlider.Maximum);
+        CdcSlider.Value = Math.Clamp(profile.Cdc, CdcSlider.Minimum, CdcSlider.Maximum);
+
+        _shakeLeft = Math.Clamp(profile.ShakeLeft, 0, MaxShakePixels);
+        _shakeRight = Math.Clamp(profile.ShakeRight, 0, MaxShakePixels);
+        _shakeUp = Math.Clamp(profile.ShakeUp, 0, MaxShakePixels);
+        _shakeDown = Math.Clamp(profile.ShakeDown, 0, MaxShakePixels);
+        WriteShakeBoxes();
+
+        ShakyTracking.IsChecked = profile.Shaky;
+        UltraAccuracy.IsChecked = profile.UltraAccuracy;
+        SetClickMode(profile.HoldMode);
+
+        UpdateShakeLabel();
+        UpdateEngineSettings();
+        RefreshAppliedPreset();
+    }
+
+    /// <summary>
+    /// Loads a preset for editing: applies it first, then fills the form with
+    /// its name and rates.
+    /// </summary>
+    /// <remarks>
+    /// Applying first matters. Saving captures the app's whole current state,
+    /// so editing a preset without loading it would quietly overwrite its mode,
+    /// accuracy and shake with whatever happened to be set at the time.
+    /// </remarks>
+    private const string CustomPresetHintText = "Name it, set CPS and CDC, and it is saved between sessions";
+
+    /// <summary>The preset loaded into the form, so the pencil can toggle.</summary>
+    private ClickPreset? _editingPreset;
+
+    private void EditPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not ClickPreset preset) return;
+
+        // Second click on the same pencil backs out of editing.
+        if (ReferenceEquals(preset, _editingPreset))
+        {
+            ClearPresetForm();
+            ShowPresetHint(CustomPresetHintText, isError: false);
+            return;
+        }
+
+        // Applied directly rather than through the card handler, which would
+        // treat an already-selected preset as a request to unselect it.
+        ApplyProfile(preset);
+        _selectedPreset = preset;
+        RefreshAppliedPreset();
+
+        _editingPreset = preset;
+
+        NewPresetName.Text = preset.Name;
+        NewPresetCps.Text = preset.CpsText;
+        NewPresetCdc.Text = preset.CdcText;
+
+        NewPresetCps.Focus();
+        NewPresetCps.SelectAll();
+
+        ShowPresetHint($"Editing \"{preset.Name}\" — change the values, then Save to replace it.", isError: false);
+    }
+
+    private void ClearPresetForm()
+    {
+        _editingPreset = null;
+
+        NewPresetName.Clear();
+        NewPresetCps.Clear();
+        NewPresetCdc.Clear();
     }
 
     private void DeletePreset_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not ClickPreset preset) return;
+
+        // Leaving a deleted preset loaded in the form would let Save resurrect it.
+        if (ReferenceEquals(preset, _editingPreset)) ClearPresetForm();
 
         _clickPresets.Remove(preset);
         PresetStore.Save(_clickPresets);
@@ -1122,12 +1704,17 @@ public partial class MainWindow : Window
 
         if (existing != null) _clickPresets.Remove(existing);
 
-        _clickPresets.Add(new ClickPreset(name, cps, cdc));
+        // Captures the whole current setup, not just the two typed numbers.
+        _clickPresets.Add(new ClickPreset(
+            name, cps, cdc,
+            _holdMode,
+            UltraAccuracy.IsChecked == true,
+            ShakyTracking.IsChecked == true,
+            _shakeLeft, _shakeRight, _shakeUp, _shakeDown));
+
         PresetStore.Save(_clickPresets);
 
-        NewPresetName.Clear();
-        NewPresetCps.Clear();
-        NewPresetCdc.Clear();
+        ClearPresetForm();
 
         ShowPresetHint(existing != null ? $"Replaced \"{name}\"" : $"Saved \"{name}\"", isError: false);
         RefreshAppliedPreset();
@@ -1169,17 +1756,34 @@ public partial class MainWindow : Window
     {
         if (PresetAppliedText == null) return;
 
-        ClickPreset? match = _clickPresets.FirstOrDefault(p =>
-            Math.Abs(p.Cps - CpsSlider.Value) < 0.05 && Math.Abs(p.Cdc - CdcSlider.Value) < 0.05);
+        // The highlight is an explicit selection, but it still drops when the
+        // settings move away from it — otherwise a card would claim to be
+        // applied while a slider says otherwise.
+        if (_selectedPreset != null
+            && (!_clickPresets.Contains(_selectedPreset) || !MatchesCurrent(_selectedPreset)))
+        {
+            _selectedPreset = null;
+        }
 
-        foreach (ClickPreset p in _clickPresets) p.IsApplied = ReferenceEquals(p, match);
+        foreach (ClickPreset p in _clickPresets) p.IsApplied = ReferenceEquals(p, _selectedPreset);
 
-        PresetAppliedText.Text = match == null ? "No preset applied" : $"Applied — {match.Name}";
+        PresetAppliedText.Text = _selectedPreset == null ? "No preset applied" : $"Applied — {_selectedPreset.Name}";
         PresetAppliedText.Foreground =
-            (System.Windows.Media.Brush)FindResource(match == null ? "TextMuted" : "Accent");
+            (System.Windows.Media.Brush)FindResource(_selectedPreset == null ? "TextMuted" : "Accent");
 
         PresetEmptyText.Visibility = _clickPresets.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    private bool MatchesCurrent(ClickPreset p) =>
+        Math.Abs(p.Cps - CpsSlider.Value) < 0.05
+        && Math.Abs(p.Cdc - CdcSlider.Value) < 0.05
+        && p.HoldMode == _holdMode
+        && p.UltraAccuracy == (UltraAccuracy?.IsChecked == true)
+        && p.Shaky == (ShakyTracking?.IsChecked == true)
+        && (!p.Shaky || (Math.Abs(p.ShakeLeft - _shakeLeft) < 0.5
+                         && Math.Abs(p.ShakeRight - _shakeRight) < 0.5
+                         && Math.Abs(p.ShakeUp - _shakeUp) < 0.5
+                         && Math.Abs(p.ShakeDown - _shakeDown) < 0.5));
 
     private void NavClicker_Click(object sender, RoutedEventArgs e) =>
         ShowPage(NavClicker, PageClicker, "Clicker", "Configure your own click engine");
@@ -1248,16 +1852,14 @@ public partial class MainWindow : Window
     {
         if (_tempBusy || _lastTempScan.Files == 0) return;
 
-        // Deleting files is not undoable, so this one keeps a confirmation even
-        // though the rest of the app has none.
-        string question = $"Delete {_lastTempScan.Files:N0} temp files ({FormatSize(_lastTempScan.Bytes)})?\n\n" +
-                          "Only files untouched for over a day are removed, and only from your temp folders.";
+        // Deleting files is not undoable, so this one keeps a confirmation.
+        bool confirmed = await ConfirmAsync(
+            "Delete temp files?",
+            $"{_lastTempScan.Files:N0} files totalling {FormatSize(_lastTempScan.Bytes)} will be deleted.\n\n" +
+            "Only files untouched for over a day are removed, and only from your temp folders.",
+            "Delete");
 
-        if (MessageBox.Show(question, "Clean temp files", MessageBoxButton.YesNo, MessageBoxImage.Question)
-            != MessageBoxResult.Yes)
-        {
-            return;
-        }
+        if (!confirmed) return;
 
         _tempBusy = true;
         CleanTempButton.IsEnabled = false;
@@ -1328,11 +1930,730 @@ public partial class MainWindow : Window
         return mb >= 1024 ? $"{mb / 1024.0:0.00} GB" : $"{mb:0} MB";
     }
 
-    private void NavHistory_Click(object sender, RoutedEventArgs e) =>
-        ShowPage(NavHistory, PageHistory, "History", "Past sessions");
+    private void NavMod_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshFlags();
+        ShowPage(NavMod, PageMod, "Mod", "Roblox client settings");
+    }
+
+    // ---- FastFlags ----
+
+    private void RefreshFlags()
+    {
+        FlagList.ItemsSource = FastFlagStore.FpsBoost;
+
+        string? path = FastFlagStore.SettingsPath();
+        bool installed = path != null;
+
+        ApplyFlagsButton.IsEnabled = installed;
+        ResetFlagsButton.IsEnabled = installed;
+
+        if (!installed)
+        {
+            FlagPathText.Text = "";
+            FlagStateText.Text = "Roblox not found";
+            FlagStatusText.Text = "No Roblox client is installed on this machine, so there is nothing to write to.";
+            return;
+        }
+
+        FlagPathText.Text = path;
+
+        bool applied = FastFlagStore.IsApplied(FastFlagStore.FpsBoost);
+        FlagStateText.Text = applied ? "Applied" : "Not applied";
+        FlagStateText.Foreground =
+            (System.Windows.Media.Brush)FindResource(applied ? "Accent" : "TextMuted");
+    }
+
+    private void ApplyFlags_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            FastFlagStore.Apply(FastFlagStore.FpsBoost);
+            RefreshFlags();
+            ShowFlagStatus("Applied. Restart Roblox for it to take effect.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowFlagStatus(ex.Message, isError: true);
+        }
+    }
+
+    private void ResetFlags_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Removes only what this app wrote, so hand-added flags survive.
+            FastFlagStore.Reset(FastFlagStore.FpsBoost);
+            RefreshFlags();
+            ShowFlagStatus("Reset. Restart Roblox for it to take effect.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowFlagStatus(ex.Message, isError: true);
+        }
+    }
+
+    private void ShowFlagStatus(string message, bool isError)
+    {
+        FlagStatusText.Text = message;
+        FlagStatusText.Foreground =
+            (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
+    }
+
+    private void NavHistory_Click(object sender, RoutedEventArgs e)
+    {
+        FlushHistory();
+        RefreshHistoryUi();
+        ShowPage(NavHistory, PageHistory, "History", "Time spent clicking");
+    }
+
+    // ---- history ----
+
+    private long _activeTicks;
+    private long _bankedTicks;
+    private long _bankedClicks;
+    private double _sessionSeconds;
+    private long _sessionClicks;
+    private int _historyTicksSinceSave;
+
+    /// <summary>
+    /// Moves whatever the engine has accumulated since the last call into the
+    /// history totals. Deltas are taken against a running baseline, so a flush
+    /// mid-session cannot double-count.
+    /// </summary>
+    private void FlushHistory()
+    {
+        long ticks = Interlocked.Read(ref _activeTicks);
+        long clicks = Interlocked.Read(ref _clickCount);
+
+        double seconds = (ticks - _bankedTicks) / (double)Stopwatch.Frequency;
+        long newClicks = clicks - _bankedClicks;
+
+        _bankedTicks = ticks;
+        _bankedClicks = clicks;
+
+        if (seconds <= 0 && newClicks <= 0) return;
+
+        _sessionSeconds += seconds;
+        _sessionClicks += newClicks;
+
+        _history.Add(DateTime.Now, seconds, newClicks);
+        _historyDirty = true;
+    }
+
+    private void RefreshHistoryUi()
+    {
+        if (HistoryTotalText == null) return;
+
+        HistoryTotalText.Text = ClickHistory.FormatDuration(TimeSpan.FromSeconds(_history.TotalSeconds));
+        HistoryClicksText.Text = _history.TotalClicks.ToString("N0", CultureInfo.CurrentCulture);
+        HistoryAverageText.Text = _history.AverageRateText;
+
+        HistoryDay? busiest = _history.BusiestDay;
+        HistoryBusiestText.Text = busiest?.DurationText ?? "—";
+        HistoryBusiestDateText.Text = busiest?.DateText ?? "";
+
+        HistoryDaysText.Text = _history.DaysRecorded.ToString(CultureInfo.CurrentCulture);
+        HistorySinceText.Text = _history.DaysRecorded == 0 ? "" : $"since {_history.EarliestDayText}";
+
+        HistorySessionTimeText.Text = ClickHistory.FormatDuration(TimeSpan.FromSeconds(_sessionSeconds));
+        HistorySessionClicksText.Text = _sessionClicks.ToString("N0", CultureInfo.CurrentCulture);
+        HistorySessionRateText.Text = _sessionSeconds > 0.5
+            ? $"{_sessionClicks / _sessionSeconds:0.0} /s"
+            : "—";
+
+        List<HistoryDay> days = _history.RecentDays();
+        HistoryDayList.ItemsSource = days;
+        HistoryEmptyText.Visibility = days.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void ResetHistory_Click(object sender, RoutedEventArgs e)
+    {
+        bool confirmed = await ConfirmAsync(
+            "Reset history?",
+            "Every recorded total and the whole day-by-day breakdown will be cleared. This cannot be undone.",
+            "Reset");
+
+        if (!confirmed) return;
+
+        // Re-baseline instead of zeroing the counters, so activity already in
+        // flight on the engine thread is discarded rather than counted later.
+        _bankedTicks = Interlocked.Read(ref _activeTicks);
+        _bankedClicks = Interlocked.Read(ref _clickCount);
+        _sessionSeconds = 0;
+        _sessionClicks = 0;
+
+        _history.Reset();
+        _history.Save();
+        _historyDirty = false;
+
+        RefreshHistoryUi();
+    }
+
+    private void NavRecorder_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshRecorderEngineText();
+        ShowPage(NavRecorder, PageRecorder, "Recorder", "Record a clip and share it as a link");
+    }
+
+    // ---- recording ----
+
+    private readonly ScreenRecorder _recorder = new();
+    private readonly ReplayBuffer _replay = new();
+
+    /// <summary>Always buffers the longest offered length, so switching is instant.</summary>
+    private const int ReplayCapacitySeconds = 60;
+
+    // ---- capture target ----
+
+    private readonly List<DisplayInfo> _displays = Displays.All();
+
+    /// <summary>The monitor being captured, or null for the whole desktop.</summary>
+    private DisplayInfo? _captureDisplay;
+
+    /// <summary>
+    /// One button per monitor, plus "All displays".
+    /// </summary>
+    /// <remarks>
+    /// Built in code rather than declared: the number of monitors is not known
+    /// until the app runs. Reuses the segment style the replay length buttons
+    /// already use, so it needs no template of its own.
+    /// </remarks>
+    private void BuildDisplayButtons()
+    {
+        DisplayPanel.Children.Clear();
+
+        var options = new List<(string Label, string? Device)> { ("All displays", null) };
+        foreach (DisplayInfo display in _displays) options.Add((display.Label, display.DeviceName));
+
+        foreach ((string label, string? device) in options)
+        {
+            var button = new RadioButton
+            {
+                Content = label,
+                GroupName = "CaptureDisplay",
+                Style = (Style)FindResource("SegmentButton"),
+                Tag = device,
+                Margin = new Thickness(0, 0, 6, 6)
+            };
+
+            button.Checked += CaptureDisplay_Checked;
+            DisplayPanel.Children.Add(button);
+        }
+    }
+
+    private void CaptureDisplay_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton button) return;
+
+        string? device = button.Tag as string;
+        _captureDisplay = device == null ? null : Displays.Match(_displays, device);
+        _settingsDirty = true;
+        RestartReplayIfRunning();
+    }
+
+    /// <summary>Checks the button for this monitor. False when none matches.</summary>
+    /// <remarks>
+    /// A stored monitor that has since been unplugged matches nothing, which the
+    /// caller turns into "all displays" — better than recording a black crop of
+    /// coordinates that no longer exist.
+    /// </remarks>
+    private bool SelectDisplay(string? deviceName)
+    {
+        foreach (object child in DisplayPanel.Children)
+        {
+            if (child is RadioButton button
+                && string.Equals(button.Tag as string, deviceName, StringComparison.OrdinalIgnoreCase))
+            {
+                button.IsChecked = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Starts or stops recording, from the bound hotkey.</summary>
+    /// <remarks>
+    /// Guarded on IsEnabled because the button is disabled while ffmpeg
+    /// finalises the file, and a second press during that window would start a
+    /// new recording on top of the one still closing.
+    /// </remarks>
+    private void OnRecordHotkey()
+    {
+        if (RecordButton.IsEnabled) Record_Click(RecordButton, new RoutedEventArgs());
+    }
+
+    private int ReplaySeconds { get; set; } = 30;
+
+    private void ReplayLength_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tag } || !int.TryParse(tag, out int seconds)) return;
+
+        ReplaySeconds = seconds;
+        _settingsDirty = true;
+    }
+
+    private void ReplayEnabled_Changed(object sender, RoutedEventArgs e)
+    {
+        if (ReplayEnabled.IsChecked == true)
+        {
+            try
+            {
+                _replay.Start(ReplayCapacitySeconds, RecordFps, _captureDisplay);
+                ShowReplayStatus($"Rolling. The last {ReplayCapacitySeconds}s is always available.", isError: false);
+            }
+            catch (Exception ex)
+            {
+                ReplayEnabled.IsChecked = false;
+                ShowReplayStatus(ex.Message, isError: true);
+            }
+
+            _settingsDirty = true;
+            return;
+        }
+
+        _replay.Stop();
+        ShowReplayStatus("Instant replay is off. Nothing is being buffered.", isError: false);
+        _settingsDirty = true;
+    }
+
+    private void SaveReplay_Click(object sender, RoutedEventArgs e) => OnReplayHotkey();
+
+    private void ShowReplayStatus(string message, bool isError)
+    {
+        ReplayStatusText.Text = message;
+        ReplayStatusText.Foreground =
+            (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
+    }
+
+    private static string DefaultClipFolder => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "JinxyClicker");
+
+    /// <summary>
+    /// Where clips and saved replays are written. An empty box means the
+    /// default rather than nothing, so clearing the field cannot leave the
+    /// recorder with nowhere to put a file.
+    /// </summary>
+    private string ClipFolder
+    {
+        get
+        {
+            string typed = ClipFolderBox?.Text.Trim() ?? string.Empty;
+            return typed.Length == 0 ? DefaultClipFolder : typed;
+        }
+    }
+
+    private void ClipFolder_TextChanged(object sender, TextChangedEventArgs e) => _settingsDirty = true;
+
+    private void ResetClipFolder_Click(object sender, RoutedEventArgs e) =>
+        ClipFolderBox.Text = DefaultClipFolder;
+
+    /// <summary>Frames per second for both the recorder and the replay buffer.</summary>
+    private int RecordFps { get; set; } = 30;
+
+    private void RecordFps_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tag } || !int.TryParse(tag, out int fps)) return;
+
+        RecordFps = fps;
+        _settingsDirty = true;
+        RestartReplayIfRunning();
+    }
+
+    /// <summary>Checks the matching framerate button. False when none matches.</summary>
+    private bool SelectRecordFps(int fps)
+    {
+        foreach (object child in RecordFpsPanel.Children)
+        {
+            if (child is RadioButton { Tag: string tag } button
+                && int.TryParse(tag, out int value) && value == fps)
+            {
+                button.IsChecked = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Rebuilds the rolling buffer so a changed framerate or monitor takes
+    /// effect now.
+    /// </summary>
+    /// <remarks>
+    /// ffmpeg fixes both at launch, so without this the buffer would quietly
+    /// keep capturing the old screen at the old rate while the page claimed
+    /// otherwise — and the mismatch would only surface in a saved clip.
+    /// </remarks>
+    private void RestartReplayIfRunning()
+    {
+        if (!_replay.IsRunning) return;
+
+        try
+        {
+            _replay.Stop();
+            _replay.Start(ReplayCapacitySeconds, RecordFps, _captureDisplay);
+        }
+        catch (Exception ex)
+        {
+            ReplayEnabled.IsChecked = false;
+            ShowReplayStatus(ex.Message, isError: true);
+        }
+    }
+
+    private void RefreshRecorderEngineText()
+    {
+        string? ffmpeg = ScreenRecorder.FindFfmpeg();
+
+        RecorderEngineText.Text = ffmpeg == null
+            ? "No recorder found. ffmpeg.exe needs to sit in an 'ffmpeg' folder next to the app."
+            : "Records the whole screen to your Videos folder, then uploads on request.";
+
+        RecordButton.IsEnabled = ffmpeg != null;
+    }
+
+    private async void Record_Click(object sender, RoutedEventArgs e)
+    {
+        if (_recorder.IsRecording)
+        {
+            RecordButton.IsEnabled = false;
+            ShowRecordStatus("Finishing the file…", isError: false);
+
+            // Never a kill: ffmpeg writes the MP4 index on exit, and a killed
+            // process leaves a file that no player will open.
+            string? path = await _recorder.StopAsync();
+
+            RecordButton.IsEnabled = true;
+            RecordButton.Content = "Start recording";
+            RecordElapsedText.Text = "00:00";
+
+            if (path == null)
+            {
+                ShowRecordStatus("Recording stopped, but no usable file was produced.", isError: true);
+                return;
+            }
+
+            var file = new FileInfo(path);
+            _chosenClipPath = path;
+
+            ChosenClipText.Text = $"{file.Name} — {file.Length / 1024.0 / 1024.0:0.0} MB";
+            UploadClipButton.IsEnabled = file.Length > 0 && file.Length <= ClipUploader.MaxBytes;
+
+            ShowRecordStatus($"Saved to {path}", isError: false);
+            return;
+        }
+
+        try
+        {
+            _recorder.Start(ClipFolder, RecordFps, _captureDisplay);
+
+            RecordButton.Content = "Stop recording";
+            ShowRecordStatus("Recording the whole screen — everything visible is captured.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowRecordStatus(ex.Message, isError: true);
+        }
+    }
+
+    private void OpenClipFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(ClipFolder);
+            Process.Start(new ProcessStartInfo(ClipFolder) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            ShowRecordStatus($"Could not open the folder: {ex.Message}", isError: true);
+        }
+    }
+
+    private void RefreshRecordElapsed()
+    {
+        if (!_recorder.IsRecording) return;
+
+        TimeSpan elapsed = DateTime.UtcNow - _recorder.StartedUtc;
+        RecordElapsedText.Text = $"{(int)elapsed.TotalMinutes:00}:{elapsed.Seconds:00}";
+    }
+
+    private void ShowRecordStatus(string message, bool isError)
+    {
+        RecordStatusText.Text = message;
+        RecordStatusText.Foreground =
+            (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
+    }
 
     private void NavTheme_Click(object sender, RoutedEventArgs e) =>
         ShowPage(NavTheme, PageTheme, "Theme", "Appearance");
+
+    // ---- theme ----
+
+    private const string DefaultAccent = "#FF4B52";
+
+    /// <summary>Both palettes, one row per themed colour.</summary>
+    /// <remarks>
+    /// A table rather than two blocks of assignments, so the modes cannot drift
+    /// apart: every colour is defined for both by construction, and adding one
+    /// means adding a row rather than remembering a second place to edit.
+    ///
+    /// The keys are the Color resources, not the brushes. The brushes take their
+    /// Color from these by DynamicResource, which is what lets one assignment
+    /// repaint every StaticResource consumer of the brush.
+    /// </remarks>
+    private static readonly (string Key, string Dark, string Light)[] Palette =
+    {
+        ("BgColor",           "#0F141D", "#EEF1F6"),
+        ("PanelColor",        "#1A2230", "#FFFFFF"),
+        ("Panel2Color",       "#151C27", "#E7ECF3"),
+        ("SidebarColor",      "#151B25", "#E3E9F1"),
+        ("SunkenColor",       "#101620", "#E7ECF3"),
+        ("ControlColor",      "#202A39", "#E4E9F1"),
+        ("ControlHoverColor", "#26313F", "#D5DDE9"),
+        ("ControlAltColor",   "#1E2634", "#DCE3EC"),
+        ("TrackColor",        "#2A3445", "#C6D0DE"),
+        ("DividerColor",      "#232E3E", "#DCE2EA"),
+        ("OutlineColor",      "#3A465A", "#B0BCCC"),
+        // Alpha overlays, so they invert rather than lighten in both modes.
+        ("HairlineColor",     "#1AFFFFFF", "#14000000"),
+        ("TextColor",         "#E9EDF4", "#16202E"),
+        ("TextBrightColor",   "#F5F7FA", "#0A1119"),
+        ("TextSoftColor",     "#AAB4C5", "#4E5B6C"),
+        ("TextDimColor",      "#C3CDDD", "#333E4C"),
+        ("TextMutedColor",    "#8D98AA", "#63707F"),
+        ("SheenColor",        "#FFFFFF", "#000000")
+    };
+
+    /// <summary>
+    /// Repaints the window's neutrals. The accent is untouched, so a colour
+    /// chosen on one mode survives switching to the other.
+    /// </summary>
+    private void ApplyTheme(bool light)
+    {
+        foreach ((string key, string dark, string bright) in Palette)
+        {
+            if (TryParseColor(light ? bright : dark, out Color color)) Resources[key] = color;
+        }
+    }
+
+    private void ThemeMode_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tag }) return;
+
+        ApplyTheme(tag == "Light");
+        _settingsDirty = true;
+    }
+
+    /// <summary>The chosen accent, in the hex form the settings file stores.</summary>
+    private string _accentHex = DefaultAccent;
+
+    private void AccentSwatch_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string hex } || !TryParseColor(hex, out Color accent))
+            return;
+
+        ApplyAccent(accent);
+        _accentHex = hex;
+        _settingsDirty = true;
+    }
+
+    private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // Fires while the XAML is still being parsed, before the label exists.
+        if (OpacityValueText == null) return;
+
+        Opacity = e.NewValue;
+        OpacityValueText.Text = $"{e.NewValue * 100:0}%";
+        _settingsDirty = true;
+    }
+
+    /// <summary>Checks the swatch holding this colour. False when none matches.</summary>
+    /// <remarks>
+    /// Checking it raises Checked, which both applies the colour and records it,
+    /// so the ringed chip and the stored value cannot drift apart.
+    /// </remarks>
+    private bool SelectAccent(string? hex)
+    {
+        foreach (object child in AccentSwatchPanel.Children)
+        {
+            if (child is RadioButton { Tag: string tag } button
+                && string.Equals(tag, hex, StringComparison.OrdinalIgnoreCase))
+            {
+                button.IsChecked = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Repaints every accent-coloured element in the window, without a restart.
+    /// </summary>
+    /// <remarks>
+    /// Moves the Colors the accent brushes point at, not the brushes themselves.
+    /// The brushes cannot be touched: WPF freezes resource Freezables wherever it
+    /// can, and assigning to a frozen brush's Color throws. Shifting the Color
+    /// underneath them avoids that, and still reaches every consumer at once —
+    /// they all hold the same brush, so none of the StaticResource references
+    /// need to become dynamic.
+    /// </remarks>
+    private void ApplyAccent(Color accent)
+    {
+        Resources["AccentColor"] = accent;
+
+        // The tints are the accent at reduced alpha, so they are wrong the moment
+        // it moves. Recomputed here rather than stored, so there is one source.
+        Resources["AccentStrongColor"] = Color.FromArgb(0x66, accent.R, accent.G, accent.B);
+        Resources["AccentSoftColor"] = Color.FromArgb(0x33, accent.R, accent.G, accent.B);
+        Resources["AccentWashColor"] = Color.FromArgb(0x22, accent.R, accent.G, accent.B);
+    }
+
+    private static bool TryParseColor(string? hex, out Color color)
+    {
+        color = default;
+
+        try
+        {
+            if (ColorConverter.ConvertFromString(hex) is not Color parsed) return false;
+
+            color = parsed;
+            return true;
+        }
+        catch
+        {
+            // A hand-edited settings file. The caller falls back to the default.
+            return false;
+        }
+    }
+
+    // ---- clip sharing ----
+
+    private string? _chosenClipPath;
+
+    private void ChooseClip_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose a clip",
+            Filter = "Video files|*.mp4;*.mkv;*.mov;*.webm;*.avi|All files|*.*",
+            CheckFileExists = true
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        var file = new FileInfo(dialog.FileName);
+        _chosenClipPath = file.FullName;
+
+        ChosenClipText.Text = $"{file.Name} — {file.Length / 1024.0 / 1024.0:0.0} MB";
+        UploadClipButton.IsEnabled = file.Length > 0 && file.Length <= ClipUploader.MaxBytes;
+
+        if (file.Length > ClipUploader.MaxBytes)
+        {
+            ShowUploadStatus(
+                $"Too large to upload — the limit is {ClipUploader.MaxBytes / 1024 / 1024} MB.", isError: true);
+        }
+        else
+        {
+            ShowUploadStatus("", isError: false);
+        }
+    }
+
+    private async void UploadClip_Click(object sender, RoutedEventArgs e)
+    {
+        if (_chosenClipPath == null) return;
+
+        // Publishing is never implicit: this is the confirmation, and it names
+        // what leaves the machine.
+        bool confirmed = await ConfirmAsync(
+            "Upload this clip?",
+            $"{Path.GetFileName(_chosenClipPath)} will be uploaded to catbox.moe and given a public link.\n\n" +
+            "Anyone with the link can watch it, and an anonymous upload cannot reliably be deleted afterwards.",
+            "Upload");
+
+        if (!confirmed) return;
+
+        UploadClipButton.IsEnabled = false;
+        ChooseClipButton.IsEnabled = false;
+        ShowUploadStatus("Uploading…", isError: false);
+
+        UploadResult result = await ClipUploader.UploadAsync(_chosenClipPath, CancellationToken.None);
+
+        ChooseClipButton.IsEnabled = true;
+        UploadClipButton.IsEnabled = true;
+
+        if (!result.Success || result.Url == null)
+        {
+            ShowUploadStatus(result.Message, isError: true);
+            return;
+        }
+
+        ClipUrlBox.Text = result.Url;
+        CopyLinkButton.IsEnabled = true;
+        ShowUploadStatus("Uploaded. The link is ready to share.", isError: false);
+    }
+
+    private void CopyLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (ClipUrlBox.Text.Length == 0) return;
+
+        try
+        {
+            Clipboard.SetText(ClipUrlBox.Text);
+            ShowUploadStatus("Link copied.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            // The clipboard can be locked by another process.
+            ShowUploadStatus($"Could not copy: {ex.Message}", isError: true);
+        }
+    }
+
+    // ---- in-app confirmation ----
+
+    private TaskCompletionSource<bool>? _confirmResult;
+
+    /// <summary>
+    /// Replaces MessageBox for confirmations, so a deliberate choice does not
+    /// arrive as a stock Win32 dialog in the middle of a dark themed app.
+    /// </summary>
+    private Task<bool> ConfirmAsync(string title, string message, string confirmText)
+    {
+        // A second prompt while one is open would orphan the first task.
+        _confirmResult?.TrySetResult(false);
+
+        ConfirmTitleText.Text = title;
+        ConfirmMessageText.Text = message;
+        ConfirmYesButton.Content = confirmText;
+        ConfirmOverlay.Visibility = Visibility.Visible;
+        ConfirmNoButton.Focus();
+
+        _confirmResult = new TaskCompletionSource<bool>();
+        return _confirmResult.Task;
+    }
+
+    private bool IsConfirming => ConfirmOverlay.Visibility == Visibility.Visible;
+
+    private void ConfirmYes_Click(object sender, RoutedEventArgs e) => CloseConfirm(true);
+
+    private void ConfirmNo_Click(object sender, RoutedEventArgs e) => CloseConfirm(false);
+
+    private void CloseConfirm(bool result)
+    {
+        ConfirmOverlay.Visibility = Visibility.Collapsed;
+
+        TaskCompletionSource<bool>? pending = _confirmResult;
+        _confirmResult = null;
+        pending?.TrySetResult(result);
+    }
+
+    private void ShowUploadStatus(string message, bool isError)
+    {
+        UploadStatusText.Text = message;
+        UploadStatusText.Foreground =
+            (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
+    }
 
     private void NavSettings_Click(object sender, RoutedEventArgs e) =>
         ShowPage(NavSettings, PageSettings, "Settings", "Application preferences");
@@ -1361,14 +2682,14 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavPresets, NavTweaks,
-        NavOptimizations, NavHistory, NavTheme, NavSettings
+        NavClicker, NavPresets, NavTweaks, NavOptimizations,
+        NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
     };
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PagePresets, PageTweaks,
-        PageOptimizations, PageHistory, PageTheme, PageSettings
+        PageClicker, PagePresets, PageTweaks, PageOptimizations,
+        PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
     };
 
     // ---- Windows tweaks ----
@@ -1377,6 +2698,7 @@ public partial class MainWindow : Window
     {
         foreach (PcTweak tweak in _tweaks) tweak.Refresh();
         foreach (PcTweak tweak in _inputTweaks) tweak.Refresh();
+        foreach (PcTweak tweak in _networkTweaks) tweak.Refresh();
 
         RestartAdminButton.Visibility = TweakEnvironment.IsElevated
             ? Visibility.Collapsed
@@ -1409,6 +2731,24 @@ public partial class MainWindow : Window
         }
 
         ShowTweakStatus($"{tweak.Name} — {(wasApplied ? "reverted" : "applied")}.", isError: false);
+    }
+
+    /// <summary>
+    /// The switch has already flipped visually by the time this runs. Toggle()
+    /// ends in Refresh(), which raises PropertyChanged and pulls the one-way
+    /// binding back to whatever the system actually reports — so a refused
+    /// change snaps the switch back rather than leaving it wrong.
+    /// </summary>
+    private void TweakToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not PcTweak tweak) return;
+
+        bool wasApplied = tweak.IsApplied == true;
+        string? error = tweak.Toggle(_tweakState);
+
+        ShowCleanupStatus(
+            error ?? $"{tweak.Name} — {(wasApplied ? "turned off" : "turned on")}.",
+            isError: error != null);
     }
 
     private void RevertAll_Click(object sender, RoutedEventArgs e)
@@ -1478,6 +2818,21 @@ public partial class MainWindow : Window
         ProbePingAsync();
 
         if (_settingsDirty) SaveAppSettings();
+
+        FlushHistory();
+
+        if (PageHistory.Visibility == Visibility.Visible) RefreshHistoryUi();
+
+        RefreshRecordElapsed();
+
+        // Written every 30 s rather than every tick: a crash costs at most half
+        // a minute, and the file is not worth 60 writes a minute.
+        if (_historyDirty && ++_historyTicksSinceSave >= 30)
+        {
+            _history.Save();
+            _historyDirty = false;
+            _historyTicksSinceSave = 0;
+        }
     }
 
     /// <summary>
@@ -1548,10 +2903,26 @@ public partial class MainWindow : Window
         StopClicking();
         _shakeCts.Cancel();
         _statsTimer.Stop();
-        _hotkeyTimer.Stop();
 
-        // Catches anything changed inside the last tick.
+        // Everything that is not already written the moment it changes gets
+        // written here. Presets, hotkeys and tweak state save on edit, so this
+        // covers the app settings and the running history totals.
         SaveAppSettings();
+
+        FlushHistory();
+        _history.Save();
+
+        PresetStore.Save(_clickPresets);
+        _hotkeySettings.Save();
+        _tweakState.Save();
+
+        // A recording still running at this point would leave an unplayable
+        // file, so it gets a chance to finalise before the process goes.
+        // Blocking variant, not the async one: awaiting on the thread we are
+        // blocking is how an app hangs on exit.
+        _recorder.StopBlocking();
+        _recorder.Dispose();
+        _replay.Dispose();
     }
 
     // Below this the interval exceeds a minute and the app is effectively idle.
@@ -1567,6 +2938,7 @@ public partial class MainWindow : Window
 
     private const int ShakeMinIntervalMs = 20;
     private const int ShakeMaxIntervalMs = 40;
+
     private const double MaxShakePixels = 200.0;
     private const int CoarseSleepSliceMs = 20;
 
@@ -1588,6 +2960,25 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorInfo(ref CURSORINFO pci);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+
+    // The virtual screen: the bounding box of every monitor together, which is
+    // what "a corner of the desktop" has to mean on a multi-monitor setup.
+    private const int SM_XVIRTUALSCREEN = 76;
+    private const int SM_YVIRTUALSCREEN = 77;
+    private const int SM_CXVIRTUALSCREEN = 78;
+    private const int SM_CYVIRTUALSCREEN = 79;
+
+    private const int IDC_ARROW = 32512;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct CURSORINFO
@@ -1657,5 +3048,4 @@ public partial class MainWindow : Window
         public IntPtr dwExtraInfo;
     }
 
-    private record Preset(string Name, double Cps, double Cdc);
 }

@@ -34,6 +34,47 @@ public sealed class AppSettings
     public bool HitFix { get; set; } = true;
     public bool HoldMode { get; set; }
 
+    public bool HideValues { get; set; }
+
+    public bool ReplayEnabled { get; set; }
+    public int ReplaySeconds { get; set; } = 30;
+
+    /// <summary>The accent colour, as hex. Must match one of the Theme swatches
+    /// to be restored; anything else falls back to the default red.</summary>
+    public string AccentColor { get; set; } = "#FF4B52";
+
+    /// <summary>Window opacity, 0.4 to 1. Clamped to the slider on load, so a
+    /// hand-edited zero cannot produce a window nobody can see.</summary>
+    public double WindowOpacity { get; set; } = 1.0;
+
+    /// <summary>Light mode. Dark is the default and the designed appearance.</summary>
+    public bool LightTheme { get; set; }
+
+    /// <summary>Where clips are written. Null or empty means the Videos folder.</summary>
+    public string? ClipFolder { get; set; }
+
+    /// <summary>Capture framerate for both the recorder and the replay buffer.</summary>
+    public int RecordFps { get; set; } = 30;
+
+    /// <summary>Master switch for all four hotkeys. On by default — off is a
+    /// deliberate act, not a state to wake up in and be confused by.</summary>
+    public bool HotkeysEnabled { get; set; } = true;
+
+    /// <summary>Device name of the monitor to capture, or null for all of them.
+    /// Stored by name rather than index so unplugging a screen cannot silently
+    /// repoint the recording at a different one.</summary>
+    public string? RecordDisplay { get; set; }
+
+    /// <summary>
+    /// Null when nothing has been stored yet, so a first run uses the designed
+    /// size rather than a zero-sized window.
+    /// </summary>
+    public double? WindowWidth { get; set; }
+    public double? WindowHeight { get; set; }
+    public double? WindowLeft { get; set; }
+    public double? WindowTop { get; set; }
+    public bool WindowMaximized { get; set; }
+
     /// <summary>A missing or unreadable file is not an error — it just means defaults.</summary>
     public static AppSettings Load()
     {
