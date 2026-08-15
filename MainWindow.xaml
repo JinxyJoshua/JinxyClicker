@@ -943,37 +943,109 @@
                                     <TextBlock x:Name="ShakeStatusText"
                                                Text="Moves the camera +/-8 px every 20-40 ms while running"
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
-                                    <!-- Distance travelled in each direction, in pixels. -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,2">
-                                        <StackPanel Margin="0,0,12,0">
-                                            <TextBlock Text="LEFT" FontSize="9" FontWeight="Bold"
-                                                       Foreground="{StaticResource TextMuted}" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="ShakeLeftBox" Text="8" Style="{StaticResource PixelBox}"
-                                                     KeyDown="ShakeBox_KeyDown" LostFocus="ShakeBox_LostFocus"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,12,0">
-                                            <TextBlock Text="RIGHT" FontSize="9" FontWeight="Bold"
-                                                       Foreground="{StaticResource TextMuted}" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="ShakeRightBox" Text="20" Style="{StaticResource PixelBox}"
-                                                     KeyDown="ShakeBox_KeyDown" LostFocus="ShakeBox_LostFocus"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,12,0">
-                                            <TextBlock Text="UP" FontSize="9" FontWeight="Bold"
-                                                       Foreground="{StaticResource TextMuted}" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="ShakeUpBox" Text="40" Style="{StaticResource PixelBox}"
-                                                     KeyDown="ShakeBox_KeyDown" LostFocus="ShakeBox_LostFocus"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,16,0">
-                                            <TextBlock Text="DOWN" FontSize="9" FontWeight="Bold"
-                                                       Foreground="{StaticResource TextMuted}" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="ShakeDownBox" Text="8" Style="{StaticResource PixelBox}"
-                                                     KeyDown="ShakeBox_KeyDown" LostFocus="ShakeBox_LostFocus"/>
-                                        </StackPanel>
+                                    <!-- Travel in each direction in pixels, and how often it moves.
+                                         One row per value: label, slider, readout. -->
+                                    <StackPanel Margin="0,10,16,2">
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="LEFT" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <Slider Grid.Column="1" x:Name="ShakeLeftSlider" Minimum="0" Maximum="100"
+                                                    Value="8" TickFrequency="5" IsSnapToTickEnabled="False"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="ShakeSlider_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" x:Name="ShakeLeftValue" Text="8"
+                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Accent}"/>
+                                        </Grid>
 
-                                        <!-- Bottom-aligned so they line up with the boxes, not the labels. -->
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="RIGHT" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <Slider Grid.Column="1" x:Name="ShakeRightSlider" Minimum="0" Maximum="100"
+                                                    Value="20" TickFrequency="5" IsSnapToTickEnabled="False"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="ShakeSlider_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" x:Name="ShakeRightValue" Text="20"
+                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Accent}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="UP" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <Slider Grid.Column="1" x:Name="ShakeUpSlider" Minimum="0" Maximum="100"
+                                                    Value="40" TickFrequency="5" IsSnapToTickEnabled="False"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="ShakeSlider_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" x:Name="ShakeUpValue" Text="40"
+                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Accent}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="DOWN" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <Slider Grid.Column="1" x:Name="ShakeDownSlider" Minimum="0" Maximum="100"
+                                                    Value="8" TickFrequency="5" IsSnapToTickEnabled="False"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="ShakeSlider_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" x:Name="ShakeDownValue" Text="8"
+                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Accent}"/>
+                                        </Grid>
+
+                                        <Separator Opacity=".15" Margin="0,10,0,4"/>
+
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="SPEED" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <Slider Grid.Column="1" x:Name="ShakeSpeedSlider" Minimum="5" Maximum="50"
+                                                    Value="33" TickFrequency="5" IsSnapToTickEnabled="False"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="ShakeSlider_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" x:Name="ShakeSpeedValue" Text="33/s"
+                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Accent}"/>
+                                        </Grid>
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                             <Button Content="Save" Click="SaveShake_Click"
-                                                    ToolTip="Remember these four values"
+                                                    ToolTip="Remember these values"
                                                     Padding="12,5" Margin="0,0,8,0" FontSize="11"/>
                                             <Button x:Name="RestoreShakeButton" Content="Restore"
                                                     Click="RestoreShake_Click" IsEnabled="False"

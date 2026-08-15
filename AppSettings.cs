@@ -28,6 +28,9 @@ public sealed class AppSettings
     public double SavedShakeUp { get; set; }
     public double SavedShakeDown { get; set; }
 
+    /// <summary>Shake movements per second.</summary>
+    public double ShakeSpeed { get; set; } = 33;
+
     public bool ShakyTracking { get; set; }
     public bool UltraAccuracy { get; set; }
     public bool PingSync { get; set; }
