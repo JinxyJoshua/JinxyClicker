@@ -533,6 +533,89 @@ public sealed class GameDvrTweak : PcTweak
 }
 
 /// <summary>
+/// Forces Roblox out of the composited borderless path and into true exclusive
+/// fullscreen.
+/// </summary>
+/// <remarks>
+/// Windows runs borderless-fullscreen games through the desktop compositor,
+/// which adds roughly a frame of latency between the game presenting and the
+/// screen showing it. The compatibility flag turns that off for one executable.
+/// Of everything on the Optimizations page this is the one with a plausible
+/// claim on what a player actually feels, because a frame removed is a frame
+/// your click lands earlier.
+///
+/// Per-executable, and Roblox installs each update to a new version folder. So
+/// the flag names a path that stops existing when the client updates — which is
+/// why the applied check compares against the current install rather than
+/// trusting that a value written once is still pointing at the live client.
+/// </remarks>
+public sealed class FullscreenOptimizationsTweak : PcTweak
+{
+    private const string LayersKey = @"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers";
+    private const string Flag = "~ DISABLEDXMAXIMIZEDWINDOWEDMODE";
+
+    public override string Id => "roblox-fullscreen-opt";
+    public override string Name => "Disable fullscreen optimisations for Roblox";
+    public override string Description => "Takes Roblox out of the composited borderless path, which costs about a frame of latency. Reapply after a Roblox update — each update installs to a new folder.";
+    public override string Impact => "Real, and the one most likely to be felt";
+    public override bool RequiresAdmin => false;
+
+    /// <summary>The live client executable, or null when Roblox is not installed.</summary>
+    private static string? PlayerPath()
+    {
+        string? settings = FastFlagStore.FindClientSettingsFolder();
+        if (settings == null) return null;
+
+        string? version = Path.GetDirectoryName(settings);
+        if (version == null) return null;
+
+        string exe = Path.Combine(version, "RobloxPlayerBeta.exe");
+        return File.Exists(exe) ? exe : null;
+    }
+
+    protected override bool? ReadApplied()
+    {
+        string? exe = PlayerPath();
+        if (exe == null) return false;
+
+        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(LayersKey);
+        if (key == null) return false;
+
+        return key.GetValue(exe) is string value
+               && value.Contains("DISABLEDXMAXIMIZEDWINDOWEDMODE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    protected override void DoApply(TweakState state)
+    {
+        string exe = PlayerPath()
+            ?? throw new InvalidOperationException("Roblox does not appear to be installed.");
+
+        using RegistryKey key = Registry.CurrentUser.CreateSubKey(LayersKey, writable: true)
+            ?? throw new InvalidOperationException("Could not open the compatibility flags key.");
+
+        // The path is remembered as well as the old value: reverting has to know
+        // which executable was changed, and by then the client may have updated
+        // and moved.
+        state.Remember(Id, exe);
+        key.SetValue(exe, Flag, RegistryValueKind.String);
+    }
+
+    protected override void DoRevert(TweakState state)
+    {
+        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(LayersKey, writable: true);
+        if (key == null) return;
+
+        // The remembered path first, then the current one — an update between
+        // applying and reverting would otherwise strand the original entry.
+        if (state.TryTake(Id, out string? remembered) && !string.IsNullOrEmpty(remembered))
+            key.DeleteValue(remembered, throwOnMissingValue: false);
+
+        string? exe = PlayerPath();
+        if (exe != null) key.DeleteValue(exe, throwOnMissingValue: false);
+    }
+}
+
+/// <summary>
 /// Desktop transparency. The compositor blurs whatever sits behind translucent
 /// surfaces every frame; switching it off is a small but genuine saving.
 /// </summary>

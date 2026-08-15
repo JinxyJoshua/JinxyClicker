@@ -75,7 +75,8 @@ public partial class MainWindow : Window
     // not machine performance.
     private readonly ObservableCollection<PcTweak> _inputTweaks = new()
     {
-        new TrackingHelperTweak()
+        new TrackingHelperTweak(),
+        new FullscreenOptimizationsTweak()
     };
 
     private readonly ObservableCollection<PcTweak> _networkTweaks = new()
