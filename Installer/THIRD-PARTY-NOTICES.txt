@@ -1,0 +1,34 @@
+Jinxy Clicker - third-party notices
+===================================
+
+This installer includes FFmpeg (ffmpeg.exe), used by the Recorder and Instant
+Replay features to capture the screen and encode video.
+
+FFmpeg
+------
+Version:  8.1 (full build, www.gyan.dev)
+Licence:  GNU General Public License version 3 or later (GPL-3.0-or-later)
+Website:  https://ffmpeg.org
+Source:   https://github.com/FFmpeg/FFmpeg
+
+This build is licensed under the GPL because it is compiled with libx264, which
+is itself GPL-licensed. The full licence text is installed alongside the
+executable, at:
+
+    <install folder>\ffmpeg\LICENSE
+
+FFmpeg is a separate program. Jinxy Clicker starts it as its own process and
+communicates with it over the command line and standard input; it does not link
+against FFmpeg's libraries. The two are distributed together for convenience.
+
+If you redistribute this installer, the GPL requires you to make the
+corresponding source code for this FFmpeg build available to recipients. The
+upstream source is at the address above, and the build configuration is
+recoverable by running:
+
+    ffmpeg.exe -version
+
+Jinxy Clicker
+-------------
+Jinxy Clicker itself is original work and contains no third-party application's
+source code.

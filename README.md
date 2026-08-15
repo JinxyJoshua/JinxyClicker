@@ -3,29 +3,12 @@
 A Windows autoclicker and tuning utility, written in C# and WPF. Original work —
 it contains no third-party application's source.
 
-## Requirements
+## Install
 
-- Windows 10 or 11
-- .NET 10 SDK
-- Visual Studio 2026 with the **.NET desktop development** workload, or the
-  `dotnet` CLI
-- ffmpeg — only for the Recorder. Put `ffmpeg.exe` in an `ffmpeg` folder beside
-  the executable and the feature works on a machine with nothing installed.
-  Anything on `PATH` is used as a fallback.
+Run `JinxyClicker-Setup-1.0.0.exe`. Nothing else is needed — .NET and ffmpeg are
+both included, and it installs per-user, so there is no admin prompt.
 
-## Build and run
-
-```
-dotnet build
-dotnet run
-```
-
-Or open `JinxyClicker.csproj` in Visual Studio and press F5.
-
-Run it with the project folder as the working directory. The settings files are
-resolved against the working directory rather than the executable, so launching
-`bin\Debug\net10.0-windows\JinxyClicker.exe` directly reads and writes a
-separate set of files in that folder.
+Windows 10 or 11, 64-bit. ARM machines are not supported.
 
 ## Hotkeys
 

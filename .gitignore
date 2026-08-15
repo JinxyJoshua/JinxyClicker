@@ -39,6 +39,12 @@ coverage*.xml
 *.pubxml
 *.azurePubxml
 
+# Installer output, and the ffmpeg binary it bundles. ffmpeg.exe alone is 213 MB
+# — twice GitHub's hard file limit — so it is fetched rather than committed.
+# See Installer/README for where to put it before building the installer.
+dist/
+ffmpeg/
+
 # Runtime user settings (generated on first run)
 hotkey_settings.json
 app_settings.json
