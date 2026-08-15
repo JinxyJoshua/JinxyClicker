@@ -1173,8 +1173,23 @@ public partial class MainWindow : Window
         }
 
         UpdatePingLabel();
-        UpdateEngineSettings();
+
+        // Republished only when the reply changes the spin decision, not on
+        // every reply. A probe lands once a second and UpdateEngineSettings
+        // marks the settings dirty, so doing this unconditionally rewrote the
+        // settings file every second for as long as Ping Sync was on — tens of
+        // thousands of writes a day to store a value that had not changed.
+        bool high = _lastPingMs >= HighPingMs;
+
+        if (high != _pingWasHigh)
+        {
+            _pingWasHigh = high;
+            UpdateEngineSettings();
+        }
     }
+
+    /// <summary>Whether the last probe was above the threshold.</summary>
+    private bool _pingWasHigh;
 
     private void UpdatePingLabel()
     {
