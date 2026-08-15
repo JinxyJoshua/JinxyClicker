@@ -2229,6 +2229,39 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Detects the adapter and applies the backend that suits it.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not called "best". It cannot know that — which backend wins
+    /// depends on the driver revision and the scene, and only running each and
+    /// comparing settles it. What it does is avoid the wrong answers and give a
+    /// sensible starting point, and it says so on screen rather than presenting
+    /// a guess as a measurement.
+    /// </remarks>
+    private void DetectApi_Click(object sender, RoutedEventArgs e)
+    {
+        ApiSuggestion suggestion = GpuInfo.Recommend();
+
+        try
+        {
+            FastFlagStore.Backup();
+            FastFlagStore.ApplyGraphicsApi(suggestion.Api);
+            RefreshFlags();
+
+            ApiAdviceText.Text = suggestion.Reason;
+            ShowFlagStatus(
+                suggestion.Api == null
+                    ? "Left to the client. Restart Roblox."
+                    : $"Set to {suggestion.Api}. Restart Roblox.",
+                isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowFlagStatus(ex.Message, isError: true);
+        }
+    }
+
     /// <summary>Guards the API buttons against the code that sets them.</summary>
     private bool _writingGraphicsApi;
 
