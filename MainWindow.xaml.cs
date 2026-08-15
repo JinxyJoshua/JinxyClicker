@@ -1213,8 +1213,12 @@ public partial class MainWindow : Window
     /// What does distinguish a camera-locked mouse is that Roblox keeps
     /// recentring it, so the pointer sits on the window centre instead of
     /// wandering. Cursor-hidden is still accepted, for games that do hide it.
-    /// This remains a superset of first person: shift-lock and right-mouse
-    /// look also lock the cursor.
+    ///
+    /// This is as close to "first person" as the outside of the process gets,
+    /// and it is not the same thing. Shift-lock and right-mouse look hold the
+    /// cursor identically, and nothing observable from here — window, cursor,
+    /// process — separates them from a first-person camera. The gate means the
+    /// camera owns the mouse, which is the condition shake actually needs.
     /// </remarks>
     private ShakeGate ReadShakeGate()
     {
@@ -1250,6 +1254,12 @@ public partial class MainWindow : Window
 
         if (!GetCursorInfo(ref info)) return ShakeGate.MouseFree;
 
+        // The load-bearing test. While the camera owns the mouse Roblox keeps
+        // yanking the pointer back to the middle of its window; a free mouse
+        // wanders. Without this a changed cursor bitmap alone opens the gate,
+        // and Roblox changes it over buttons and the chat box too.
+        if (!PointerHeldAtWindowCentre(hwnd, info.ptScreenPos)) return ShakeGate.MouseFree;
+
         // Some games hide the pointer outright.
         if ((info.flags & CURSOR_SHOWING) == 0) return ShakeGate.Ready;
 
@@ -1260,6 +1270,31 @@ public partial class MainWindow : Window
         return info.hCursor != IntPtr.Zero && info.hCursor != SystemArrowCursor()
             ? ShakeGate.Ready
             : ShakeGate.MouseFree;
+    }
+
+    /// <summary>
+    /// True while the pointer is being held near the centre of a window.
+    /// </summary>
+    /// <remarks>
+    /// The box is deliberately loose. Shake itself pushes the pointer off centre
+    /// by up to the configured amplitude before Roblox pulls it back, so a tight
+    /// box would flicker the gate shut on this app's own movement and stall the
+    /// shake it was meant to permit.
+    /// </remarks>
+    private static bool PointerHeldAtWindowCentre(IntPtr hwnd, POINT pointer)
+    {
+        if (!GetWindowRect(hwnd, out RECT bounds)) return false;
+
+        int width = bounds.Right - bounds.Left;
+        int height = bounds.Bottom - bounds.Top;
+
+        if (width <= 0 || height <= 0) return false;
+
+        int centreX = bounds.Left + width / 2;
+        int centreY = bounds.Top + height / 2;
+
+        return Math.Abs(pointer.X - centreX) <= width / 8
+               && Math.Abs(pointer.Y - centreY) <= height / 8;
     }
 
     private static IntPtr SystemArrowCursor()
@@ -2982,6 +3017,19 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
 
     // The virtual screen: the bounding box of every monitor together, which is
     // what "a corner of the desktop" has to mean on a multi-monitor setup.
