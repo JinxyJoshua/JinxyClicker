@@ -38,7 +38,6 @@ public class HotkeySettings
     private static readonly string SETTINGS_FILE = SettingsPath.For("hotkey_settings.json");
 
     public HotkeyBinding Hotkey { get; set; } = HotkeyBinding.FromKey(Key.F6);
-    public HotkeyBinding ShakeHotkey { get; set; } = HotkeyBinding.FromKey(Key.F7);
     public HotkeyBinding ReplayHotkey { get; set; } = HotkeyBinding.FromKey(Key.F8);
     /// <summary>
     /// Unbound by default, unlike the other three. Shipping a default would drop
@@ -62,8 +61,6 @@ public class HotkeySettings
             {
                 HotkeyVk = Hotkey.VirtualKey,
                 HotkeyName = Hotkey.Name,
-                ShakeVk = ShakeHotkey.VirtualKey,
-                ShakeName = ShakeHotkey.Name,
                 ReplayVk = ReplayHotkey.VirtualKey,
                 ReplayName = ReplayHotkey.Name,
                 RecordVk = RecordHotkey.VirtualKey,
@@ -87,7 +84,6 @@ public class HotkeySettings
             var data = JsonSerializer.Deserialize<JsonElement>(json);
 
             Hotkey = ReadBinding(data, "HotkeyVk", "HotkeyName", "HotkeyKey", Hotkey);
-            ShakeHotkey = ReadBinding(data, "ShakeVk", "ShakeName", "ShakeHotkeyKey", ShakeHotkey);
             ReplayHotkey = ReadBinding(data, "ReplayVk", "ReplayName", "ReplayHotkeyKey", ReplayHotkey);
             RecordHotkey = ReadBinding(data, "RecordVk", "RecordName", "RecordHotkeyKey", RecordHotkey);
             ComboHotkey = ReadBinding(data, "ComboVk", "ComboName", "ComboHotkeyKey", ComboHotkey);
