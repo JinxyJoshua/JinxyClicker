@@ -806,19 +806,38 @@
 
                         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ControlCard}"
                                 Margin="0,0,7,14">
-                            <DockPanel LastChildFill="False">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="KEYBIND" Style="{StaticResource CardLabel}"/>
-                                    <TextBlock Text="Starts and stops clicking"
-                                               Style="{StaticResource CardHint}"/>
-                                </StackPanel>
-                                <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
-                                        DockPanel.Dock="Right" VerticalAlignment="Center"
-                                        ToolTip="Click, then press a key or mouse side button"
-                                        FontSize="17" FontWeight="Bold"
-                                        Height="42" MinWidth="96"
-                                        Padding="16,0" Margin="0"/>
-                            </DockPanel>
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="KEYBIND" Style="{StaticResource CardLabel}"/>
+                                        <TextBlock Text="Starts and stops clicking"
+                                                   Style="{StaticResource CardHint}"/>
+                                    </StackPanel>
+                                    <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
+                                            DockPanel.Dock="Right" VerticalAlignment="Center"
+                                            ToolTip="Click, then press a key or mouse side button"
+                                            FontSize="17" FontWeight="Bold"
+                                            Height="42" MinWidth="96"
+                                            Padding="16,0" Margin="0"/>
+                                </DockPanel>
+
+                                <Separator Opacity=".15" Margin="0,12,0,10"/>
+
+                                <DockPanel LastChildFill="False">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="KEYBIND + SHAKE" Style="{StaticResource CardLabel}"/>
+                                        <TextBlock Text="Starts and stops both together"
+                                                   Style="{StaticResource CardHint}"/>
+                                    </StackPanel>
+                                    <Button x:Name="ComboHotkeyButton" Content="Not set"
+                                            Click="ComboHotkey_Click"
+                                            DockPanel.Dock="Right" VerticalAlignment="Center"
+                                            ToolTip="Click, then press a key or mouse side button"
+                                            FontSize="17" FontWeight="Bold"
+                                            Height="42" MinWidth="96"
+                                            Padding="16,0" Margin="0"/>
+                                </DockPanel>
+                            </StackPanel>
                         </Border>
 
                         <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ControlCard}"

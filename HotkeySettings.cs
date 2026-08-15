@@ -47,6 +47,10 @@ public class HotkeySettings
     /// </summary>
     public HotkeyBinding RecordHotkey { get; set; } = HotkeyBinding.Unbound;
 
+    /// <summary>Starts and stops the clicker and shake together. Also unbound
+    /// by default, for the same reason as the record key.</summary>
+    public HotkeyBinding ComboHotkey { get; set; } = HotkeyBinding.Unbound;
+
     public void Save()
     {
         try
@@ -63,7 +67,9 @@ public class HotkeySettings
                 ReplayVk = ReplayHotkey.VirtualKey,
                 ReplayName = ReplayHotkey.Name,
                 RecordVk = RecordHotkey.VirtualKey,
-                RecordName = RecordHotkey.Name
+                RecordName = RecordHotkey.Name,
+                ComboVk = ComboHotkey.VirtualKey,
+                ComboName = ComboHotkey.Name
             });
 
             File.WriteAllText(SETTINGS_FILE, json);
@@ -84,6 +90,7 @@ public class HotkeySettings
             ShakeHotkey = ReadBinding(data, "ShakeVk", "ShakeName", "ShakeHotkeyKey", ShakeHotkey);
             ReplayHotkey = ReadBinding(data, "ReplayVk", "ReplayName", "ReplayHotkeyKey", ReplayHotkey);
             RecordHotkey = ReadBinding(data, "RecordVk", "RecordName", "RecordHotkeyKey", RecordHotkey);
+            ComboHotkey = ReadBinding(data, "ComboVk", "ComboName", "ComboHotkeyKey", ComboHotkey);
         }
         catch { }
     }
