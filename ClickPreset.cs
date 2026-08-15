@@ -19,16 +19,56 @@ public sealed class ClickPreset : INotifyPropertyChanged
     private const double BarScaleCps = 150.0;
     private const double BarTrackWidth = 134.0;
 
-    public ClickPreset(string name, double cps, double cdc)
+    public ClickPreset(
+        string name, double cps, double cdc,
+        bool holdMode = false, bool ultraAccuracy = false, bool shaky = false,
+        double shakeLeft = 8, double shakeRight = 20, double shakeUp = 40, double shakeDown = 8)
     {
         Name = name;
         Cps = cps;
         Cdc = cdc;
+        HoldMode = holdMode;
+        UltraAccuracy = ultraAccuracy;
+        Shaky = shaky;
+        ShakeLeft = shakeLeft;
+        ShakeRight = shakeRight;
+        ShakeUp = shakeUp;
+        ShakeDown = shakeDown;
     }
 
     public string Name { get; }
     public double Cps { get; }
     public double Cdc { get; }
+
+    /// <summary>
+    /// A preset is a whole way of clicking, not two numbers. Applying one that
+    /// left mode and shake untouched would still leave the session half set up.
+    /// </summary>
+    public bool HoldMode { get; }
+    public bool UltraAccuracy { get; }
+    public bool Shaky { get; }
+    public double ShakeLeft { get; }
+    public double ShakeRight { get; }
+    public double ShakeUp { get; }
+    public double ShakeDown { get; }
+
+    /// <summary>Second line on the card: what this preset does beyond the rates.</summary>
+    public string ExtrasText
+    {
+        get
+        {
+            var parts = new List<string> { HoldMode ? "Hold" : "Toggle" };
+
+            if (UltraAccuracy) parts.Add("Ultra");
+
+            if (Shaky)
+            {
+                parts.Add($"Shake {ShakeLeft:0}/{ShakeRight:0}/{ShakeUp:0}/{ShakeDown:0}");
+            }
+
+            return string.Join("  ·  ", parts);
+        }
+    }
 
     public string CpsText => Cps.ToString("0.0", CultureInfo.CurrentCulture);
     public string CdcText => Cdc.ToString("0.0", CultureInfo.CurrentCulture);
@@ -62,7 +102,24 @@ public static class PresetStore
 {
     private const string PRESETS_FILE = "click_presets.json";
 
-    private sealed record StoredPreset(string Name, double Cps, double Cdc);
+    /// <summary>
+    /// A class with initialisers rather than a positional record, so a file
+    /// written before the profile fields existed still loads with sensible
+    /// values instead of zeroes.
+    /// </summary>
+    private sealed class StoredPreset
+    {
+        public string Name { get; set; } = "";
+        public double Cps { get; set; }
+        public double Cdc { get; set; }
+        public bool HoldMode { get; set; }
+        public bool UltraAccuracy { get; set; }
+        public bool Shaky { get; set; }
+        public double ShakeLeft { get; set; } = 8;
+        public double ShakeRight { get; set; } = 20;
+        public double ShakeUp { get; set; } = 40;
+        public double ShakeDown { get; set; } = 8;
+    }
 
     /// <summary>The list a fresh install starts from, and what Restore Defaults adds back.</summary>
     public static List<ClickPreset> Defaults() => new()
@@ -89,7 +146,10 @@ public static class PresetStore
 
             return stored
                 .Where(p => !string.IsNullOrWhiteSpace(p.Name))
-                .Select(p => new ClickPreset(p.Name, p.Cps, p.Cdc))
+                .Select(p => new ClickPreset(
+                    p.Name, p.Cps, p.Cdc,
+                    p.HoldMode, p.UltraAccuracy, p.Shaky,
+                    p.ShakeLeft, p.ShakeRight, p.ShakeUp, p.ShakeDown))
                 .ToList();
         }
         catch
@@ -103,7 +163,19 @@ public static class PresetStore
         try
         {
             var stored = presets
-                .Select(p => new StoredPreset(p.Name, p.Cps, p.Cdc))
+                .Select(p => new StoredPreset
+                {
+                    Name = p.Name,
+                    Cps = p.Cps,
+                    Cdc = p.Cdc,
+                    HoldMode = p.HoldMode,
+                    UltraAccuracy = p.UltraAccuracy,
+                    Shaky = p.Shaky,
+                    ShakeLeft = p.ShakeLeft,
+                    ShakeRight = p.ShakeRight,
+                    ShakeUp = p.ShakeUp,
+                    ShakeDown = p.ShakeDown
+                })
                 .ToList();
 
             File.WriteAllText(PRESETS_FILE,

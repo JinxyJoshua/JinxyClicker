@@ -5,9 +5,15 @@
     Width="1120" Height="760"
     MinWidth="900" MinHeight="650"
     WindowStartupLocation="CenterScreen"
-    Background="#0F141D"
-    Foreground="#F5F7FA"
+    Background="{DynamicResource Bg}"
+    Foreground="{DynamicResource TextBright}"
     FontFamily="Segoe UI"
+    FontSize="13"
+    TextOptions.TextFormattingMode="Display"
+    TextOptions.TextRenderingMode="ClearType"
+    TextOptions.TextHintingMode="Fixed"
+    UseLayoutRounding="True"
+    SnapsToDevicePixels="True"
     PreviewKeyDown="Window_PreviewKeyDown"
     PreviewMouseDown="Window_PreviewMouseDown"
     KeyDown="Window_KeyDown"
@@ -16,19 +22,82 @@
     ShowInTaskbar="True">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="Bg" Color="#0F141D"/>
-        <SolidColorBrush x:Key="Panel" Color="#1A2230"/>
-        <SolidColorBrush x:Key="Panel2" Color="#151C27"/>
-        <SolidColorBrush x:Key="TextMuted" Color="#8D98AA"/>
-        <SolidColorBrush x:Key="Accent" Color="#FF4B52"/>
-        <SolidColorBrush x:Key="Track" Color="#2A3445"/>
+        <!-- The palette. Every colour in the window resolves to one of these
+             Colors, and ApplyTheme rewrites the lot when the mode changes.
+
+             The values here are the dark set, which is also what the designer
+             surface shows. They are not the source of truth at runtime: the
+             constructor applies a full palette before the window is shown, so
+             whichever mode was last used wins over these. -->
+        <Color x:Key="BgColor">#0F141D</Color>
+        <Color x:Key="PanelColor">#1A2230</Color>
+        <Color x:Key="Panel2Color">#151C27</Color>
+        <Color x:Key="SidebarColor">#151B25</Color>
+        <Color x:Key="SunkenColor">#101620</Color>
+        <Color x:Key="ControlColor">#202A39</Color>
+        <Color x:Key="ControlHoverColor">#26313F</Color>
+        <Color x:Key="ControlAltColor">#1E2634</Color>
+        <Color x:Key="TrackColor">#2A3445</Color>
+        <Color x:Key="DividerColor">#232E3E</Color>
+        <Color x:Key="OutlineColor">#3A465A</Color>
+        <Color x:Key="HairlineColor">#1AFFFFFF</Color>
+        <Color x:Key="TextColor">#E9EDF4</Color>
+        <Color x:Key="TextBrightColor">#F5F7FA</Color>
+        <Color x:Key="TextSoftColor">#AAB4C5</Color>
+        <Color x:Key="TextDimColor">#C3CDDD</Color>
+        <Color x:Key="TextMutedColor">#8D98AA</Color>
+
+        <!-- Hover and press are drawn as a translucent overlay. It has to invert
+             with the mode: white at 7% over a dark control lightens it, but over
+             a light one it does nothing at all. -->
+        <Color x:Key="SheenColor">#FFFFFF</Color>
+
+        <SolidColorBrush x:Key="Bg" Color="{DynamicResource BgColor}"/>
+        <SolidColorBrush x:Key="Panel" Color="{DynamicResource PanelColor}"/>
+        <SolidColorBrush x:Key="Panel2" Color="{DynamicResource Panel2Color}"/>
+        <SolidColorBrush x:Key="Sidebar" Color="{DynamicResource SidebarColor}"/>
+        <SolidColorBrush x:Key="Sunken" Color="{DynamicResource SunkenColor}"/>
+        <SolidColorBrush x:Key="Control" Color="{DynamicResource ControlColor}"/>
+        <SolidColorBrush x:Key="ControlHover" Color="{DynamicResource ControlHoverColor}"/>
+        <SolidColorBrush x:Key="ControlAlt" Color="{DynamicResource ControlAltColor}"/>
+        <SolidColorBrush x:Key="Track" Color="{DynamicResource TrackColor}"/>
+        <SolidColorBrush x:Key="Divider" Color="{DynamicResource DividerColor}"/>
+        <SolidColorBrush x:Key="Outline" Color="{DynamicResource OutlineColor}"/>
+        <SolidColorBrush x:Key="Hairline" Color="{DynamicResource HairlineColor}"/>
+        <SolidColorBrush x:Key="Text" Color="{DynamicResource TextColor}"/>
+        <SolidColorBrush x:Key="TextBright" Color="{DynamicResource TextBrightColor}"/>
+        <SolidColorBrush x:Key="TextSoft" Color="{DynamicResource TextSoftColor}"/>
+        <SolidColorBrush x:Key="TextDim" Color="{DynamicResource TextDimColor}"/>
+        <SolidColorBrush x:Key="TextMuted" Color="{DynamicResource TextMutedColor}"/>
+        <SolidColorBrush x:Key="Sheen" Color="{DynamicResource SheenColor}"/>
+        <SolidColorBrush x:Key="Accent" Color="{DynamicResource AccentColor}"/>
+
+        <!-- Tints of the accent, as brushes rather than the ARGB literals they
+             replace: the accent is user-chosen, and a literal would keep the old
+             hue after it changed. ApplyAccent sets all four together.
+
+             Each brush takes its Color from a DynamicResource rather than a
+             literal, and that indirection is load-bearing in two ways. WPF
+             freezes resource Freezables whenever it can, and a frozen brush
+             cannot be recoloured at all — an unresolved reference is what keeps
+             these four mutable. And because the consumers hold the brush while
+             only its Color moves, every one of the 200-odd StaticResource uses
+             repaints without being converted to DynamicResource itself. -->
+        <Color x:Key="AccentColor">#FF4B52</Color>
+        <Color x:Key="AccentStrongColor">#66FF4B52</Color>
+        <Color x:Key="AccentSoftColor">#33FF4B52</Color>
+        <Color x:Key="AccentWashColor">#22FF4B52</Color>
+
+        <SolidColorBrush x:Key="AccentStrong" Color="{DynamicResource AccentStrongColor}"/>
+        <SolidColorBrush x:Key="AccentSoft" Color="{DynamicResource AccentSoftColor}"/>
+        <SolidColorBrush x:Key="AccentWash" Color="{DynamicResource AccentWashColor}"/>
 
         <!-- The default Aero2 button template sets Background on its own named
              border when the mouse is over it, which beats a Style setter. Any
              dark theme therefore needs its own template, not just setters. -->
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#202A39"/>
-            <Setter Property="Foreground" Value="#E9EDF4"/>
+            <Setter Property="Background" Value="{StaticResource Control}"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="14,9"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -45,7 +114,7 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"/>
                             <!-- Neutral sheen so hover/press read the same on the
                                  dark fill and on the accent fill. -->
-                            <Border x:Name="Sheen" CornerRadius="8" Background="White" Opacity="0"/>
+                            <Border x:Name="Sheen" CornerRadius="8" Background="{StaticResource Sheen}" Opacity="0"/>
                             <Border x:Name="FocusRing" CornerRadius="8" Opacity="0"
                                     BorderThickness="1" BorderBrush="{StaticResource Accent}"/>
                             <ContentPresenter Margin="{TemplateBinding Padding}"
@@ -79,7 +148,7 @@
         <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#AAB4C5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSoft}"/>
             <Setter Property="Padding" Value="16,11"/>
             <Setter Property="Margin" Value="0,0,0,2"/>
             <Setter Property="Template">
@@ -88,7 +157,7 @@
                         <Grid>
                             <Border x:Name="Root" CornerRadius="8"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="8" Background="White" Opacity="0"/>
+                            <Border x:Name="Sheen" CornerRadius="8" Background="{StaticResource Sheen}" Opacity="0"/>
                             <Border x:Name="SelBar" Width="3" Margin="0,8" Opacity="0"
                                     HorizontalAlignment="Left" CornerRadius="2"
                                     Background="{StaticResource Accent}"/>
@@ -108,7 +177,7 @@
                                 <Setter TargetName="Sheen" Property="Opacity" Value="0.08"/>
                             </Trigger>
                             <Trigger Property="Tag" Value="Selected">
-                                <Setter TargetName="Root" Property="Background" Value="#1E2634"/>
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource ControlAlt}"/>
                                 <Setter TargetName="SelBar" Property="Opacity" Value="1"/>
                                 <Setter Property="Foreground" Value="White"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
@@ -128,9 +197,11 @@
         <!-- Mutually exclusive segment. IsChecked carries the selection, so no
              handler has to clear the previously selected button. -->
         <Style x:Key="SegmentButton" TargetType="RadioButton">
-            <Setter Property="Background" Value="#202A39"/>
-            <Setter Property="Foreground" Value="#E9EDF4"/>
-            <Setter Property="Padding" Value="14,9"/>
+            <Setter Property="Background" Value="{StaticResource Control}"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,10"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -141,7 +212,7 @@
                         <Grid>
                             <Border x:Name="Root" CornerRadius="8"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="8" Background="White" Opacity="0"/>
+                            <Border x:Name="Sheen" CornerRadius="8" Background="{StaticResource Sheen}" Opacity="0"/>
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
@@ -168,6 +239,45 @@
             </Setter>
         </Style>
 
+        <!-- A colour chip. The fill is the swatch's own Background, so each one
+             declares only its colour. The ring marking the chosen swatch is a
+             fixed near-white rather than the accent: the accent is what is being
+             chosen, so using it would leave the current selection unreadable
+             against its own chip. -->
+        <Style x:Key="SwatchButton" TargetType="RadioButton">
+            <Setter Property="Width" Value="44"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Border x:Name="Ring" CornerRadius="12"
+                                    BorderThickness="2" BorderBrush="Transparent"/>
+                            <Border x:Name="Fill" CornerRadius="8" Margin="4"
+                                    Background="{TemplateBinding Background}"/>
+                            <Border x:Name="Sheen" CornerRadius="8" Margin="4"
+                                    Background="{StaticResource Sheen}" Opacity="0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sheen" Property="Opacity" Value="0.18"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="#553A465A"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource Text}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Editable numeric readout. Templated for the same reason the buttons
              are: the stock TextBox recolours its own border on hover/focus. -->
         <Style x:Key="ValueBox" TargetType="TextBox">
@@ -175,14 +285,15 @@
                  can never clip, and MaxLength=7 keeps the widest possible string
                  under the minimum so it never visibly grows either. -->
             <Setter Property="MinWidth" Value="86"/>
-            <Setter Property="Background" Value="#101620"/>
+            <Setter Property="Background" Value="{StaticResource Sunken}"/>
             <Setter Property="Foreground" Value="{StaticResource Accent}"/>
             <Setter Property="CaretBrush" Value="{StaticResource Accent}"/>
             <Setter Property="SelectionBrush" Value="{StaticResource Accent}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Height" Value="40"/>
             <Setter Property="TextAlignment" Value="Right"/>
             <Setter Property="Padding" Value="10,3"/>
             <Setter Property="MaxLength" Value="7"/>
@@ -202,7 +313,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#2A3445"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Track}"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                 <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Accent}"/>
@@ -231,9 +342,23 @@
 
         <!-- Preset card. The accent rail and border make the applied preset
              readable at a glance without re-reading every number. -->
+        <!-- The same box holding a path instead of a number. Everything
+             overridden here exists to serve a short right-aligned figure — a
+             path is long, reads left to right, and should not be the loudest
+             thing on its panel. The 7-character cap especially. -->
+        <Style x:Key="PathBox" TargetType="TextBox" BasedOn="{StaticResource ValueBox}">
+            <Setter Property="MinWidth" Value="340"/>
+            <Setter Property="MaxLength" Value="260"/>
+            <Setter Property="TextAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Height" Value="36"/>
+        </Style>
+
         <Style x:Key="PresetCard" TargetType="Button">
-            <Setter Property="Background" Value="#202A39"/>
-            <Setter Property="Foreground" Value="#E9EDF4"/>
+            <Setter Property="Background" Value="{StaticResource Control}"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
             <Setter Property="Padding" Value="14,11"/>
             <Setter Property="Margin" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -248,7 +373,7 @@
                             <Border x:Name="Root" CornerRadius="10" BorderThickness="1"
                                     BorderBrush="Transparent"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="10" Background="White" Opacity="0"/>
+                            <Border x:Name="Sheen" CornerRadius="10" Background="{StaticResource Sheen}" Opacity="0"/>
                             <Border x:Name="Rail" Width="3" Margin="0,10" Opacity="0"
                                     HorizontalAlignment="Left" CornerRadius="2"
                                     Background="{StaticResource Accent}"/>
@@ -259,16 +384,16 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Sheen" Property="Opacity" Value="0.06"/>
                                 <Setter TargetName="Rail" Property="Opacity" Value="0.55"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#33FF4B52"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentSoft}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Sheen" Property="Opacity" Value="0.12"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#66FF4B52"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentStrong}"/>
                             </Trigger>
                             <DataTrigger Binding="{Binding IsApplied}" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#26313F"/>
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource ControlHover}"/>
                                 <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Accent}"/>
                                 <Setter TargetName="Rail" Property="Opacity" Value="1"/>
                             </DataTrigger>
@@ -308,7 +433,7 @@
             <Setter Property="TextAlignment" Value="Left"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="Foreground" Value="#E9EDF4"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
             <Setter Property="MaxLength" Value="24"/>
             <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="10,0"/>
@@ -320,8 +445,116 @@
             <EventSetter Event="DataObject.Pasting" Handler="NumericBox_Pasting"/>
         </Style>
 
+        <!-- Slider, rebuilt. The filled portion is the decrease repeat button,
+             which already occupies exactly the region left of the thumb — that
+             avoids needing a converter to size a separate fill element. -->
+        <Style x:Key="SliderFill" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Height="6" CornerRadius="3" VerticalAlignment="Center"
+                                Background="{StaticResource Accent}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SliderTrack" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Height="6" CornerRadius="3" VerticalAlignment="Center"
+                                Background="{StaticResource Track}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SliderThumb" TargetType="Thumb">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid>
+                            <Ellipse x:Name="Halo" Width="26" Height="26" Fill="{StaticResource Accent}" Opacity="0"/>
+                            <Ellipse x:Name="Knob" Width="18" Height="18" Fill="White"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Halo" Property="Opacity" Value="0.25"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Halo" Property="Opacity" Value="0.4"/>
+                                <Setter TargetName="Knob" Property="Fill" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Slider">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="26" VerticalAlignment="Center">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge"
+                                                  Style="{StaticResource SliderFill}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource SliderThumb}"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge"
+                                                  Style="{StaticResource SliderTrack}"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Card used by the reworked clicker controls. -->
+        <Style x:Key="ControlCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Divider}"/>
+        </Style>
+
+        <!-- 10px bold uppercase in a muted blue was too low-contrast to read
+             cleanly; larger and lighter, with the weight carrying the emphasis. -->
+        <Style x:Key="CardLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- Sized against the controls beside it. At 11px the labels read as a
+             caption next to a 17px button, which is what made the cards look
+             lopsided rather than small. -->
+        <Style x:Key="CardHint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
         <Style x:Key="Badge" TargetType="Border">
-            <Setter Property="Background" Value="#202A39"/>
+            <Setter Property="Background" Value="{StaticResource Control}"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="6,2"/>
             <Setter Property="Margin" Value="8,0,0,0"/>
@@ -338,7 +571,7 @@
              Badge styles: StaticResource cannot resolve a forward reference, and
              inside a template the failure only surfaces when the page renders. -->
         <DataTemplate x:Key="TweakRow">
-            <Border BorderThickness="0,0,0,1" BorderBrush="#1AFFFFFF" Padding="0,12">
+            <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}" Padding="0,12">
                 <Grid>
                     <StackPanel Margin="0,0,110,0">
                         <StackPanel Orientation="Horizontal">
@@ -357,6 +590,33 @@
                             Click="Tweak_Click"
                             HorizontalAlignment="Right" VerticalAlignment="Center"
                             Width="92" Margin="0"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Same data, presented as a switch. IsChecked is one-way: the click
+             handler performs the change and Refresh pushes the real state back,
+             so a failed apply cannot leave the switch lying. -->
+        <DataTemplate x:Key="TweakToggleRow">
+            <Border Padding="0,4">
+                <Grid>
+                    <StackPanel Margin="0,0,70,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource Badge}">
+                                <TextBlock Text="{Binding Impact}" Style="{StaticResource BadgeText}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,3,0,0"/>
+                        <TextBlock Text="{Binding StatusText}" FontSize="10"
+                                   Foreground="{StaticResource TextMuted}" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <CheckBox IsChecked="{Binding IsApplied, Mode=OneWay}"
+                              IsEnabled="{Binding CanAct}"
+                              Click="TweakToggle_Click"
+                              HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"/>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -388,7 +648,7 @@
         <!-- Toggle switch. These are all on/off settings, and the stock check
              box is a light Win32 square that fights the dark theme. -->
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#F5F7FA"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
             <Setter Property="Margin" Value="0,8"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -399,10 +659,10 @@
                         <Grid Width="46" Height="26">
                             <Border x:Name="Track" CornerRadius="13"
                                     Background="{StaticResource Track}"
-                                    BorderThickness="1" BorderBrush="#3A465A"/>
-                            <Border x:Name="Glow" CornerRadius="13" Background="White" Opacity="0"/>
+                                    BorderThickness="1" BorderBrush="{StaticResource Outline}"/>
+                            <Border x:Name="Glow" CornerRadius="13" Background="{StaticResource Sheen}" Opacity="0"/>
                             <Border x:Name="Knob" Width="18" Height="18" CornerRadius="9"
-                                    Background="#8D98AA"
+                                    Background="{StaticResource TextMuted}"
                                     HorizontalAlignment="Left" Margin="4,0,0,0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -437,10 +697,10 @@
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
-        <Border Grid.Column="0" Background="#151B25">
+        <Border Grid.Column="0" Background="{StaticResource Sidebar}">
             <StackPanel Margin="14">
                 <TextBlock Text="Jinxy" FontSize="22" FontWeight="Bold"
-                           Foreground="White" Margin="8,14,8,2"/>
+                           Foreground="{StaticResource Text}" Margin="8,14,8,2"/>
                 <TextBlock Text="ORIGINAL BUILD" FontSize="9" FontWeight="Bold"
                            Foreground="{StaticResource Accent}" Margin="9,0,0,28"/>
 
@@ -452,6 +712,10 @@
                         Click="NavTweaks_Click"/>
                 <Button x:Name="NavOptimizations" Content="Optimizations" Style="{StaticResource NavButton}"
                         Click="NavOptimizations_Click"/>
+                <Button x:Name="NavMod" Content="Mod" Style="{StaticResource NavButton}"
+                        Click="NavMod_Click"/>
+                <Button x:Name="NavRecorder" Content="Recorder" Style="{StaticResource NavButton}"
+                        Click="NavRecorder_Click"/>
                 <Button x:Name="NavHistory" Content="History" Style="{StaticResource NavButton}"
                         Click="NavHistory_Click"/>
                 <Button x:Name="NavTheme" Content="Theme" Style="{StaticResource NavButton}"
@@ -459,18 +723,6 @@
                 <Button x:Name="NavSettings" Content="Settings" Style="{StaticResource NavButton}"
                         Click="NavSettings_Click"/>
 
-                <Border Margin="0,24,0,0" Padding="12" Background="#101620" CornerRadius="10">
-                    <StackPanel>
-                        <TextBlock Text="HOTKEY" FontSize="10" FontWeight="Bold"
-                                   Foreground="{StaticResource TextMuted}" Margin="0,0,0,8"/>
-                        <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
-                                ToolTip="Click, then press a key or mouse side button"
-                                FontSize="14" FontWeight="SemiBold"
-                                Padding="10,6" Margin="0"/>
-                        <TextBlock Text="Toggle / hold clicking" FontSize="10"
-                                   Foreground="{StaticResource TextMuted}" Margin="0,8,0,0"/>
-                    </StackPanel>
-                </Border>
             </StackPanel>
         </Border>
 
@@ -499,7 +751,10 @@
                      Only shown on the Clicker page. -->
                 <StackPanel x:Name="StatusBlock" Grid.Column="1"
                             Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="#151C27" CornerRadius="8" Height="40" Padding="14,0"
+                    <Button x:Name="HideValuesButton" Content="Hide values"
+                            Click="HideValues_Click" Height="40" Padding="16,0" Margin="0,0,10,0"
+                            ToolTip="Masks the CPS and duty cycle so they are not readable on screen"/>
+                    <Border Background="{StaticResource Panel2}" CornerRadius="8" Height="40" Padding="14,0"
                             Margin="0,0,10,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="StatusDot" Width="8" Height="8"
@@ -538,51 +793,99 @@
                         </Border>
                     </UniformGrid>
 
-                    <!-- CPS -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <!-- LastChildFill defaults to True, which makes the last
-                                 child fill the row and ignore Dock="Right". -->
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="CPS" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBox x:Name="CpsValueBox" DockPanel.Dock="Right" Text="10.0"
-                                         Style="{StaticResource NumericValueBox}"
-                                         KeyDown="CpsValueBox_KeyDown"
-                                         LostFocus="CpsValueBox_LostFocus"/>
-                            </DockPanel>
-                            <!-- 0 CPS means armed but idle; see ClickLoopAsync. -->
-                            <Slider x:Name="CpsSlider" Minimum="0" Maximum="150" Value="10"
-                                    Margin="0,12,0,0" TickFrequency="10"
-                                    ValueChanged="CpsSlider_ValueChanged"/>
-                            <!-- Clicks actually delivered, not clicks requested. -->
-                            <TextBlock x:Name="MeasuredCpsText" Text="Measured — /s"
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Keybind / Mode on the left, the two rates on the right. -->
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                    <!-- CDC -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
+                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ControlCard}"
+                                Margin="0,0,7,14">
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="CDC" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <!-- Declared before the box so it docks furthest right. -->
-                                <TextBlock Text="%" DockPanel.Dock="Right" Margin="4,0,0,0"
-                                           Foreground="{StaticResource Accent}"
-                                           FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                                <TextBox x:Name="CdcValueBox" DockPanel.Dock="Right" Text="67.0"
-                                         Style="{StaticResource NumericValueBox}"
-                                         KeyDown="CdcValueBox_KeyDown"
-                                         LostFocus="CdcValueBox_LostFocus"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="KEYBIND" Style="{StaticResource CardLabel}"/>
+                                    <TextBlock Text="Starts and stops clicking"
+                                               Style="{StaticResource CardHint}"/>
+                                </StackPanel>
+                                <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
+                                        DockPanel.Dock="Right" VerticalAlignment="Center"
+                                        ToolTip="Click, then press a key or mouse side button"
+                                        FontSize="17" FontWeight="Bold"
+                                        Height="42" MinWidth="96"
+                                        Padding="16,0" Margin="0"/>
                             </DockPanel>
-                            <TextBlock Text="Share of each click cycle the button stays held"
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       Margin="0,2,0,0"/>
-                            <Slider x:Name="CdcSlider" Minimum="0" Maximum="100" Value="67"
-                                    Margin="0,12,0,0" TickFrequency="10"
-                                    ValueChanged="CdcSlider_ValueChanged"/>
-                        </StackPanel>
-                    </Border>
+                        </Border>
+
+                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ControlCard}"
+                                Margin="7,0,0,14">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock Text="CPS" Style="{StaticResource CardLabel}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBox x:Name="CpsValueBox" DockPanel.Dock="Right" Text="10.0"
+                                             Style="{StaticResource NumericValueBox}"
+                                             KeyDown="CpsValueBox_KeyDown"
+                                             LostFocus="CpsValueBox_LostFocus"/>
+                                </DockPanel>
+                                <!-- 0 CPS means armed but idle; see ClickLoop. -->
+                                <Slider x:Name="CpsSlider" Minimum="0" Maximum="150" Value="10"
+                                        Margin="0,10,0,0" TickFrequency="10"
+                                        ValueChanged="CpsSlider_ValueChanged"/>
+                                <!-- Clicks actually delivered, not clicks requested. -->
+                                <TextBlock x:Name="MeasuredCpsText" Text="Measured — /s"
+                                           Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ControlCard}"
+                                Margin="0,0,7,0">
+                            <DockPanel LastChildFill="False">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="MODE" Style="{StaticResource CardLabel}"/>
+                                    <TextBlock Text="Hold the key, or press to latch"
+                                               Style="{StaticResource CardHint}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <RadioButton x:Name="HoldModeButton" Content="Hold" GroupName="ClickMode"
+                                                 Style="{StaticResource SegmentButton}"
+                                                 Checked="HoldMode_Checked" MinWidth="76"/>
+                                    <RadioButton x:Name="ToggleModeButton" Content="Toggle" GroupName="ClickMode"
+                                                 IsChecked="True" Margin="0"
+                                                 Style="{StaticResource SegmentButton}"
+                                                 Checked="ToggleMode_Checked" MinWidth="76"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ControlCard}"
+                                Margin="7,0,0,0">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock Text="DUTY CYCLE" Style="{StaticResource CardLabel}"
+                                               VerticalAlignment="Center"/>
+                                    <!-- Declared before the box so it docks furthest right. -->
+                                    <TextBlock Text="%" DockPanel.Dock="Right" Margin="4,0,0,0"
+                                               Foreground="{StaticResource Accent}"
+                                               FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="CdcValueBox" DockPanel.Dock="Right" Text="67.0"
+                                             Style="{StaticResource NumericValueBox}"
+                                             KeyDown="CdcValueBox_KeyDown"
+                                             LostFocus="CdcValueBox_LostFocus"/>
+                                </DockPanel>
+                                <Slider x:Name="CdcSlider" Minimum="0" Maximum="100" Value="67"
+                                        Margin="0,10,0,0" TickFrequency="10"
+                                        ValueChanged="CdcSlider_ValueChanged"/>
+                                <TextBlock Text="Share of each cycle the button stays held"
+                                           Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
 
                     <!-- Precision -->
                     <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
@@ -684,20 +987,6 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Click mode -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="CLICK MODE" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
-                            <UniformGrid Columns="2" Margin="0,12,0,0">
-                                <Button x:Name="ToggleModeButton" Content="Toggle"
-                                        Click="ToggleMode_Click" Background="{StaticResource Accent}"/>
-                                <Button x:Name="HoldModeButton" Content="Hold"
-                                        Click="HoldMode_Click"/>
-                            </UniformGrid>
-                        </StackPanel>
-                    </Border>
-
                 </StackPanel>
 
                 <!-- Remaining pages: same chrome, no components yet. -->
@@ -753,6 +1042,10 @@
                                                         <TextBlock Text="% CDC" FontSize="11"
                                                                    Foreground="{StaticResource TextMuted}"/>
                                                     </StackPanel>
+                                                    <TextBlock Text="{Binding ExtrasText}" FontSize="10"
+                                                               Foreground="{StaticResource TextMuted}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Margin="0,4,0,0"/>
                                                     <Border Height="3" Width="134" CornerRadius="2"
                                                             Background="{StaticResource Track}"
                                                             HorizontalAlignment="Left" Margin="0,9,0,0">
@@ -764,9 +1057,15 @@
                                                 </StackPanel>
                                             </Button>
 
-                                            <Button Content="&#215;" Click="DeletePreset_Click"
-                                                    Style="{StaticResource PresetDelete}"
-                                                    HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Top">
+                                                <Button Content="&#9998;" Click="EditPreset_Click"
+                                                        Style="{StaticResource PresetDelete}"
+                                                        ToolTip="Load this preset for editing"
+                                                        Margin="0,6,2,0"/>
+                                                <Button Content="&#215;" Click="DeletePreset_Click"
+                                                        Style="{StaticResource PresetDelete}"/>
+                                            </StackPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -887,8 +1186,13 @@
                         <StackPanel>
                             <TextBlock Text="INPUT" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
-                            <ItemsControl x:Name="InputTweakList" Margin="0,4,0,0"
-                                          ItemTemplate="{StaticResource TweakRow}"/>
+                            <ItemsControl x:Name="InputTweakList" Margin="0,8,0,0"
+                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
+
+                            <TextBlock Text="NETWORK" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold" Margin="0,18,0,0"/>
+                            <ItemsControl x:Name="NetworkTweakList" Margin="0,8,0,0"
+                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
                         </StackPanel>
                     </Border>
 
@@ -913,40 +1217,541 @@
 
                 </StackPanel>
 
-                <StackPanel x:Name="PageHistory" Visibility="Collapsed">
-                    <Border Style="{StaticResource EmptyPanel}">
+                <StackPanel x:Name="PageMod" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="HISTORY" Style="{StaticResource EmptyHeading}"/>
-                            <TextBlock Text="Nothing here yet" Style="{StaticResource EmptyTitle}"/>
-                            <TextBlock Text="This page uses the same layout as Clicker. Components go here."
-                                       Style="{StaticResource EmptyHint}"/>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="FPS BOOST FASTFLAGS" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="FlagStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Every flag below is on Roblox's published allowlist. Anything not on that list is ignored by the client, so this only offers what is actually permitted and actually works."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="FlagPathText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,8,0,0"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="ApplyFlagsButton" Content="Apply"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="ApplyFlags_Click" Height="36" Width="120" Margin="0,0,10,0"/>
+                                <Button x:Name="ResetFlagsButton" Content="Reset"
+                                        Click="ResetFlags_Click" Height="36" Padding="20,0" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="FlagStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="WHAT THIS SETS" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <ItemsControl x:Name="FlagList" Margin="0,4,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}" Padding="0,10">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="70"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                               FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                                                               Foreground="{StaticResource TextMuted}"
+                                                               FontSize="11" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Value}"
+                                                           Foreground="{StaticResource Accent}"
+                                                           FontWeight="Bold" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+                <StackPanel x:Name="PageHistory" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="ALL TIME" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock x:Name="HistoryTotalText" Text="0s" FontSize="34" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,6,0,0"/>
+                            <TextBlock Text="Counted only while clicks are actually being sent — not while the app is merely open, and not while hold mode is armed with the key up."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
+
+                            <UniformGrid Columns="4" Margin="0,18,0,0">
+                                <StackPanel Margin="0,0,7,0">
+                                    <TextBlock Text="TOTAL CLICKS" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistoryClicksText" Text="0" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Margin="7,0">
+                                    <TextBlock Text="AVERAGE RATE" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistoryAverageText" Text="—" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Margin="7,0">
+                                    <TextBlock Text="BUSIEST DAY" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistoryBusiestText" Text="—" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="HistoryBusiestDateText" Text="" FontSize="10"
+                                               Foreground="{StaticResource TextMuted}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <StackPanel Margin="7,0,0,0">
+                                    <TextBlock Text="DAYS RECORDED" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistoryDaysText" Text="0" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                    <TextBlock x:Name="HistorySinceText" Text="" FontSize="10"
+                                               Foreground="{StaticResource TextMuted}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="THIS SESSION" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <UniformGrid Columns="3" Margin="0,10,0,0">
+                                <StackPanel Margin="0,0,7,0">
+                                    <TextBlock Text="TIME" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistorySessionTimeText" Text="0s" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Margin="7,0">
+                                    <TextBlock Text="CLICKS" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistorySessionClicksText" Text="0" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Margin="7,0,0,0">
+                                    <TextBlock Text="RATE" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock x:Name="HistorySessionRateText" Text="—" FontSize="18"
+                                               FontWeight="Bold" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="BY DAY" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Button DockPanel.Dock="Right" Content="Reset history"
+                                        Click="ResetHistory_Click" Padding="10,5" Margin="0" FontSize="11"/>
+                            </DockPanel>
+
+                            <TextBlock x:Name="HistoryEmptyText" Visibility="Collapsed"
+                                       Text="No clicking recorded yet."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       Margin="0,14,0,0"/>
+
+                            <ItemsControl x:Name="HistoryDayList" Margin="0,4,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource Hairline}" Padding="0,10">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="100"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding DateText}"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding DurationText}"
+                                                           Foreground="{StaticResource Accent}"
+                                                           FontWeight="Bold" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding ClicksText}"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding RateText}"
+                                                           Foreground="{StaticResource TextMuted}"
+                                                           FontSize="11" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+                <StackPanel x:Name="PageRecorder" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="RECORD" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock x:Name="RecorderEngineText" Text=""
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="RecordElapsedText" Text="00:00" FontSize="30" FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}" Margin="0,10,0,0"/>
+
+                            <TextBlock Text="CAPTURE" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold" Margin="0,18,0,0"/>
+
+                            <TextBlock Text="Which screen goes into the clip. Instant replay follows the same choice."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <!-- Filled at runtime: how many monitors exist is not
+                                 knowable until the app is running. -->
+                            <WrapPanel x:Name="DisplayPanel" Margin="0,10,0,0"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button x:Name="RecordButton" Content="Start recording"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="Record_Click" Height="36" Width="164" Margin="0,0,10,0"/>
+                                <Button x:Name="RecordHotkeyButton" Content="Not set"
+                                        Click="RecordHotkey_Click"
+                                        ToolTip="Click, then press a key or mouse side button"
+                                        Height="36" Padding="16,0" MinWidth="64" Margin="0,0,10,0"/>
+                                <Button x:Name="OpenClipFolderButton" Content="Open clips folder"
+                                        Click="OpenClipFolder_Click" Height="36" Padding="16,0" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="RecordStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="INSTANT REPLAY" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="ReplayEnabled" DockPanel.Dock="Right" Margin="0"
+                                          VerticalAlignment="Center"
+                                          Checked="ReplayEnabled_Changed" Unchecked="ReplayEnabled_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Keeps the last minute rolling in the background. Press the hotkey and it saves what already happened."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <UniformGrid x:Name="ReplayLengthPanel" Columns="3" Margin="0,14,0,0"
+                                         MaxWidth="330" HorizontalAlignment="Left">
+                                <RadioButton Content="15s" GroupName="ReplayLength"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="ReplayLength_Checked" Tag="15"/>
+                                <RadioButton Content="30s" GroupName="ReplayLength" IsChecked="True"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="ReplayLength_Checked" Tag="30"/>
+                                <RadioButton Content="60s" GroupName="ReplayLength" Margin="0"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="ReplayLength_Checked" Tag="60"/>
+                            </UniformGrid>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="SaveReplayButton" Content="Save now"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="SaveReplay_Click" Height="36" Width="120" Margin="0,0,10,0"/>
+                                <Button x:Name="ReplayHotkeyButton" Content="F8"
+                                        Click="ReplayHotkey_Click"
+                                        ToolTip="Click, then press a key or mouse side button"
+                                        Height="36" Padding="16,0" MinWidth="64" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="ReplayStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="SHARE A CLIP" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Pick a clip and get a link back, instead of handing someone a file."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <Border Background="{StaticResource AccentWash}" BorderBrush="{StaticResource Accent}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,14,0,0">
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Text}"
+                                           Text="Uploading publishes the clip. Anyone with the link can watch it, there is no reliable way to delete it afterwards, and a screen recording captures whatever else was on screen at the time."/>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="ChooseClipButton" Content="Choose a clip…"
+                                        Click="ChooseClip_Click" Height="36" Padding="16,0" Margin="0,0,10,0"/>
+                                <Button x:Name="UploadClipButton" Content="Upload and get link"
+                                        Style="{StaticResource AccentButton}" IsEnabled="False"
+                                        Click="UploadClip_Click" Height="36" Width="176" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="ChosenClipText" Text="No clip chosen"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="LINK" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,10,0,0">
+                                <Button x:Name="CopyLinkButton" Content="Copy" DockPanel.Dock="Right"
+                                        Click="CopyLink_Click" IsEnabled="False"
+                                        Padding="16,6" Margin="10,0,0,0"/>
+                                <TextBox x:Name="ClipUrlBox" Style="{StaticResource FieldBox}"
+                                         IsReadOnly="True" Width="440" HorizontalAlignment="Left"
+                                         Text=""/>
+                            </DockPanel>
+
+                            <TextBlock x:Name="UploadStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageTheme" Visibility="Collapsed">
-                    <Border Style="{StaticResource EmptyPanel}">
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="THEME" Style="{StaticResource EmptyHeading}"/>
-                            <TextBlock Text="Nothing here yet" Style="{StaticResource EmptyTitle}"/>
-                            <TextBlock Text="This page uses the same layout as Clicker. Components go here."
-                                       Style="{StaticResource EmptyHint}"/>
+                            <TextBlock Text="MODE" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <TextBlock Text="Swaps the backgrounds, text and controls. The accent is unaffected — it stays whichever colour is chosen below."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <UniformGrid Columns="2" Margin="0,14,0,0" MaxWidth="220" HorizontalAlignment="Left">
+                                <RadioButton x:Name="ThemeDark" Content="Dark" GroupName="ThemeMode"
+                                             IsChecked="True" Style="{StaticResource SegmentButton}"
+                                             Checked="ThemeMode_Checked" Tag="Dark"/>
+                                <RadioButton x:Name="ThemeLight" Content="Light" GroupName="ThemeMode"
+                                             Margin="0" Style="{StaticResource SegmentButton}"
+                                             Checked="ThemeMode_Checked" Tag="Light"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="ACCENT COLOR" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <TextBlock Text="Recolors the buttons, highlights and status marks. Backgrounds and text stay as they are."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <!-- Tag carries the colour so the handler reads one string
+                                 rather than mapping controls to values, the same way
+                                 the replay length buttons work. -->
+                            <WrapPanel x:Name="AccentSwatchPanel" Margin="0,14,0,0"
+                                       MaxWidth="330" HorizontalAlignment="Left">
+                                <RadioButton GroupName="Accent" ToolTip="Crimson"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#FF4B52" Tag="#FF4B52"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Ember"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#FF7A45" Tag="#FF7A45"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Amber"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#FFC53D" Tag="#FFC53D"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Mint"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#4BD47B" Tag="#4BD47B"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Teal"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#2FD4A8" Tag="#2FD4A8"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Sky"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#45B7FF" Tag="#45B7FF"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Indigo"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#5B7CFA" Tag="#5B7CFA"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Violet"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#9B5BFA" Tag="#9B5BFA"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Pink"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#FF5BC8" Tag="#FF5BC8"
+                                             Checked="AccentSwatch_Checked"/>
+                                <RadioButton GroupName="Accent" ToolTip="Silver"
+                                             Style="{StaticResource SwatchButton}"
+                                             Background="#C3CDDD" Tag="#C3CDDD"
+                                             Checked="AccentSwatch_Checked"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="WINDOW OPACITY" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="OpacityValueText" DockPanel.Dock="Right" Text="100%"
+                                           Foreground="{StaticResource TextMuted}" FontSize="11"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Fades the whole window so whatever is behind it stays readable. Stops well short of invisible, so it can always be found again."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <Slider x:Name="OpacitySlider" Minimum="0.4" Maximum="1" Value="1"
+                                    Margin="0,10,0,0" TickFrequency="0.05"
+                                    ValueChanged="OpacitySlider_ValueChanged"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
 
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="HOTKEYS" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="HotkeysEnabledToggle" DockPanel.Dock="Right" Margin="0"
+                                          IsChecked="True" VerticalAlignment="Center"
+                                          Checked="HotkeysEnabled_Changed" Unchecked="HotkeysEnabled_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Hotkeys are watched system-wide, so they fire inside a game — and just as readily while you are typing in a browser or a chat box. Turning this off silences all four without unbinding them."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="HotkeySummaryText" Text=""
+                                       Foreground="{StaticResource TextDim}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="CLIP FOLDER" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <TextBlock Text="Where recordings and saved replays are written. Left empty it returns to your Videos folder."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <DockPanel Margin="0,10,0,0" LastChildFill="True">
+                                <Button x:Name="ResetClipFolderButton" DockPanel.Dock="Right"
+                                        Content="Default" Click="ResetClipFolder_Click"
+                                        Height="36" Padding="16,0" Margin="10,0,0,0"/>
+                                <TextBox x:Name="ClipFolderBox" Style="{StaticResource PathBox}"
+                                         TextChanged="ClipFolder_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="RECORDING FRAMERATE" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <TextBlock Text="Applies to both recordings and the replay buffer. 60 is smoother for gameplay and roughly doubles the file size."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <UniformGrid x:Name="RecordFpsPanel" Columns="3" Margin="0,14,0,0"
+                                         MaxWidth="330" HorizontalAlignment="Left">
+                                <RadioButton Content="30" GroupName="RecordFps" IsChecked="True"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="RecordFps_Checked" Tag="30"/>
+                                <RadioButton Content="48" GroupName="RecordFps"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="RecordFps_Checked" Tag="48"/>
+                                <RadioButton Content="60" GroupName="RecordFps" Margin="0"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="RecordFps_Checked" Tag="60"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
                     <Border Style="{StaticResource EmptyPanel}">
                         <StackPanel>
                             <TextBlock Text="SETTINGS" Style="{StaticResource EmptyHeading}"/>
-                            <TextBlock Text="Nothing here yet" Style="{StaticResource EmptyTitle}"/>
-                            <TextBlock Text="Hotkeys are rebound from their own buttons. Other settings go here."
+                            <TextBlock Text="More to come" Style="{StaticResource EmptyTitle}"/>
+                            <TextBlock Text="Hotkeys are rebound from their own buttons on the Clicker and Recorder pages."
                                        Style="{StaticResource EmptyHint}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
               </Grid>
             </ScrollViewer>
+        </Grid>
+
+        <!-- In-app confirmation. Spans both columns so it dims the sidebar too,
+             which is what makes it read as modal rather than as another panel. -->
+        <Grid x:Name="ConfirmOverlay" Grid.ColumnSpan="2" Visibility="Collapsed"
+              Background="#D9080B11" Panel.ZIndex="100"
+              TextOptions.TextFormattingMode="Display"
+              TextOptions.TextRenderingMode="ClearType"
+              UseLayoutRounding="True" SnapsToDevicePixels="True">
+
+            <!-- The shadow lives on its own element behind the card. A bitmap
+                 Effect forces everything inside it through an intermediate
+                 surface, which drops ClearType and softens all the text — so the
+                 card itself must not be inside one. -->
+            <Border CornerRadius="14" Background="{StaticResource Panel}" MaxWidth="460" Margin="0,0,0,0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="460" Height="{Binding ActualHeight, ElementName=ConfirmCard}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="6" Opacity="0.55" Color="Black"/>
+                </Border.Effect>
+            </Border>
+
+            <Border x:Name="ConfirmCard" Background="{StaticResource Panel}" CornerRadius="14" Padding="0"
+                    MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    BorderBrush="{StaticResource Track}" BorderThickness="1">
+
+                <StackPanel>
+                    <Border Height="3" CornerRadius="14,14,0,0" Background="{StaticResource Accent}"/>
+
+                    <StackPanel Margin="24">
+                        <TextBlock x:Name="ConfirmTitleText" Text="" FontSize="17" FontWeight="Bold"/>
+                        <TextBlock x:Name="ConfirmMessageText" Text="" TextWrapping="Wrap"
+                                   Foreground="{StaticResource TextMuted}" FontSize="12"
+                                   Margin="0,10,0,0" LineHeight="18"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                            <Button x:Name="ConfirmNoButton" Content="Cancel" Click="ConfirmNo_Click"
+                                    Height="36" Padding="18,0" Margin="0,0,10,0"/>
+                            <Button x:Name="ConfirmYesButton" Content="Confirm" Click="ConfirmYes_Click"
+                                    Style="{StaticResource AccentButton}"
+                                    Height="36" Padding="18,0" MinWidth="120" Margin="0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>

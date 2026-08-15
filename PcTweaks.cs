@@ -368,72 +368,120 @@ public sealed class CoreParkingTweak : PcTweak
 /// mouse moves, so identical hand movement produces different in-game turns.
 /// For anything aim-related this is a correctness problem, not a speed one.
 /// </summary>
-public sealed class MouseAccelerationTweak : PcTweak
+/// <summary>
+/// The two Windows mouse settings that affect whether identical hand movement
+/// produces identical in-game turn.
+/// </summary>
+/// <remarks>
+/// Deliberately only two things. Polling rate lives in the mouse firmware or
+/// driver, DPI lives in the device, and in-game sensitivity lives in the game —
+/// none of the three is reachable from here, whatever other tools imply.
+/// </remarks>
+public sealed class TrackingHelperTweak : PcTweak
 {
     private const uint SPI_GETMOUSE = 0x0003;
     private const uint SPI_SETMOUSE = 0x0004;
+    private const uint SPI_GETMOUSESPEED = 0x0070;
+    private const uint SPI_SETMOUSESPEED = 0x0071;
     private const uint SPIF_UPDATEINIFILE = 0x01;
     private const uint SPIF_SENDCHANGE = 0x02;
+
+    /// <summary>The 6/11 notch — the only pointer speed Windows passes through unscaled.</summary>
+    private const int LinearPointerSpeed = 10;
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, int[] pvParam, uint fWinIni);
 
-    public override string Id => "mouse-acceleration";
-    public override string Name => "Turn off mouse acceleration";
-    public override string Description => "Stops Windows scaling cursor travel by how fast you move. The same hand movement then always turns the same amount.";
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfoRef(uint uiAction, uint uiParam, ref int pvParam, uint fWinIni);
+
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfoPtr(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
+
+    public override string Id => "tracking-helper";
+    public override string Name => "Tracking Helper";
+    public override string Description => "Turns off Enhance pointer precision, and puts pointer speed on the 6/11 notch — the only one Windows passes through 1:1. The same hand movement then always turns the same amount.";
     public override string Impact => "Aim consistency";
     public override bool RequiresAdmin => false;
 
-    private static int[]? ReadMouse()
+    private static int[]? ReadAcceleration()
     {
         int[] values = new int[3];
         return SystemParametersInfo(SPI_GETMOUSE, 0, values, 0) ? values : null;
     }
 
+    private static int? ReadSpeed()
+    {
+        int speed = 0;
+        return SystemParametersInfoRef(SPI_GETMOUSESPEED, 0, ref speed, 0) ? speed : null;
+    }
+
     protected override bool? ReadApplied()
     {
-        int[]? values = ReadMouse();
-        if (values == null) return null;
+        int[]? acceleration = ReadAcceleration();
+        int? speed = ReadSpeed();
 
-        // values[2] is the acceleration flag; zero means straight 1:1 input.
-        return values[2] == 0;
+        if (acceleration == null || speed == null) return null;
+
+        // acceleration[2] is the enable flag; zero means straight 1:1 input.
+        return acceleration[2] == 0 && speed == LinearPointerSpeed;
     }
 
     protected override void DoApply(TweakState state)
     {
-        int[] current = ReadMouse() ?? throw new InvalidOperationException("Could not read the mouse settings.");
-        state.Remember(Id, $"{current[0]},{current[1]},{current[2]}");
+        int[] acceleration = ReadAcceleration()
+            ?? throw new InvalidOperationException("Could not read the mouse settings.");
 
-        Write(new[] { 0, 0, 0 });
+        int speed = ReadSpeed() ?? LinearPointerSpeed;
+
+        state.Remember(Id, $"{acceleration[0]},{acceleration[1]},{acceleration[2]},{speed}");
+
+        WriteAcceleration(new[] { 0, 0, 0 });
+        WriteSpeed(LinearPointerSpeed);
     }
 
     protected override void DoRevert(TweakState state)
     {
         // Windows' own defaults, used only if nothing was recorded.
-        int[] values = { 6, 10, 1 };
+        int[] acceleration = { 6, 10, 1 };
+        int speed = LinearPointerSpeed;
 
         if (state.TryTake(Id, out string? stored) && stored != null)
         {
             string[] parts = stored.Split(',');
 
-            if (parts.Length == 3
+            if (parts.Length == 4
                 && int.TryParse(parts[0], out int t1)
                 && int.TryParse(parts[1], out int t2)
-                && int.TryParse(parts[2], out int accel))
+                && int.TryParse(parts[2], out int accel)
+                && int.TryParse(parts[3], out int previousSpeed))
             {
-                values = new[] { t1, t2, accel };
+                acceleration = new[] { t1, t2, accel };
+                speed = previousSpeed;
             }
         }
 
-        Write(values);
+        WriteAcceleration(acceleration);
+        WriteSpeed(speed);
     }
 
     /// <summary>Writes and applies in one call, so no sign-out is needed.</summary>
-    private static void Write(int[] values)
+    private static void WriteAcceleration(int[] values)
     {
         if (!SystemParametersInfo(SPI_SETMOUSE, 0, values, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE))
-            throw new InvalidOperationException("Windows refused the mouse setting change.");
+            throw new InvalidOperationException("Windows refused the pointer precision change.");
+    }
+
+    private static void WriteSpeed(int speed)
+    {
+        if (!SystemParametersInfoPtr(SPI_SETMOUSESPEED, 0, new IntPtr(speed),
+                SPIF_UPDATEINIFILE | SPIF_SENDCHANGE))
+        {
+            throw new InvalidOperationException("Windows refused the pointer speed change.");
+        }
     }
 }
 
@@ -584,6 +632,76 @@ public sealed class VisualEffectsTweak : PcTweak
 
         string restored = state.TryTake(Id + "-drag", out string? dragged) && dragged != null ? dragged : "1";
         desktop.SetValue("DragFullWindows", restored, RegistryValueKind.String);
+    }
+}
+
+/// <summary>
+/// A policy-based QoS rule that marks Roblox's outbound packets as expedited.
+/// </summary>
+/// <remarks>
+/// Honest about what this is: DSCP is a request, not a guarantee. The marking
+/// only changes anything if the router — and every hop after it — is configured
+/// to honour it, and most consumer gear ignores or strips it outright. Even
+/// where honoured it only matters while a link is congested; on an idle
+/// connection it cannot lower a ping that has nothing queued behind it.
+/// </remarks>
+public sealed class QosPolicyTweak : PcTweak
+{
+    private const string PolicyRoot = @"SOFTWARE\Policies\Microsoft\Windows\QoS";
+    private const string PolicyName = "JinxyClicker Roblox";
+    private const string RobloxExecutable = "RobloxPlayerBeta.exe";
+
+    /// <summary>46 is Expedited Forwarding, the standard marking for latency-sensitive traffic.</summary>
+    private const string ExpeditedForwarding = "46";
+
+    public override string Id => "qos-policy";
+    public override string Name => "Prioritise Roblox traffic";
+    public override string Description => "Adds a Windows QoS policy marking Roblox's packets as high priority. Only does anything if your router honours the marking and the connection is congested.";
+    public override string Impact => "Depends entirely on your router";
+    public override bool RequiresAdmin => true;
+
+    protected override bool? ReadApplied()
+    {
+        using RegistryKey? key = Registry.LocalMachine.OpenSubKey($@"{PolicyRoot}\{PolicyName}");
+        return key?.GetValue("DSCP Value") as string == ExpeditedForwarding;
+    }
+
+    protected override void DoApply(TweakState state)
+    {
+        using RegistryKey key = Registry.LocalMachine.CreateSubKey($@"{PolicyRoot}\{PolicyName}", writable: true)
+            ?? throw new InvalidOperationException("Could not create the QoS policy key.");
+
+        // Nothing of the user's is being overwritten — the policy is created
+        // under our own name — so there is no prior value worth recording.
+        state.Remember(Id, null);
+
+        key.SetValue("Version", "1.0", RegistryValueKind.String);
+        key.SetValue("Application Name", RobloxExecutable, RegistryValueKind.String);
+        key.SetValue("Protocol", "*", RegistryValueKind.String);
+        key.SetValue("Local Port", "*", RegistryValueKind.String);
+        key.SetValue("Local IP", "*", RegistryValueKind.String);
+        key.SetValue("Local IP Prefix Length", "*", RegistryValueKind.String);
+        key.SetValue("Remote Port", "*", RegistryValueKind.String);
+        key.SetValue("Remote IP", "*", RegistryValueKind.String);
+        key.SetValue("Remote IP Prefix Length", "*", RegistryValueKind.String);
+        key.SetValue("DSCP Value", ExpeditedForwarding, RegistryValueKind.String);
+
+        // -1 means no bandwidth cap; this policy only marks, never throttles.
+        key.SetValue("Throttle Rate", "-1", RegistryValueKind.String);
+    }
+
+    protected override void DoRevert(TweakState state)
+    {
+        using RegistryKey? root = Registry.LocalMachine.OpenSubKey(PolicyRoot, writable: true);
+
+        try
+        {
+            root?.DeleteSubKeyTree(PolicyName, throwOnMissingSubKey: false);
+        }
+        catch
+        {
+            // Already gone.
+        }
     }
 }
 

@@ -27,6 +27,9 @@ public sealed record HotkeyBinding(int VirtualKey, string Name)
         _ => null
     };
 
+    /// <summary>No key. Polls as never-pressed, and reads as "Not set" on its button.</summary>
+    public static readonly HotkeyBinding Unbound = new(0, "Not set");
+
     public bool IsValid => VirtualKey != 0;
 }
 
@@ -36,17 +39,31 @@ public class HotkeySettings
 
     public HotkeyBinding Hotkey { get; set; } = HotkeyBinding.FromKey(Key.F6);
     public HotkeyBinding ShakeHotkey { get; set; } = HotkeyBinding.FromKey(Key.F7);
+    public HotkeyBinding ReplayHotkey { get; set; } = HotkeyBinding.FromKey(Key.F8);
+    /// <summary>
+    /// Unbound by default, unlike the other three. Shipping a default would drop
+    /// it on top of whatever an existing user had already bound to that key —
+    /// their settings file predates this action and cannot say it is taken.
+    /// </summary>
+    public HotkeyBinding RecordHotkey { get; set; } = HotkeyBinding.Unbound;
 
     public void Save()
     {
         try
         {
+            // Every binding, not a subset. Replay was previously written by
+            // neither Save nor Load, so rebinding it held for the session and
+            // silently reverted to F8 on the next launch.
             var json = JsonSerializer.Serialize(new
             {
                 HotkeyVk = Hotkey.VirtualKey,
                 HotkeyName = Hotkey.Name,
                 ShakeVk = ShakeHotkey.VirtualKey,
-                ShakeName = ShakeHotkey.Name
+                ShakeName = ShakeHotkey.Name,
+                ReplayVk = ReplayHotkey.VirtualKey,
+                ReplayName = ReplayHotkey.Name,
+                RecordVk = RecordHotkey.VirtualKey,
+                RecordName = RecordHotkey.Name
             });
 
             File.WriteAllText(SETTINGS_FILE, json);
@@ -65,6 +82,8 @@ public class HotkeySettings
 
             Hotkey = ReadBinding(data, "HotkeyVk", "HotkeyName", "HotkeyKey", Hotkey);
             ShakeHotkey = ReadBinding(data, "ShakeVk", "ShakeName", "ShakeHotkeyKey", ShakeHotkey);
+            ReplayHotkey = ReadBinding(data, "ReplayVk", "ReplayName", "ReplayHotkeyKey", ReplayHotkey);
+            RecordHotkey = ReadBinding(data, "RecordVk", "RecordName", "RecordHotkeyKey", RecordHotkey);
         }
         catch { }
     }
