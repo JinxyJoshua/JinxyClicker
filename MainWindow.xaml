@@ -1363,7 +1363,12 @@
 
                             <UniformGrid x:Name="GraphicsApiPanel" Columns="4" Margin="0,14,0,0"
                                          MaxWidth="440" HorizontalAlignment="Left">
-                                <RadioButton Content="Default" GroupName="GraphicsApi" IsChecked="True"
+                                <!-- Deliberately not IsChecked here. A default in the
+                                     markup raises Checked during parsing, and the
+                                     handler applies what it is given — which wiped
+                                     the stored API preference on every launch.
+                                     RefreshFlags selects the right one from the file. -->
+                                <RadioButton Content="Default" GroupName="GraphicsApi"
                                              Style="{StaticResource SegmentButton}"
                                              Checked="GraphicsApi_Checked" Tag=""/>
                                 <RadioButton Content="D3D11" GroupName="GraphicsApi"
@@ -1376,6 +1381,15 @@
                                              Style="{StaticResource SegmentButton}"
                                              Checked="GraphicsApi_Checked" Tag="OpenGL"/>
                             </UniformGrid>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button x:Name="DetectApiButton" Content="Pick for my PC"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="DetectApi_Click" Height="36" Padding="18,0" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="ApiAdviceText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextDim}" FontSize="11" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
 
