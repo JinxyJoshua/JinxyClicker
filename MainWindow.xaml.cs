@@ -1028,9 +1028,57 @@ public partial class MainWindow : Window
         ShakeRightValue.Text = Format(_shakeRight);
         ShakeUpValue.Text = Format(_shakeUp);
         ShakeDownValue.Text = Format(_shakeDown);
-        ShakeSpeedValue.Text = Format(_shakeSpeed) + "/s";
+        ShakeSpeedValue.Text = Format(_shakeSpeed);
 
         static string Format(double v) => ((int)Math.Round(v)).ToString(CultureInfo.CurrentCulture);
+    }
+
+    private void ShakeValue_LostFocus(object sender, RoutedEventArgs e) => CommitShakeValue(sender as TextBox);
+
+    private void ShakeValue_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            CommitShakeValue(sender as TextBox);
+            Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            // Put the committed figure back; Escape still reaches the stop.
+            WriteShakeBoxes();
+        }
+    }
+
+    /// <summary>
+    /// Applies a typed figure to the slider on the same row.
+    /// </summary>
+    /// <remarks>
+    /// Clamped to that slider's own range rather than to a shared constant, so a
+    /// box can never hold a value its slider is unable to show. The sign carries
+    /// no information — each row is a distance in one direction — and text that
+    /// will not parse leaves the committed value alone.
+    ///
+    /// Assigning Value is enough on its own: it raises ValueChanged, which
+    /// stores the field, rewrites the row and republishes the engine snapshot.
+    /// </remarks>
+    private void CommitShakeValue(TextBox? box)
+    {
+        if (box == null || ShakeSpeedValue == null) return;
+
+        Slider slider =
+            box == ShakeLeftValue ? ShakeLeftSlider
+            : box == ShakeRightValue ? ShakeRightSlider
+            : box == ShakeUpValue ? ShakeUpSlider
+            : box == ShakeDownValue ? ShakeDownSlider
+            : ShakeSpeedSlider;
+
+        if (double.TryParse(box.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double typed))
+            slider.Value = Math.Round(Math.Clamp(Math.Abs(typed), slider.Minimum, slider.Maximum));
+
+        // Unconditional: a rejected or clamped entry has to be replaced by what
+        // was actually stored, or the box would keep showing something untrue.
+        WriteShakeBoxes();
     }
 
     private void SaveShake_Click(object sender, RoutedEventArgs e)
