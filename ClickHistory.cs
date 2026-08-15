@@ -39,7 +39,7 @@ public sealed class HistoryDay
 /// </remarks>
 public sealed class ClickHistory
 {
-    private const string HISTORY_FILE = "history.json";
+    private static readonly string HISTORY_FILE = SettingsPath.For("history.json");
     private const int MaxDays = 60;
 
     public double TotalSeconds { get; set; }

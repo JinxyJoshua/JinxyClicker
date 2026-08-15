@@ -11,7 +11,7 @@ namespace JinxyClicker;
 /// </summary>
 public sealed class AppSettings
 {
-    private const string SETTINGS_FILE = "app_settings.json";
+    private static readonly string SETTINGS_FILE = SettingsPath.For("app_settings.json");
 
     public double Cps { get; set; } = 10;
     public double Cdc { get; set; } = 67;

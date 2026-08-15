@@ -69,8 +69,7 @@ already happened, without recording continuously to disk.
 
 ## Files it writes
 
-Generated on first run in the working directory, and excluded from version
-control:
+Generated on first run in `%APPDATA%\JinxyClicker`:
 
 - `app_settings.json` — sliders, toggles, theme, window placement
 - `click_presets.json` — saved presets
