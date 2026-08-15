@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 public readonly record struct UploadResult(bool Success, string Message, string? Url);
 

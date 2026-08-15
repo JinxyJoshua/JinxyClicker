@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>
 /// One monitor, in the physical pixel coordinates gdigrab crops against.

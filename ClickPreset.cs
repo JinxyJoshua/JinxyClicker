@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Windows;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>
 /// A saved CPS / CDC pair. Built-in presets ship with the app; custom ones are

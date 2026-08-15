@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>
 /// Screen capture, backed by ffmpeg's gdigrab.

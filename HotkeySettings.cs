@@ -3,7 +3,7 @@ using System.Windows.Input;
 using System.IO;
 using System.Text.Json;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>
 /// A bindable trigger, stored as a Windows virtual-key code so that keyboard

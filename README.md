@@ -3,9 +3,6 @@
 A Windows autoclicker and tuning utility, written in C# and WPF. Original work —
 it contains no third-party application's source.
 
-The project and assembly are named `MyBlinkStyleClicker`; the application
-presents itself as Jinxy Clicker.
-
 ## Requirements
 
 - Windows 10 or 11
@@ -23,11 +20,11 @@ dotnet build
 dotnet run
 ```
 
-Or open `MyBlinkStyleClicker.csproj` in Visual Studio and press F5.
+Or open `JinxyClicker.csproj` in Visual Studio and press F5.
 
 Run it with the project folder as the working directory. The settings files are
 resolved against the working directory rather than the executable, so launching
-`bin\Debug\net10.0-windows\MyBlinkStyleClicker.exe` directly reads and writes a
+`bin\Debug\net10.0-windows\JinxyClicker.exe` directly reads and writes a
 separate set of files in that folder.
 
 ## Hotkeys

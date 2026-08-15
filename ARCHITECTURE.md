@@ -1,4 +1,4 @@
-# MyBlinkStyleClicker — Architectural Overview
+# JinxyClicker — Architectural Overview
 
 **Status:** four working pages (Clicker, Presets, Tweaks, Optimizations) and three unbuilt ones (History, Theme, Settings).
 **Stack:** C# / .NET 10 (`net10.0-windows`), WPF, nullable enabled, implicit usings, no third-party packages.
@@ -17,8 +17,8 @@
 
 | File | Role | Lines |
 |---|---|---|
-| `MyBlinkStyleClicker.csproj` | SDK-style project. `WinExe`, `UseWPF=true`. No package refs. | 9 |
-| `MyBlinkStyleClicker.slnx` | XML solution format (VS 2026). | 3 |
+| `JinxyClicker.csproj` | SDK-style project. `WinExe`, `UseWPF=true`. No package refs. | 9 |
+| `JinxyClicker.slnx` | XML solution format (VS 2026). | 3 |
 | `App.xaml` / `App.xaml.cs` | Application object. Two global exception handlers that show a `MessageBox` with the stack trace. | 7 / 20 |
 | `MainWindow.xaml` | The entire UI: window-local resources, sidebar nav, and all seven pages stacked in one `Grid`. | 878 |
 | `MainWindow.xaml.cs` | Click engine, shake engine, hotkey polling, navigation, presets, tweaks and clean-up handlers, plus the Win32 P/Invoke layer. | 1367 |

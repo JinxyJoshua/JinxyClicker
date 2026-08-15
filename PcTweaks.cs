@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using Microsoft.Win32;
 
-namespace MyBlinkStyleClicker;
+namespace JinxyClicker;
 
 /// <summary>
 /// Remembers what each setting was before a tweak changed it, so Revert restores
