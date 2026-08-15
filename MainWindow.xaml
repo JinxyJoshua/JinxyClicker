@@ -356,6 +356,19 @@
             <Setter Property="Height" Value="36"/>
         </Style>
 
+        <!-- The readout beside a slider, typeable. Small enough to sit on the
+             row without crowding the track, and capped at three characters
+             because nothing it holds goes past 100. -->
+        <Style x:Key="SliderValueBox" TargetType="TextBox" BasedOn="{StaticResource ValueBox}">
+            <Setter Property="MinWidth" Value="46"/>
+            <Setter Property="MaxLength" Value="3"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
         <Style x:Key="PresetCard" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource Control}"/>
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
@@ -950,7 +963,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="52"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="46"/>
+                                                <ColumnDefinition Width="60"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="LEFT" FontSize="9" FontWeight="Bold"
                                                        VerticalAlignment="Center"
@@ -959,17 +972,16 @@
                                                     Value="8" TickFrequency="5" IsSnapToTickEnabled="False"
                                                     VerticalAlignment="Center"
                                                     ValueChanged="ShakeSlider_ValueChanged"/>
-                                            <TextBlock Grid.Column="2" x:Name="ShakeLeftValue" Text="8"
-                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource Accent}"/>
+                                            <TextBox Grid.Column="2" x:Name="ShakeLeftValue" Text="8"
+                                                     Style="{StaticResource SliderValueBox}"
+                                                     KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
                                         </Grid>
 
                                         <Grid Margin="0,4,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="52"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="46"/>
+                                                <ColumnDefinition Width="60"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="RIGHT" FontSize="9" FontWeight="Bold"
                                                        VerticalAlignment="Center"
@@ -978,17 +990,16 @@
                                                     Value="20" TickFrequency="5" IsSnapToTickEnabled="False"
                                                     VerticalAlignment="Center"
                                                     ValueChanged="ShakeSlider_ValueChanged"/>
-                                            <TextBlock Grid.Column="2" x:Name="ShakeRightValue" Text="20"
-                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource Accent}"/>
+                                            <TextBox Grid.Column="2" x:Name="ShakeRightValue" Text="20"
+                                                     Style="{StaticResource SliderValueBox}"
+                                                     KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
                                         </Grid>
 
                                         <Grid Margin="0,4,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="52"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="46"/>
+                                                <ColumnDefinition Width="60"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="UP" FontSize="9" FontWeight="Bold"
                                                        VerticalAlignment="Center"
@@ -997,17 +1008,16 @@
                                                     Value="40" TickFrequency="5" IsSnapToTickEnabled="False"
                                                     VerticalAlignment="Center"
                                                     ValueChanged="ShakeSlider_ValueChanged"/>
-                                            <TextBlock Grid.Column="2" x:Name="ShakeUpValue" Text="40"
-                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource Accent}"/>
+                                            <TextBox Grid.Column="2" x:Name="ShakeUpValue" Text="40"
+                                                     Style="{StaticResource SliderValueBox}"
+                                                     KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
                                         </Grid>
 
                                         <Grid Margin="0,4,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="52"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="46"/>
+                                                <ColumnDefinition Width="60"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="DOWN" FontSize="9" FontWeight="Bold"
                                                        VerticalAlignment="Center"
@@ -1016,10 +1026,9 @@
                                                     Value="8" TickFrequency="5" IsSnapToTickEnabled="False"
                                                     VerticalAlignment="Center"
                                                     ValueChanged="ShakeSlider_ValueChanged"/>
-                                            <TextBlock Grid.Column="2" x:Name="ShakeDownValue" Text="8"
-                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource Accent}"/>
+                                            <TextBox Grid.Column="2" x:Name="ShakeDownValue" Text="8"
+                                                     Style="{StaticResource SliderValueBox}"
+                                                     KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
                                         </Grid>
 
                                         <Separator Opacity=".15" Margin="0,10,0,4"/>
@@ -1028,7 +1037,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="52"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="46"/>
+                                                <ColumnDefinition Width="60"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="SPEED" FontSize="9" FontWeight="Bold"
                                                        VerticalAlignment="Center"
@@ -1037,10 +1046,10 @@
                                                     Value="33" TickFrequency="5" IsSnapToTickEnabled="False"
                                                     VerticalAlignment="Center"
                                                     ValueChanged="ShakeSlider_ValueChanged"/>
-                                            <TextBlock Grid.Column="2" x:Name="ShakeSpeedValue" Text="33/s"
-                                                       FontSize="12" FontWeight="Bold" TextAlignment="Right"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{StaticResource Accent}"/>
+                                            <TextBox Grid.Column="2" x:Name="ShakeSpeedValue" Text="33"
+                                                     Style="{StaticResource SliderValueBox}"
+                                                     ToolTip="Movements per second"
+                                                     KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
                                         </Grid>
 
                                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
