@@ -59,6 +59,9 @@ public sealed class AppSettings
     /// <summary>Capture framerate for both the recorder and the replay buffer.</summary>
     public int RecordFps { get; set; } = 30;
 
+    /// <summary>Keeps the Roblox process above normal priority while on.</summary>
+    public bool RobloxPriority { get; set; }
+
     /// <summary>Master switch for all four hotkeys. On by default — off is a
     /// deliberate act, not a state to wake up in and be confused by.</summary>
     public bool HotkeysEnabled { get; set; } = true;

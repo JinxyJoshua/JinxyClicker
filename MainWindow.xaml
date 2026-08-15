@@ -1335,11 +1335,70 @@
                                         Style="{StaticResource AccentButton}"
                                         Click="ApplyFlags_Click" Height="36" Width="120" Margin="0,0,10,0"/>
                                 <Button x:Name="ResetFlagsButton" Content="Reset"
-                                        Click="ResetFlags_Click" Height="36" Padding="20,0" Margin="0"/>
+                                        Click="ResetFlags_Click" Height="36" Padding="20,0" Margin="0,0,10,0"/>
+                                <Button x:Name="RestoreFlagsButton" Content="Restore backup"
+                                        Click="RestoreFlags_Click" IsEnabled="False"
+                                        ToolTip="Puts back the client settings file as it was before this app first changed it"
+                                        Height="36" Padding="16,0" Margin="0"/>
                             </StackPanel>
 
                             <TextBlock x:Name="FlagStatusText" Text="" TextWrapping="Wrap"
                                        Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="GRAPHICS API" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="GraphicsApiStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Which backend the client renders with. Allowlisted, and applied the moment you choose — no Apply needed. Which one is fastest depends on your GPU and driver, so try them: Vulkan is a large gain on some machines and a loss on others."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <UniformGrid x:Name="GraphicsApiPanel" Columns="4" Margin="0,14,0,0"
+                                         MaxWidth="440" HorizontalAlignment="Left">
+                                <RadioButton Content="Default" GroupName="GraphicsApi" IsChecked="True"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag=""/>
+                                <RadioButton Content="D3D11" GroupName="GraphicsApi"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag="D3D11"/>
+                                <RadioButton Content="Vulkan" GroupName="GraphicsApi"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag="Vulkan"/>
+                                <RadioButton Content="OpenGL" GroupName="GraphicsApi" Margin="0"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag="OpenGL"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="RobloxPriority" DockPanel.Dock="Right" Margin="0"
+                                          VerticalAlignment="Center"
+                                          Checked="RobloxPriority_Changed" Unchecked="RobloxPriority_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Raises the Roblox process above normal priority so Windows schedules it ahead of background work. Not a flag and nothing is injected — the same setting Task Manager offers. Reapplied every second, so it survives Roblox restarting."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="Worth having while clicking: the click engine runs above normal priority itself, and with Ultra Accuracy it spin-waits, so it competes with the game for a core."
+                                       Foreground="{StaticResource TextDim}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <TextBlock x:Name="RobloxPriorityStateText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
 
