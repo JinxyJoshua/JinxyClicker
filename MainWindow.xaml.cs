@@ -26,6 +26,9 @@ public partial class MainWindow : Window
     private volatile bool _running;
     private bool _holdMode;
     private double _shakeLeft = 8, _shakeRight = 20, _shakeUp = 40, _shakeDown = 8;
+
+    /// <summary>Movements per second. Drives the interval the shake loop sleeps.</summary>
+    private double _shakeSpeed = 33;
     private ShakeRange? _savedShake;
     private readonly CancellationTokenSource _shakeCts = new();
     private volatile bool _shakeActive;
@@ -744,13 +747,13 @@ public partial class MainWindow : Window
     /// affinity, so the engines read this instead of touching them.
     /// </summary>
     private sealed record ClickSettings(
-        double Cps, double Duty, bool Shaky, ShakeRange Shake,
+        double Cps, double Duty, bool Shaky, ShakeRange Shake, double ShakeSpeed,
         bool UltraAccuracy, bool HoldMode,
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
         int ComboHotkeyVk, bool HotkeysArmed);
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), false, false, VK_F6, 0, 0, 0, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, false, VK_F6, 0, 0, 0, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -761,6 +764,7 @@ public partial class MainWindow : Window
         _shakeRight = Math.Clamp(s.ShakeRight, 0, MaxShakePixels);
         _shakeUp = Math.Clamp(s.ShakeUp, 0, MaxShakePixels);
         _shakeDown = Math.Clamp(s.ShakeDown, 0, MaxShakePixels);
+        _shakeSpeed = Math.Clamp(s.ShakeSpeed, MinShakeSpeed, MaxShakeSpeed);
         WriteShakeBoxes();
 
         _savedShake = s.HasSavedShake
@@ -884,6 +888,7 @@ public partial class MainWindow : Window
             ShakeRight = _shakeRight,
             ShakeUp = _shakeUp,
             ShakeDown = _shakeDown,
+            ShakeSpeed = _shakeSpeed,
             HasSavedShake = _savedShake != null,
             SavedShakeLeft = _savedShake?.Left ?? 0,
             SavedShakeRight = _savedShake?.Right ?? 0,
@@ -936,6 +941,7 @@ public partial class MainWindow : Window
             Math.Clamp(CdcSlider.Value / 100.0, 0.0, 1.0),
             ShakyTracking?.IsChecked == true,
             new ShakeRange(_shakeLeft, _shakeRight, _shakeUp, _shakeDown),
+            Math.Clamp(_shakeSpeed, MinShakeSpeed, MaxShakeSpeed),
             spin,
             _holdMode,
             _hotkeySettings.Hotkey.VirtualKey,
@@ -960,31 +966,33 @@ public partial class MainWindow : Window
         RefreshAppliedPreset();
     }
 
-    private void ShakeBox_LostFocus(object sender, RoutedEventArgs e) => CommitShakeBox(sender as TextBox);
+    /// <summary>
+    /// Guards the sliders against the code that writes them.
+    /// </summary>
+    /// <remarks>
+    /// Setting Slider.Value raises ValueChanged, which would write straight back
+    /// into the field the write came from. Harmless for the value itself, but it
+    /// would republish the engine snapshot and re-evaluate the applied preset on
+    /// every step of a restore.
+    /// </remarks>
+    private bool _writingShakeUi;
 
-    private void ShakeBox_KeyDown(object sender, KeyEventArgs e)
+    private void ShakeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (e.Key == Key.Enter)
-        {
-            CommitShakeBox(sender as TextBox);
-            Focus();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
-        {
-            // Put the committed value back; Escape still reaches the emergency stop.
-            WriteShakeBoxes();
-        }
-    }
+        // Fires during parsing, as each slider's Value attribute is applied.
+        // The test is the LAST of the group to be built, not the first: guarding
+        // on an earlier one lets the speed slider through while the readouts
+        // after it are still null, which is a crash inside WriteShakeBoxes.
+        if (_writingShakeUi || ShakeSpeedValue == null) return;
 
-    private void CommitShakeBox(TextBox? box)
-    {
-        if (box == null) return;
+        double value = Math.Round(e.NewValue);
 
-        if (box == ShakeLeftBox) _shakeLeft = ParsePixels(box.Text, _shakeLeft);
-        else if (box == ShakeRightBox) _shakeRight = ParsePixels(box.Text, _shakeRight);
-        else if (box == ShakeUpBox) _shakeUp = ParsePixels(box.Text, _shakeUp);
-        else if (box == ShakeDownBox) _shakeDown = ParsePixels(box.Text, _shakeDown);
+        if (sender == ShakeLeftSlider) _shakeLeft = value;
+        else if (sender == ShakeRightSlider) _shakeRight = value;
+        else if (sender == ShakeUpSlider) _shakeUp = value;
+        else if (sender == ShakeDownSlider) _shakeDown = value;
+        else if (sender == ShakeSpeedSlider) _shakeSpeed = value;
+        else return;
 
         WriteShakeBoxes();
         UpdateShakeLabel();
@@ -992,29 +1000,35 @@ public partial class MainWindow : Window
         RefreshAppliedPreset();
     }
 
-    /// <summary>
-    /// Each box is a distance in its own direction, so the sign carries no
-    /// information — "-8" and "8" both mean eight pixels that way. Unparseable
-    /// or out-of-range text falls back to the committed value.
-    /// </summary>
+    /// <summary>Pushes the stored values back onto the sliders and readouts.</summary>
     /// <remarks>
-    /// Rounded on the way in, so the stored value, the text in the box, and the
-    /// figure in the status line cannot disagree — "8.7" previously stored 8.7,
-    /// displayed 9, and read 8 in the label.
+    /// Guarded on the last control of the group, so a half-built tree during
+    /// XAML parsing cannot reach the ones that do not exist yet.
     /// </remarks>
-    private static double ParsePixels(string text, double current) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out double parsed)
-            ? Math.Round(Math.Clamp(Math.Abs(parsed), 0.0, MaxShakePixels))
-            : current;
-
     private void WriteShakeBoxes()
     {
-        if (ShakeLeftBox == null) return;
+        if (ShakeSpeedValue == null) return;
 
-        ShakeLeftBox.Text = Format(_shakeLeft);
-        ShakeRightBox.Text = Format(_shakeRight);
-        ShakeUpBox.Text = Format(_shakeUp);
-        ShakeDownBox.Text = Format(_shakeDown);
+        _writingShakeUi = true;
+
+        try
+        {
+            ShakeLeftSlider.Value = _shakeLeft;
+            ShakeRightSlider.Value = _shakeRight;
+            ShakeUpSlider.Value = _shakeUp;
+            ShakeDownSlider.Value = _shakeDown;
+            ShakeSpeedSlider.Value = _shakeSpeed;
+        }
+        finally
+        {
+            _writingShakeUi = false;
+        }
+
+        ShakeLeftValue.Text = Format(_shakeLeft);
+        ShakeRightValue.Text = Format(_shakeRight);
+        ShakeUpValue.Text = Format(_shakeUp);
+        ShakeDownValue.Text = Format(_shakeDown);
+        ShakeSpeedValue.Text = Format(_shakeSpeed) + "/s";
 
         static string Format(double v) => ((int)Math.Round(v)).ToString(CultureInfo.CurrentCulture);
     }
@@ -1079,7 +1093,7 @@ public partial class MainWindow : Window
         // makes this diagnosable without attaching a debugger.
         ShakeStatusText.Text = _shakeGate switch
         {
-            ShakeGate.Ready => $"Active — moving every {ShakeMinIntervalMs}-{ShakeMaxIntervalMs} ms",
+            ShakeGate.Ready => $"Active — moving about {_shakeSpeed:0} times a second",
             ShakeGate.ClickerOff => "Waiting — the clicker is not running",
             ShakeGate.MouseFree => "Waiting — Roblox is in front but not in first person",
             _ => "Waiting — Roblox is not the front window"
@@ -1431,7 +1445,13 @@ public partial class MainWindow : Window
                     offsetY = targetY;
                 }
 
-                Thread.Sleep(Random.Shared.Next(ShakeMinIntervalMs, ShakeMaxIntervalMs + 1));
+                // Jittered around the chosen rate rather than sleeping it exactly.
+                // A perfectly fixed interval is both unlike a hand and a clean
+                // signature; a quarter either side keeps the average honest.
+                int interval = (int)Math.Round(1000.0 / Math.Clamp(s.ShakeSpeed, MinShakeSpeed, MaxShakeSpeed));
+                int spread = Math.Max(1, interval / 4);
+
+                Thread.Sleep(Random.Shared.Next(Math.Max(1, interval - spread), interval + spread + 1));
             }
         }
         catch
@@ -3051,10 +3071,10 @@ public partial class MainWindow : Window
     private const string PingHost = "www.roblox.com";
     private const int HighPingMs = 60;
 
-    private const int ShakeMinIntervalMs = 20;
-    private const int ShakeMaxIntervalMs = 40;
+    private const double MinShakeSpeed = 5.0;
+    private const double MaxShakeSpeed = 50.0;
 
-    private const double MaxShakePixels = 200.0;
+    private const double MaxShakePixels = 100.0;
     private const int CoarseSleepSliceMs = 20;
 
     private const int VK_F6 = 0x75;
