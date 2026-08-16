@@ -70,8 +70,10 @@ public sealed class ClickPreset : INotifyPropertyChanged
         }
     }
 
-    public string CpsText => Cps.ToString("0.0", CultureInfo.CurrentCulture);
-    public string CdcText => Cdc.ToString("0.0", CultureInfo.CurrentCulture);
+    // Matches the two decimals the Clicker page shows, so a preset saved from
+    // the sliders reads back identically rather than looking rounded.
+    public string CpsText => Cps.ToString("0.00", CultureInfo.CurrentCulture);
+    public string CdcText => Cdc.ToString("0.00", CultureInfo.CurrentCulture);
 
     /// <summary>Bar length, so a preset's speed is legible before reading the number.</summary>
     public double BarWidth => Math.Clamp(Cps / BarScaleCps, 0.015, 1.0) * BarTrackWidth;
@@ -124,11 +126,17 @@ public static class PresetStore
     /// <summary>The list a fresh install starts from, and what Restore Defaults adds back.</summary>
     public static List<ClickPreset> Defaults() => new()
     {
-        new ClickPreset("Low", 8, 50),
-        new ClickPreset("Normal", 10, 67),
-        new ClickPreset("High", 16, 75),
-        new ClickPreset("Fast", 20, 80),
-        new ClickPreset("Max", 100, 100)
+        new ClickPreset("Ish", 193.62, 73.52),
+        new ClickPreset("Snoopy", 75.65, 91.21),
+        new ClickPreset("stunned", 72.92, 17.16),
+        new ClickPreset("Sky", 52.62, 82.62),
+        new ClickPreset("ara", 82.72, 27.28),
+        new ClickPreset("Spooky", 29.28, 83.62),
+        new ClickPreset("Milo", 53.87, 28.53),
+        new ClickPreset("Lee", 29.62, 92.72),
+        new ClickPreset("sharkiffy", 72.53, 55.73),
+        new ClickPreset("AraStar", 65.33, 42.55),
+        new ClickPreset("YoNoobLike", 85.86, 64.25)
     };
 
     /// <summary>
