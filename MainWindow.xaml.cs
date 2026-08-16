@@ -48,8 +48,15 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Replay, Record, Combo }
+    private enum RebindTarget { None, Click, Replay, Record, Combo, Build }
     private RebindTarget _rebinding = RebindTarget.None;
+
+    /// <summary>
+    /// True while the building hotkey is driving the clicker, which substitutes
+    /// its own fixed rate for both sliders. Cleared by any stop, so the ordinary
+    /// keys never inherit it.
+    /// </summary>
+    private bool _buildMode;
 
     private const int HotkeyPollMs = 8;
 
@@ -302,6 +309,7 @@ public partial class MainWindow : Window
         bool replayWasDown = false;
         bool recordWasDown = false;
         bool comboWasDown = false;
+        bool buildWasDown = false;
         bool wasInCorner = false;
         bool wasArmed = false;
 
@@ -325,6 +333,7 @@ public partial class MainWindow : Window
             bool recordDown = IsKeyDown(s.RecordHotkeyVk);
             bool replayDown = IsKeyDown(s.ReplayHotkeyVk);
             bool comboDown = IsKeyDown(s.ComboHotkeyVk);
+            bool buildDown = IsKeyDown(s.BuildHotkeyVk);
 
             // The first armed pass adopts whatever is held without acting on it.
             //
@@ -346,6 +355,9 @@ public partial class MainWindow : Window
                 if (comboDown != comboWasDown)
                     Dispatcher.InvokeAsync(() => OnComboHotkey(comboDown), DispatcherPriority.Send);
 
+                if (buildDown != buildWasDown)
+                    Dispatcher.InvokeAsync(() => OnBuildHotkey(buildDown), DispatcherPriority.Send);
+
                 if (recordDown && !recordWasDown)
                     Dispatcher.InvokeAsync(OnRecordHotkey, DispatcherPriority.Send);
 
@@ -360,6 +372,7 @@ public partial class MainWindow : Window
             recordWasDown = recordDown;
             replayWasDown = replayDown;
             comboWasDown = comboDown;
+            buildWasDown = buildDown;
             wasArmed = s.HotkeysArmed;
 
             Thread.Sleep(HotkeyPollMs);
@@ -450,6 +463,7 @@ public partial class MainWindow : Window
         UploadClipButton.IsEnabled = file.Length > 0 && file.Length <= ClipUploader.MaxBytes;
 
         ShowReplayStatus($"Saved the last {ReplaySeconds}s — ready to upload.", isError: false);
+        NotifySaved();
     }
 
     // A second click on an armed button cancels rather than re-arming.
@@ -542,11 +556,68 @@ public partial class MainWindow : Window
         if (ShakyTracking != null) ShakyTracking.IsChecked = on;
     }
 
+    private void BuildHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Build) CancelRebind();
+        else BeginRebind(RebindTarget.Build);
+    }
+
+    /// <summary>
+    /// Clicks at the fixed building rate for as long as it is on.
+    /// </summary>
+    /// <remarks>
+    /// Symmetric with the other start keys, and it clears its own mode on the
+    /// way out. Leaving build mode set after stopping would make the ordinary
+    /// click key silently run at 35/s the next time it was pressed.
+    /// </remarks>
+    private void OnBuildHotkey(bool pressed)
+    {
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
+        if (pressed)
+        {
+            if (_holdMode)
+            {
+                if (!_running) SetBuildMode(true);
+                if (!_running) StartClicking();
+                return;
+            }
+
+            if (_running)
+            {
+                StopClicking();
+            }
+            else
+            {
+                SetBuildMode(true);
+                StartClicking();
+            }
+
+            return;
+        }
+
+        if (_holdMode && _running) StopClicking();
+    }
+
+    /// <summary>
+    /// Turns the fixed building rate on or off and republishes the snapshot the
+    /// click thread reads, since the rate lives there rather than on a slider.
+    /// </summary>
+    private void SetBuildMode(bool on)
+    {
+        if (_buildMode == on) return;
+
+        _buildMode = on;
+        UpdateEngineSettings();
+        RefreshStatus();
+    }
+
     private Button RebindButtonFor(RebindTarget target) => target switch
     {
         RebindTarget.Replay => ReplayHotkeyButton,
         RebindTarget.Record => RecordHotkeyButton,
         RebindTarget.Combo => ComboHotkeyButton,
+        RebindTarget.Build => BuildHotkeyButton,
         _ => HotkeyButton
     };
 
@@ -573,6 +644,7 @@ public partial class MainWindow : Window
                 case RebindTarget.Click: _hotkeySettings.Hotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Record: _hotkeySettings.RecordHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Combo: _hotkeySettings.ComboHotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.Build: _hotkeySettings.BuildHotkey = HotkeyBinding.Unbound; break;
                 default: _hotkeySettings.ReplayHotkey = HotkeyBinding.Unbound; break;
             }
         }
@@ -587,7 +659,8 @@ public partial class MainWindow : Window
         (RebindTarget.Click, _hotkeySettings.Hotkey),
         (RebindTarget.Replay, _hotkeySettings.ReplayHotkey),
         (RebindTarget.Record, _hotkeySettings.RecordHotkey),
-        (RebindTarget.Combo, _hotkeySettings.ComboHotkey)
+        (RebindTarget.Combo, _hotkeySettings.ComboHotkey),
+        (RebindTarget.Build, _hotkeySettings.BuildHotkey)
     };
 
     /// <summary>How long a refused rebind sits on the button before reverting.</summary>
@@ -698,6 +771,7 @@ public partial class MainWindow : Window
             case RebindTarget.Click: _hotkeySettings.Hotkey = binding; break;
             case RebindTarget.Record: _hotkeySettings.RecordHotkey = binding; break;
             case RebindTarget.Combo: _hotkeySettings.ComboHotkey = binding; break;
+            case RebindTarget.Build: _hotkeySettings.BuildHotkey = binding; break;
             default: _hotkeySettings.ReplayHotkey = binding; break;
         }
 
@@ -757,10 +831,35 @@ public partial class MainWindow : Window
         double Cps, double Duty, bool Shaky, ShakeRange Shake, double ShakeSpeed,
         bool UltraAccuracy, bool HitFix, bool HoldMode,
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
-        int ComboHotkeyVk, bool HotkeysArmed);
+        int ComboHotkeyVk, int BuildHotkeyVk, bool HotkeysArmed, bool BuildMode)
+    {
+        /// <summary>
+        /// The timing actually sent, which is the fixed building rate whenever
+        /// build mode is on and the sliders otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Building deliberately ignores HitFix as well as the sliders. HitFix
+        /// floors the press at 15ms, which against a 28.6ms cycle would drag the
+        /// duty cycle from 1% to over 50% and turn a tap into a held button —
+        /// the opposite of what placing blocks needs.
+        /// </remarks>
+        public ClickTiming Timing => BuildMode
+            ? ClickTimings.Resolve(BuildCps, BuildDuty, hitFix: false)
+            : ClickTimings.Resolve(Cps, Duty, HitFix);
+    }
+
+    /// <summary>
+    /// Fixed rate for the building hotkey. Not adjustable by design: it is a
+    /// separate action with one job, and a slider that silently applied to it
+    /// would make the key mean something different from one session to the next.
+    /// </summary>
+    private const double BuildCps = 35.0;
+
+    /// <summary>1% duty — a 0.29ms tap inside a 28.6ms cycle.</summary>
+    private const double BuildDuty = 0.01;
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, false, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -958,10 +1057,12 @@ public partial class MainWindow : Window
             _hotkeySettings.ReplayHotkey.VirtualKey,
             _hotkeySettings.RecordHotkey.VirtualKey,
             _hotkeySettings.ComboHotkey.VirtualKey,
+            _hotkeySettings.BuildHotkey.VirtualKey,
             // Armed only when nothing is being rebound and the master switch is
             // on. Null-conditional because this runs once from the constructor,
             // before every control is necessarily built.
-            _rebinding == RebindTarget.None && HotkeysEnabledToggle?.IsChecked != false);
+            _rebinding == RebindTarget.None && HotkeysEnabledToggle?.IsChecked != false,
+            _buildMode);
 
         UpdateHitFixClamp();
     }
@@ -1257,6 +1358,13 @@ public partial class MainWindow : Window
         _clickCts?.Cancel();
         _clickCts?.Dispose();
         _clickCts = null;
+
+        // Cleared on every stop, whichever key caused it. Otherwise stopping a
+        // building run with the ordinary key would leave the fixed rate armed,
+        // and the next ordinary start would silently run at 35/s.
+        _buildMode = false;
+        UpdateEngineSettings();
+
         RefreshStatus();
     }
 
@@ -1323,8 +1431,9 @@ public partial class MainWindow : Window
                 if (activeSince == 0) activeSince = Stopwatch.GetTimestamp();
 
                 // Shared with the readout on the clicker page, so what is shown
-                // and what is sent cannot drift apart.
-                ClickTiming timing = ClickTimings.Resolve(s.Cps, s.Duty, s.HitFix);
+                // and what is sent cannot drift apart. Build mode substitutes
+                // its own fixed rate inside this.
+                ClickTiming timing = s.Timing;
                 double period = timing.PeriodMs;
                 double downMs = timing.DownMs;
 
@@ -1699,6 +1808,7 @@ public partial class MainWindow : Window
         ReplayHotkeyButton.Content = _hotkeySettings.ReplayHotkey.Name;
         RecordHotkeyButton.Content = _hotkeySettings.RecordHotkey.Name;
         ComboHotkeyButton.Content = _hotkeySettings.ComboHotkey.Name;
+        BuildHotkeyButton.Content = _hotkeySettings.BuildHotkey.Name;
 
         // The bindings live on three different pages, so Settings is the only
         // place they can all be read at once.
@@ -1708,7 +1818,8 @@ public partial class MainWindow : Window
                 $"{_hotkeySettings.Hotkey.Name} — click",
                 $"{_hotkeySettings.ReplayHotkey.Name} — replay",
                 $"{_hotkeySettings.RecordHotkey.Name} — record",
-                $"{_hotkeySettings.ComboHotkey.Name} — click + shake");
+                $"{_hotkeySettings.ComboHotkey.Name} — click + shake",
+                $"{_hotkeySettings.BuildHotkey.Name} — building");
         }
 
         RefreshStatus();
@@ -2837,6 +2948,7 @@ public partial class MainWindow : Window
             UploadClipButton.IsEnabled = file.Length > 0 && file.Length <= ClipUploader.MaxBytes;
 
             ShowRecordStatus($"Saved to {path}", isError: false);
+            NotifySaved();
             return;
         }
 
@@ -2846,12 +2958,30 @@ public partial class MainWindow : Window
 
             RecordButton.Content = "Stop recording";
             ShowRecordStatus("Recording the whole screen — everything visible is captured.", isError: false);
+            NotifyRecording();
         }
         catch (Exception ex)
         {
             ShowRecordStatus(ex.Message, isError: true);
         }
     }
+
+    /// <summary>
+    /// The on-screen notice, built on first use.
+    /// </summary>
+    /// <remarks>
+    /// Lazy because most sessions never record, and a window that is never shown
+    /// still costs a handle and a render target.
+    /// </remarks>
+    private CaptureToast? _toast;
+
+    private CaptureToast Toast => _toast ??= new CaptureToast { Owner = this };
+
+    private void NotifyRecording() =>
+        Toast.Notify("● Recording", Color.FromRgb(0xFF, 0x4B, 0x52), _captureDisplay);
+
+    private void NotifySaved() =>
+        Toast.Notify("✓ Saved", Color.FromRgb(0x5B, 0xE5, 0x8B), _captureDisplay);
 
     private void OpenClipFolder_Click(object sender, RoutedEventArgs e)
     {

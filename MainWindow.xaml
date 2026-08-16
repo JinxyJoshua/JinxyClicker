@@ -850,6 +850,23 @@
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
                                 </DockPanel>
+
+                                <Separator Opacity=".15" Margin="0,12,0,10"/>
+
+                                <DockPanel LastChildFill="False">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="BUILDING" Style="{StaticResource CardLabel}"/>
+                                        <TextBlock Text="Fixed 35 CPS at 1% — ignores the sliders"
+                                                   Style="{StaticResource CardHint}"/>
+                                    </StackPanel>
+                                    <Button x:Name="BuildHotkeyButton" Content="Not set"
+                                            Click="BuildHotkey_Click"
+                                            DockPanel.Dock="Right" VerticalAlignment="Center"
+                                            ToolTip="Click, then press a key or mouse side button"
+                                            FontSize="17" FontWeight="Bold"
+                                            Height="42" MinWidth="96"
+                                            Padding="16,0" Margin="0"/>
+                                </DockPanel>
                             </StackPanel>
                         </Border>
 

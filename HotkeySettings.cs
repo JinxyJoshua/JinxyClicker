@@ -50,6 +50,10 @@ public class HotkeySettings
     /// by default, for the same reason as the record key.</summary>
     public HotkeyBinding ComboHotkey { get; set; } = HotkeyBinding.Unbound;
 
+    /// <summary>Clicks at a fixed building rate, ignoring both sliders. Unbound
+    /// by default, like every action added after the first release.</summary>
+    public HotkeyBinding BuildHotkey { get; set; } = HotkeyBinding.Unbound;
+
     public void Save()
     {
         try
@@ -66,7 +70,9 @@ public class HotkeySettings
                 RecordVk = RecordHotkey.VirtualKey,
                 RecordName = RecordHotkey.Name,
                 ComboVk = ComboHotkey.VirtualKey,
-                ComboName = ComboHotkey.Name
+                ComboName = ComboHotkey.Name,
+                BuildVk = BuildHotkey.VirtualKey,
+                BuildName = BuildHotkey.Name
             });
 
             File.WriteAllText(SETTINGS_FILE, json);
@@ -87,6 +93,7 @@ public class HotkeySettings
             ReplayHotkey = ReadBinding(data, "ReplayVk", "ReplayName", "ReplayHotkeyKey", ReplayHotkey);
             RecordHotkey = ReadBinding(data, "RecordVk", "RecordName", "RecordHotkeyKey", RecordHotkey);
             ComboHotkey = ReadBinding(data, "ComboVk", "ComboName", "ComboHotkeyKey", ComboHotkey);
+            BuildHotkey = ReadBinding(data, "BuildVk", "BuildName", "BuildHotkeyKey", BuildHotkey);
         }
         catch { }
     }
