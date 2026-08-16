@@ -168,8 +168,11 @@ public partial class MainWindow : Window
         UpdateEngineSettings();
     }
 
+    // Two decimals: at the top of a 0-1000 range one tenth of a click per second
+    // is far below what the slider can resolve by dragging, so the typed box is
+    // the only way to reach a precise rate and it needs the room to show one.
     private static string FormatValue(double value) =>
-        value.ToString("0.0", CultureInfo.CurrentCulture);
+        value.ToString("0.00", CultureInfo.CurrentCulture);
 
     // ---- hiding the rates ----
 

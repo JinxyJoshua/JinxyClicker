@@ -52,6 +52,11 @@ click_presets.json
 tweak_state.json
 history.json
 
+# Copies of the above set aside by hand. SettingsPath migrates any settings file
+# left in the working directory into %APPDATA% whenever the target is missing,
+# so a stale one here silently resurrects old values during development.
+*.legacy-bak
+
 # OS cruft
 Thumbs.db
 ehthumbs.db
