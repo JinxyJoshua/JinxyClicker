@@ -180,6 +180,37 @@ public class ClickTimingTests
         Assert.Equal(expectedDownMs, t.DownMs, Epsilon);
     }
 
+    /// <summary>
+    /// The building hotkey's fixed rate: 35 clicks a second at 1% duty, which is
+    /// a 0.29ms tap inside a 28.6ms cycle.
+    /// </summary>
+    [Fact]
+    public void TheBuildingRate_IsAShortTapInALongCycle()
+    {
+        ClickTiming t = ClickTimings.Resolve(cps: 35, duty: 0.01, hitFix: false);
+
+        Assert.Equal(28.571, t.PeriodMs, 0.01);
+        Assert.Equal(0.286, t.DownMs, 0.01);
+        Assert.Equal(35.0, t.Cps, 0.01);
+    }
+
+    /// <summary>
+    /// Why building bypasses HitFix rather than just turning the sliders down.
+    /// The floors would drag a 1% duty cycle past 50% and a 35/s rate down to
+    /// 33/s — turning the tap into a held button, which is the opposite of what
+    /// placing blocks needs.
+    /// </summary>
+    [Fact]
+    public void HitFixWouldDestroyTheBuildingRate()
+    {
+        ClickTiming clamped = ClickTimings.Resolve(cps: 35, duty: 0.01, hitFix: true);
+
+        Assert.Equal(15.0, clamped.DownMs, Epsilon);
+        Assert.Equal(30.0, clamped.PeriodMs, Epsilon);
+        Assert.Equal(50.0, clamped.DutyPercent, Epsilon);
+        Assert.True(ClickTimings.IsClamped(cps: 35, duty: 0.01, hitFix: true));
+    }
+
     [Fact]
     public void IsClamped_IsTrueWhenHitFixRewritesTheSliders()
     {
