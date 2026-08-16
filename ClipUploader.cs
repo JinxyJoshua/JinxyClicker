@@ -29,7 +29,28 @@ public static class ClipUploader
     /// <summary>Catbox's documented ceiling. Checked locally to fail fast rather than after a long upload.</summary>
     public const long MaxBytes = 200L * 1024 * 1024;
 
-    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromMinutes(10) };
+    private static readonly HttpClient Client = CreateClient();
+
+    /// <summary>
+    /// The upload client, which must identify itself.
+    /// </summary>
+    /// <remarks>
+    /// HttpClient sends no User-Agent unless one is set, and Catbox answers an
+    /// unidentified POST with an empty 200 rather than an error. That is why
+    /// every upload reported "The host rejected it:" with nothing after the
+    /// colon — there was no message to show. Verified directly: the same file,
+    /// same endpoint, same form, succeeds with a User-Agent and returns an
+    /// empty body without one.
+    /// </remarks>
+    private static HttpClient CreateClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "JinxyClicker/1.0 (+https://github.com/JinxyJoshua/JinxyClicker)");
+
+        return client;
+    }
 
     public static async Task<UploadResult> UploadAsync(string path, CancellationToken token)
     {
@@ -66,6 +87,16 @@ public static class ClipUploader
 
             if (!response.IsSuccessStatusCode)
                 return new UploadResult(false, $"Upload failed ({(int)response.StatusCode}). {Truncate(body)}", null);
+
+            // An empty 200 is its own failure mode, and reporting it as a
+            // rejection printed a message with nothing after the colon — which
+            // said nothing about what to do next.
+            if (body.Length == 0)
+            {
+                return new UploadResult(false,
+                    "The host accepted the request but returned nothing. It may be busy or blocking uploads right now — try again shortly.",
+                    null);
+            }
 
             // Success is the bare URL in the body; errors come back as prose
             // with a 200, so the shape of the response is what has to be checked.
