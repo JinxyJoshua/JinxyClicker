@@ -90,10 +90,11 @@ public sealed class ScreenRecorder : IDisposable
             $"clip-{DateTime.Now:yyyy-MM-dd-HHmmss}.mp4");
 
         // yuv420p because anything else refuses to play in browsers and most
-        // chat clients, which is where these clips are going.
+        // chat clients, which is where these clips are going. Both halves are
+        // chosen per machine — see CaptureBackend for what that saves.
         string arguments =
-            $"-y -f gdigrab -framerate {framesPerSecond} {CropFor(display)}-i desktop " +
-            $"-c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p " +
+            $"-y {CaptureBackend.InputArgs(display, framesPerSecond)} " +
+            $"{CaptureBackend.EncoderArgs(ffmpeg)} " +
             $"-movflags +faststart \"{path}\"";
 
         var info = new ProcessStartInfo(ffmpeg, arguments)

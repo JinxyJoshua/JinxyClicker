@@ -25,6 +25,18 @@ public sealed record DisplayInfo(
 
     public int EvenHeight => Height & ~1;
 
+    /// <summary>
+    /// Zero-based index for Desktop Duplication's output_idx.
+    /// </summary>
+    /// <remarks>
+    /// DXGI enumerates outputs in its own order, which is not promised to match
+    /// EnumDisplayMonitors. In practice they agree on a normal setup, and being
+    /// wrong shows up immediately as the other monitor in the clip rather than
+    /// as a silent failure — so this stays a simple offset rather than a
+    /// separate DXGI enumeration for a case that may never arise.
+    /// </remarks>
+    public int OutputIndex => Number - 1;
+
     public string Label => IsPrimary
         ? $"Display {Number} · {Width}×{Height} · primary"
         : $"Display {Number} · {Width}×{Height}";

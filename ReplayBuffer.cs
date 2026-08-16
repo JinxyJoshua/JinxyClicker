@@ -59,9 +59,11 @@ public sealed class ReplayBuffer : IDisposable
 
         // -g forces a keyframe every segment, so each one decodes on its own and
         // the pieces can be joined without re-encoding.
+        // The buffer runs for the whole session, so its cost matters more than
+        // the recorder's — this is the one that would sit on two cores all game.
         string arguments =
-            $"-y -f gdigrab -framerate {framesPerSecond} {ScreenRecorder.CropFor(display)}-i desktop " +
-            $"-c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -g {framesPerSecond} " +
+            $"-y {CaptureBackend.InputArgs(display, framesPerSecond)} " +
+            $"{CaptureBackend.EncoderArgs(ffmpeg)} -g {framesPerSecond} " +
             $"-f segment -segment_time {SegmentSeconds} -segment_format mpegts " +
             $"-segment_wrap {CapacitySeconds / SegmentSeconds + 1} -reset_timestamps 1 \"{pattern}\"";
 
