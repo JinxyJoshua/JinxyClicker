@@ -9,4 +9,16 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      Tests sit next to the code they cover. They are compiled by
+      Testing/JinxyClicker.Tests.csproj, which links them in by source, so the
+      app must not pick them up — it has no test framework referenced.
+    -->
+    <Compile Remove="**/*.Tests.cs" />
+    <!-- A nested project's obj/ would otherwise be globbed into this one. -->
+    <Compile Remove="Testing/**" />
+    <None Remove="Testing/**" />
+  </ItemGroup>
+
 </Project>

@@ -871,6 +871,10 @@
                                 <!-- Clicks actually delivered, not clicks requested. -->
                                 <TextBlock x:Name="MeasuredCpsText" Text="Measured — /s"
                                            Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
+                                <!-- Only shown while HitFix is overriding the sliders. -->
+                                <TextBlock x:Name="HitFixClampText" Visibility="Collapsed"
+                                           Foreground="{StaticResource Accent}"
+                                           FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Border>
 

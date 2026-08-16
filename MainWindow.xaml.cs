@@ -210,6 +210,9 @@ public partial class MainWindow : Window
 
         CpsValueBox.Text = _valuesHidden ? MaskedValue : FormatValue(CpsSlider.Value);
         CdcValueBox.Text = _valuesHidden ? MaskedValue : FormatValue(CdcSlider.Value);
+
+        // Carries the rate in its text, so it hides with everything else.
+        UpdateHitFixClamp();
     }
 
     // Committing writes through the slider, which coerces to its own range. The
@@ -956,6 +959,37 @@ public partial class MainWindow : Window
             // on. Null-conditional because this runs once from the constructor,
             // before every control is necessarily built.
             _rebinding == RebindTarget.None && HotkeysEnabledToggle?.IsChecked != false);
+
+        UpdateHitFixClamp();
+    }
+
+    /// <summary>
+    /// Says so on the clicker page when HitFix is overriding the sliders.
+    /// </summary>
+    /// <remarks>
+    /// Without this the two controls silently go flat: at 102 CPS on a 99% duty
+    /// cycle the floors rewrite it to 20 /s at 50%, and every higher setting
+    /// produces byte-identical output. The Measured readout showed the truth,
+    /// but nothing connected it to the sliders being ignored.
+    /// </remarks>
+    private void UpdateHitFixClamp()
+    {
+        if (HitFixClampText == null) return;
+
+        ClickSettings s = _settings;
+
+        if (_valuesHidden || !ClickTimings.IsClamped(s.Cps, s.Duty, s.HitFix))
+        {
+            HitFixClampText.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        ClickTiming timing = ClickTimings.Resolve(s.Cps, s.Duty, s.HitFix);
+
+        HitFixClampText.Text =
+            $"HitFix is sending {timing.Cps:0.0} /s at {timing.DutyPercent:0} %, "
+            + "not what the sliders say. Lower them until this matches.";
+        HitFixClampText.Visibility = Visibility.Visible;
     }
 
     private void EngineSetting_Changed(object sender, RoutedEventArgs e)
@@ -1237,6 +1271,15 @@ public partial class MainWindow : Window
         // held down across the whole desktop.
         bool buttonDown = false;
 
+        // Windows 11 throttles timer resolution for processes that are not in
+        // the foreground, which silently undoes the TimeBeginPeriod below at
+        // exactly the moment it matters — the clicker is in the background
+        // whenever the game is being played. Measured against a competing
+        // clicker: matching median timing (31.13ms vs 31.15ms period) but a
+        // period standard deviation of 37.95ms against its 2.21ms, with single
+        // gaps stretching to 617ms. Opting out is what closes that gap.
+        KeepTimerResolutionInBackground();
+
         // Takes the system timer from ~15.6 ms to ~1 ms for this process. Without
         // it the loop cannot exceed ~32 clicks per second whatever the slider says.
         bool raisedTimer = TimeBeginPeriod(TimerResolutionMs) == 0;
@@ -1276,35 +1319,26 @@ public partial class MainWindow : Window
 
                 if (activeSince == 0) activeSince = Stopwatch.GetTimestamp();
 
-                // If the loop has fallen badly behind — a long stall, or the rate
-                // was just raised — resync rather than bursting to catch up.
+                // Shared with the readout on the clicker page, so what is shown
+                // and what is sent cannot drift apart.
+                ClickTiming timing = ClickTimings.Resolve(s.Cps, s.Duty, s.HitFix);
+                double period = timing.PeriodMs;
+                double downMs = timing.DownMs;
+
+                // Windows stalls this loop for hundreds of milliseconds at a
+                // time — measured at up to 1.4s with a low-level hook, and a
+                // competing clicker stalls just as badly, so the stalls are not
+                // something this app can avoid.
+                //
+                // What it can avoid is compounding them. Resetting the deadline
+                // to now discarded every click the stall cost, so a 32/s setting
+                // delivered 27.1/s while the competitor delivered 31.1/s from
+                // the same target and the same stalls. Letting the schedule run
+                // a bounded amount behind makes those clicks up instead; the
+                // bound is what stops a long stall becoming one long burst.
                 long now = Stopwatch.GetTimestamp();
-                if (deadline < now - freq / 10) deadline = now;
-
-                double period = 1000.0 / s.Cps;
-
-                // Click Duty Cycle: the share of each period the button is held.
-                double downMs = period * s.Duty;
-
-                if (s.HitFix)
-                {
-                    // A client reads input once a frame. At 60 fps that is every
-                    // ~17ms, so a press shorter than a frame can begin and end
-                    // between two reads and never be seen — at 100 CPS on a 50%
-                    // duty cycle the button is down for 5ms, and most of those
-                    // presses do not exist as far as the game is concerned.
-                    //
-                    // Both edges need a read inside them, so the gap after the
-                    // press gets a floor too. A press with no observed release
-                    // is a held button, not a click.
-                    downMs = Math.Max(downMs, HitFixMinDownMs);
-
-                    // Raising the period is what makes the floors reachable, and
-                    // it lowers the delivered rate below the slider. That is the
-                    // honest outcome: the surplus was never landing anyway, and
-                    // the Measured figure now reports what actually goes in.
-                    period = Math.Max(period, downMs + HitFixMinUpMs);
-                }
+                long maxLag = (long)(period * CatchUpPeriods * freq / 1000.0);
+                if (deadline < now - maxLag) deadline = now - maxLag;
 
                 SendLeftDown();
                 buttonDown = true;
@@ -1596,6 +1630,60 @@ public partial class MainWindow : Window
             else Thread.SpinWait(40);
         }
     }
+
+    /// <summary>
+    /// Asks Windows not to ignore this process's timer resolution requests when
+    /// it is in the background.
+    /// </summary>
+    /// <remarks>
+    /// Clearing the state bit while setting the control bit is the documented
+    /// way to say "manage this explicitly, and do not throttle me" — setting
+    /// both would ask for the opposite. Best effort: on a build without the
+    /// behaviour the call simply fails, and the loop still works, just with the
+    /// coarser sleeps it had before.
+    /// </remarks>
+    private static void KeepTimerResolutionInBackground()
+    {
+        try
+        {
+            var state = new PROCESS_POWER_THROTTLING_STATE
+            {
+                Version = ProcessPowerThrottlingCurrentVersion,
+                ControlMask = ProcessPowerThrottlingIgnoreTimerResolution,
+                StateMask = 0
+            };
+
+            SetProcessInformation(
+                GetCurrentProcess(),
+                ProcessPowerThrottlingInformation,
+                ref state,
+                (uint)Marshal.SizeOf<PROCESS_POWER_THROTTLING_STATE>());
+        }
+        catch
+        {
+            // Older Windows, or a policy that forbids it. Not worth a crash.
+        }
+    }
+
+    private const int ProcessPowerThrottlingInformation = 4;
+    private const uint ProcessPowerThrottlingCurrentVersion = 1;
+    private const uint ProcessPowerThrottlingIgnoreTimerResolution = 0x4;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_POWER_THROTTLING_STATE
+    {
+        public uint Version;
+        public uint ControlMask;
+        public uint StateMask;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetProcessInformation(
+        IntPtr process, int informationClass,
+        ref PROCESS_POWER_THROTTLING_STATE info, uint size);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
 
     private static bool IsKeyDown(int virtualKey) =>
         virtualKey != 0 && (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
@@ -3346,13 +3434,11 @@ public partial class MainWindow : Window
     private const int HighPingMs = 60;
 
     /// <summary>
-    /// Shortest the button is held, and the shortest gap after it, while HitFix
-    /// is on. A frame and a half at 60 fps, so a read lands inside a press
-    /// wherever the frame boundary happens to fall.
+    /// How many click periods the schedule may run behind before the backlog is
+    /// dropped. Four is enough to absorb an ordinary Windows scheduling hiccup
+    /// without the recovery being visible as a burst.
     /// </summary>
-    private const double HitFixMinDownMs = 25.0;
-
-    private const double HitFixMinUpMs = 25.0;
+    private const double CatchUpPeriods = 4.0;
 
     private const double MinShakeSpeed = 5.0;
     private const double MaxShakeSpeed = 50.0;

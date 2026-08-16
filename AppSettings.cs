@@ -16,10 +16,12 @@ public sealed class AppSettings
     public double Cps { get; set; } = 10;
     public double Cdc { get; set; } = 67;
 
-    public double ShakeLeft { get; set; } = 8;
-    public double ShakeRight { get; set; } = 20;
-    public double ShakeUp { get; set; } = 40;
-    public double ShakeDown { get; set; } = 8;
+    // Tuned by hand against a live client and kept. The old 8/20/40/8 was a
+    // guess with a 40px vertical throw that read as a flick rather than a shake.
+    public double ShakeLeft { get; set; } = 7;
+    public double ShakeRight { get; set; } = 9;
+    public double ShakeUp { get; set; } = 6;
+    public double ShakeDown { get; set; } = 5;
 
     /// <summary>A snapshot the user can return to after experimenting.</summary>
     public bool HasSavedShake { get; set; }
@@ -29,7 +31,7 @@ public sealed class AppSettings
     public double SavedShakeDown { get; set; }
 
     /// <summary>Shake movements per second.</summary>
-    public double ShakeSpeed { get; set; } = 33;
+    public double ShakeSpeed { get; set; } = 50;
 
     public bool ShakyTracking { get; set; }
     public bool UltraAccuracy { get; set; }
