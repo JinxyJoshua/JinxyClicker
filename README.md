@@ -1,12 +1,12 @@
-# Jinxy Clicker
+# Jinxy AutoClicker Beta
 
 A Windows autoclicker and tuning utility, written in C# and WPF. Original work —
 it contains no third-party application's source.
 
 ## Install
 
-Run `JinxyClicker-Setup-1.0.0.exe`. Nothing else is needed — .NET and ffmpeg are
-both included, and it installs per-user, so there is no admin prompt.
+Run `JinxyAutoClicker-Beta-Setup-1.0.0.exe`. Nothing else is needed — .NET and
+ffmpeg are both included, and it installs per-user, so there is no admin prompt.
 
 Windows 10 or 11, 64-bit. ARM machines are not supported.
 

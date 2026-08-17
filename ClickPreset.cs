@@ -128,14 +128,14 @@ public static class PresetStore
     {
         new ClickPreset("Ish", 193.62, 73.52),
         new ClickPreset("Snoopy", 75.65, 91.21),
-        new ClickPreset("stunned", 72.92, 17.16),
+        new ClickPreset("Stunned", 72.92, 17.16),
         new ClickPreset("Sky", 52.62, 82.62),
-        new ClickPreset("ara", 82.72, 27.28),
+        new ClickPreset("Ara", 82.72, 27.28),
         new ClickPreset("Spooky", 29.28, 83.62),
         new ClickPreset("Milo", 53.87, 28.53),
         new ClickPreset("Lee", 29.62, 92.72),
-        new ClickPreset("sharkiffy", 72.53, 55.73),
-        new ClickPreset("AraStar", 65.33, 42.55),
+        new ClickPreset("Sharkiffy", 72.53, 55.73),
+        new ClickPreset("AraStxr", 65.33, 42.55),
         new ClickPreset("YoNoobLike", 85.86, 64.25)
     };
 
