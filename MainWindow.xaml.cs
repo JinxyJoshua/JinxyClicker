@@ -1452,14 +1452,34 @@ public partial class MainWindow : Window
                 long maxLag = (long)(period * CatchUpPeriods * freq / 1000.0);
                 if (deadline < now - maxLag) deadline = now - maxLag;
 
-                SendLeftDown();
-                buttonDown = true;
-                deadline += (long)(downMs * freq / 1000.0);
-                if (!WaitUntil(deadline, s.UltraAccuracy, token)) break;
+                // The press and its release are held together against the shake
+                // thread, which injects mouse movement on its own schedule. A
+                // move landing between them turns the click into a drag, and a
+                // drag is not a click as far as the game is concerned. On a 50%
+                // duty cycle the button is down half the time, so roughly half
+                // of all shake movement was landing inside a press.
+                bool cancelled;
 
-                SendLeftUp();
-                buttonDown = false;
-                Interlocked.Increment(ref _clickCount);
+                lock (_inputGate)
+                {
+                    SendLeftDown();
+                    buttonDown = true;
+                    deadline += (long)(downMs * freq / 1000.0);
+
+                    cancelled = !WaitUntil(deadline, s.UltraAccuracy, token);
+
+                    if (!cancelled)
+                    {
+                        SendLeftUp();
+                        buttonDown = false;
+                        Interlocked.Increment(ref _clickCount);
+                    }
+                }
+
+                if (cancelled) break;
+
+                // Deliberately outside the lock: the gap between clicks is when
+                // the shake is free to move, which is most of the cycle.
                 deadline += (long)((period - downMs) * freq / 1000.0);
                 if (!WaitUntil(deadline, s.UltraAccuracy, token)) break;
             }
@@ -1484,6 +1504,39 @@ public partial class MainWindow : Window
 
         Interlocked.Add(ref _activeTicks, Stopwatch.GetTimestamp() - activeSince);
         activeSince = 0;
+    }
+
+    /// <summary>
+    /// Held while the left button is down, so nothing else injects input in the
+    /// middle of a click.
+    /// </summary>
+    private readonly object _inputGate = new();
+
+    /// <summary>
+    /// Longest the shake will wait for a press to finish before giving up on
+    /// that movement. Bounded because a low rate on a high duty cycle can hold
+    /// the button for most of a second, and stalling the shake thread outright
+    /// would be worse than dropping one step of it.
+    /// </summary>
+    private const int InputGateWaitMs = 120;
+
+    /// <summary>
+    /// Sends a relative mouse move, but never between a press and its release.
+    /// </summary>
+    /// <returns>False if the click stream was busy and the move was skipped.</returns>
+    private bool MoveWithoutSplittingAClick(int dx, int dy)
+    {
+        if (!Monitor.TryEnter(_inputGate, InputGateWaitMs)) return false;
+
+        try
+        {
+            SendMouseMove(dx, dy);
+            return true;
+        }
+        finally
+        {
+            Monitor.Exit(_inputGate);
+        }
     }
 
     private static int NextOffset(double min, double max) =>
@@ -1656,9 +1709,11 @@ public partial class MainWindow : Window
                     // Return to origin rather than freezing mid-offset.
                     if (offsetX != 0 || offsetY != 0)
                     {
-                        SendMouseMove(-offsetX, -offsetY);
-                        offsetX = 0;
-                        offsetY = 0;
+                        if (MoveWithoutSplittingAClick(-offsetX, -offsetY))
+                        {
+                            offsetX = 0;
+                            offsetY = 0;
+                        }
                     }
 
                     Thread.Sleep(25);
@@ -1671,9 +1726,11 @@ public partial class MainWindow : Window
                 int dx = targetX - offsetX;
                 int dy = targetY - offsetY;
 
-                if (dx != 0 || dy != 0)
+                // The offsets only advance if the move actually went out, or the
+                // cursor's real position and what this thread believes it to be
+                // would drift apart and the return-to-origin would be wrong.
+                if ((dx != 0 || dy != 0) && MoveWithoutSplittingAClick(dx, dy))
                 {
-                    SendMouseMove(dx, dy);
                     offsetX = targetX;
                     offsetY = targetY;
                 }
@@ -1693,8 +1750,10 @@ public partial class MainWindow : Window
         }
         finally
         {
-            // Undo the outstanding displacement so the crosshair ends where it began.
-            if (offsetX != 0 || offsetY != 0) SendMouseMove(-offsetX, -offsetY);
+            // Undo the outstanding displacement so the crosshair ends where it
+            // began. Through the gate like every other move: the click thread may
+            // still be mid-press while this one is shutting down.
+            if (offsetX != 0 || offsetY != 0) MoveWithoutSplittingAClick(-offsetX, -offsetY);
 
             // Without this the label keeps reporting "Active" after the thread
             // is gone, because nothing else ever clears it.
@@ -3425,15 +3484,8 @@ public partial class MainWindow : Window
 
     private void UpdateStats()
     {
-        try
-        {
-            using Process p = Process.GetCurrentProcess();
-            RamText.Text = $"{p.WorkingSet64 / 1024.0 / 1024.0:0} MB";
-        }
-        catch
-        {
-            RamText.Text = "-- MB";
-        }
+        double? megabytes = AppMemory.MegabytesInUse();
+        RamText.Text = megabytes.HasValue ? $"{megabytes.Value:0} MB" : "-- MB";
 
         double? cpu = ReadSystemCpuPercent();
         CpuText.Text = cpu.HasValue ? $"{cpu.Value:0}%" : "--%";

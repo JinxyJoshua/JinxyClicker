@@ -5,7 +5,7 @@
 ;   dotnet publish JinxyClicker.csproj -c Release -r win-x64 --self-contained true
 ; and ffmpeg.exe to be present in the ffmpeg folder beside the project.
 
-#define AppName        "Jinxy Clicker"
+#define AppName        "Jinxy AutoClicker Beta"
 #define AppVersion     "1.0.0"
 #define AppPublisher   "JinxyJoshua"
 #define AppExeName     "JinxyClicker.exe"
@@ -23,7 +23,7 @@ AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 OutputDir=..\dist
-OutputBaseFilename=JinxyClicker-Setup-{#AppVersion}
+OutputBaseFilename=JinxyAutoClicker-Beta-Setup-{#AppVersion}
 SetupIconFile=..\icon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 UninstallDisplayName={#AppName}
