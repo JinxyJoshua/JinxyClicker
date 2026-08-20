@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -111,8 +112,36 @@ public static class ClipUploader
         }
         catch (Exception ex)
         {
-            return new UploadResult(false, $"Upload failed: {ex.Message}", null);
+            return new UploadResult(false, $"Upload failed: {Describe(ex)}", null);
         }
+    }
+
+    /// <summary>
+    /// Flattens an exception chain into one readable line.
+    /// </summary>
+    /// <remarks>
+    /// .NET reports a failed TLS handshake as "The SSL connection could not be
+    /// established, see inner exception" — and the inner exception is the only
+    /// place the actual reason lives. Reporting just the outer message told the
+    /// user to look at something they cannot see.
+    /// </remarks>
+    private static string Describe(Exception ex)
+    {
+        var parts = new List<string>();
+
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            string message = current.Message.Trim();
+
+            // The pointer to the inner exception is noise once it is included.
+            message = message.Replace(", see inner exception.", "", StringComparison.OrdinalIgnoreCase)
+                             .Replace("See the inner exception for details.", "", StringComparison.OrdinalIgnoreCase)
+                             .Trim();
+
+            if (message.Length > 0 && !parts.Contains(message)) parts.Add(message);
+        }
+
+        return Truncate(string.Join(" — ", parts));
     }
 
     private static string Truncate(string text) =>
