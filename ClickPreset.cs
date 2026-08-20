@@ -22,7 +22,7 @@ public sealed class ClickPreset : INotifyPropertyChanged
     public ClickPreset(
         string name, double cps, double cdc,
         bool holdMode = false, bool ultraAccuracy = false, bool shaky = false,
-        double shakeLeft = 8, double shakeRight = 20, double shakeUp = 40, double shakeDown = 8)
+        double shakeLeft = 7, double shakeRight = 9, double shakeUp = 6, double shakeDown = 5)
     {
         Name = name;
         Cps = cps;
@@ -117,10 +117,13 @@ public static class PresetStore
         public bool HoldMode { get; set; }
         public bool UltraAccuracy { get; set; }
         public bool Shaky { get; set; }
-        public double ShakeLeft { get; set; } = 8;
-        public double ShakeRight { get; set; } = 20;
-        public double ShakeUp { get; set; } = 40;
-        public double ShakeDown { get; set; } = 8;
+        // Matched to AppSettings. A preset stores shake as well as rates, so a
+        // stale default here silently overwrites the sliders the moment one is
+        // applied — which is exactly what happened when only AppSettings moved.
+        public double ShakeLeft { get; set; } = 7;
+        public double ShakeRight { get; set; } = 9;
+        public double ShakeUp { get; set; } = 6;
+        public double ShakeDown { get; set; } = 5;
     }
 
     /// <summary>The list a fresh install starts from, and what Restore Defaults adds back.</summary>
