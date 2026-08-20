@@ -15,6 +15,10 @@
   <ItemGroup>
     <Compile Include="../ClickTiming.cs" />
     <Compile Include="../ClickTiming.Tests.cs" />
+    <Compile Include="../ClickPreset.cs" />
+    <Compile Include="../ClickPreset.Tests.cs" />
+    <Compile Include="../AppSettings.cs" />
+    <Compile Include="../SettingsPath.cs" />
     <Compile Include="../CaptureBackend.cs" />
     <Compile Include="../CaptureBackend.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
