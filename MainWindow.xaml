@@ -810,8 +810,8 @@
                             <StackPanel>
                                 <TextBlock Text="RAM" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                    <TextBlock x:Name="RamText" Text="-- MB" FontSize="20" FontWeight="Bold"/>
-                                    <TextBlock Text="this app" VerticalAlignment="Bottom"
+                                    <TextBlock x:Name="RamText" Text="-- GB" FontSize="20" FontWeight="Bold"/>
+                                    <TextBlock Text="(All Processes)" VerticalAlignment="Bottom"
                                                Foreground="{StaticResource TextMuted}"
                                                FontSize="11" Margin="7,0,0,3"/>
                                 </StackPanel>

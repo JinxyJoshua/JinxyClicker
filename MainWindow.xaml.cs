@@ -3484,8 +3484,9 @@ public partial class MainWindow : Window
 
     private void UpdateStats()
     {
-        double? megabytes = AppMemory.MegabytesInUse();
-        RamText.Text = megabytes.HasValue ? $"{megabytes.Value:0} MB" : "-- MB";
+        // Machine-wide, like the CPU tile beside it.
+        double? used = MemoryUsage.GigabytesInUse();
+        RamText.Text = used.HasValue ? $"{used.Value:0.0} GB" : "-- GB";
 
         double? cpu = ReadSystemCpuPercent();
         CpuText.Text = cpu.HasValue ? $"{cpu.Value:0}%" : "--%";
