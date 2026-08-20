@@ -6,7 +6,7 @@
 ; and ffmpeg.exe to be present in the ffmpeg folder beside the project.
 
 #define AppName        "Jinxy AutoClicker Beta"
-#define AppVersion     "1.0.0"
+#define AppVersion     "1.1.0"
 #define AppPublisher   "JinxyJoshua"
 #define AppExeName     "JinxyClicker.exe"
 #define PublishDir     "..\bin\Release\net10.0-windows\win-x64\publish"
