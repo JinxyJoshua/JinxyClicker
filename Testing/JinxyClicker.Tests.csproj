@@ -6,6 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <!--
+      Not for building UI. HotkeyBinding stores triggers as WPF Key and
+      MouseButton values, so the types have to resolve for the linked-in
+      sources to compile at all.
+    -->
+    <UseWPF>true</UseWPF>
+    <!--
       The app is a WinExe and cannot be referenced as a library, so the classes
       under test are linked in by source. Only files listed below compile here.
     -->
@@ -27,6 +33,8 @@
     <Compile Include="../KeyMacroWait.Tests.cs" />
     <Compile Include="../CaptureBackend.cs" />
     <Compile Include="../CaptureBackend.Tests.cs" />
+    <!-- Pulled in as a dependency of KeyMacro, not tested directly. -->
+    <Compile Include="../HotkeySettings.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />
