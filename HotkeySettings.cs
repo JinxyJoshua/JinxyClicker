@@ -59,6 +59,17 @@ public class HotkeySettings
     public HotkeyBinding SwitcherHotkey { get; set; } = HotkeyBinding.Unbound;
 
     /// <summary>
+    /// Starts the clicker and the auto switcher together.
+    /// </summary>
+    /// <remarks>
+    /// The pairing the switch technique actually needs: clicking and rotating
+    /// begin on one press, at the moment there is least time to reach for two
+    /// keys. Unbound by default, like every action added after the first
+    /// release.
+    /// </remarks>
+    public HotkeyBinding ClickSwitchHotkey { get; set; } = HotkeyBinding.Unbound;
+
+    /// <summary>
     /// Turns every other hotkey off, and back on again.
     /// </summary>
     /// <remarks>
@@ -90,7 +101,9 @@ public class HotkeySettings
                 SwitcherVk = SwitcherHotkey.VirtualKey,
                 SwitcherName = SwitcherHotkey.Name,
                 MasterVk = MasterHotkey.VirtualKey,
-                MasterName = MasterHotkey.Name
+                MasterName = MasterHotkey.Name,
+                ClickSwitchVk = ClickSwitchHotkey.VirtualKey,
+                ClickSwitchName = ClickSwitchHotkey.Name
             });
 
             File.WriteAllText(SETTINGS_FILE, json);
@@ -114,6 +127,7 @@ public class HotkeySettings
             BuildHotkey = ReadBinding(data, "BuildVk", "BuildName", "BuildHotkeyKey", BuildHotkey);
             SwitcherHotkey = ReadBinding(data, "SwitcherVk", "SwitcherName", "SwitcherHotkeyKey", SwitcherHotkey);
             MasterHotkey = ReadBinding(data, "MasterVk", "MasterName", "MasterHotkeyKey", MasterHotkey);
+            ClickSwitchHotkey = ReadBinding(data, "ClickSwitchVk", "ClickSwitchName", "ClickSwitchHotkeyKey", ClickSwitchHotkey);
         }
         catch { }
     }

@@ -49,7 +49,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, Macro }
+    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, ClickSwitch, Macro }
     private RebindTarget _rebinding = RebindTarget.None;
 
     /// <summary>
@@ -334,6 +334,7 @@ public partial class MainWindow : Window
         bool comboWasDown = false;
         bool buildWasDown = false;
         bool switcherWasDown = false;
+        bool clickSwitchWasDown = false;
         bool masterWasDown = false;
         bool wasInCorner = false;
         bool wasArmed = false;
@@ -376,6 +377,7 @@ public partial class MainWindow : Window
             bool comboDown = IsKeyDown(s.ComboHotkeyVk);
             bool buildDown = IsKeyDown(s.BuildHotkeyVk);
             bool switcherDown = IsKeyDown(s.SwitcherHotkeyVk);
+            bool clickSwitchDown = IsKeyDown(s.ClickSwitchHotkeyVk);
 
             // The first armed pass adopts whatever is held without acting on it.
             //
@@ -410,6 +412,11 @@ public partial class MainWindow : Window
                 // the key down is not a request to keep swapping.
                 if (switcherDown && !switcherWasDown)
                     Dispatcher.InvokeAsync(OnSwitcherHotkey, DispatcherPriority.Send);
+
+                // Both edges, so hold mode works the same as the plain click
+                // key. The switcher half only acts on the press.
+                if (clickSwitchDown != clickSwitchWasDown)
+                    Dispatcher.InvokeAsync(() => OnClickSwitchHotkey(clickSwitchDown), DispatcherPriority.Send);
             }
 
             // Updated every pass, armed or not, so the edge is always measured
@@ -421,6 +428,7 @@ public partial class MainWindow : Window
             comboWasDown = comboDown;
             buildWasDown = buildDown;
             switcherWasDown = switcherDown;
+            clickSwitchWasDown = clickSwitchDown;
 
             // Per-macro toggles, same edge-triggered rule as the fixed hotkeys.
             // Snapshotted per pass — a rebind that swaps a KeyMacro out from
@@ -617,6 +625,12 @@ public partial class MainWindow : Window
         else BeginRebind(RebindTarget.Master);
     }
 
+    private void ClickSwitchHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.ClickSwitch) CancelRebind();
+        else BeginRebind(RebindTarget.ClickSwitch);
+    }
+
     private void RecordHotkey_Click(object sender, RoutedEventArgs e)
     {
         if (_rebinding == RebindTarget.Record) CancelRebind();
@@ -677,6 +691,59 @@ public partial class MainWindow : Window
     private void SetShaky(bool on)
     {
         if (ShakyTracking != null) ShakyTracking.IsChecked = on;
+    }
+
+    /// <summary>
+    /// Starts the clicker and the auto switcher on one press, and stops both.
+    /// </summary>
+    /// <remarks>
+    /// Shaped like the shake combo above rather than like two hotkeys fired at
+    /// once, because the switcher is a latch and the clicker is not. Driving the
+    /// switcher from the clicker's state — on when it starts, off when it stops
+    /// — is what keeps the two from drifting apart after a few presses, which is
+    /// exactly what happens when one key is simply bound to both actions.
+    /// </remarks>
+    private void OnClickSwitchHotkey(bool pressed)
+    {
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
+        if (pressed)
+        {
+            if (_holdMode)
+            {
+                if (!_running)
+                {
+                    SetSwitcher(true);
+                    StartClicking();
+                }
+
+                return;
+            }
+
+            if (_running)
+            {
+                StopClicking();
+                SetSwitcher(false);
+            }
+            else
+            {
+                SetSwitcher(true);
+                StartClicking();
+            }
+
+            return;
+        }
+
+        if (_holdMode && _running)
+        {
+            StopClicking();
+            SetSwitcher(false);
+        }
+    }
+
+    private void SetSwitcher(bool on)
+    {
+        if (SwitcherEnabled != null) SwitcherEnabled.IsChecked = on;
     }
 
     private void BuildHotkey_Click(object sender, RoutedEventArgs e)
@@ -743,6 +810,7 @@ public partial class MainWindow : Window
         RebindTarget.Build => BuildHotkeyButton,
         RebindTarget.Switcher => SwitcherHotkeyButton,
         RebindTarget.Master => MasterHotkeyButton,
+        RebindTarget.ClickSwitch => ClickSwitchHotkeyButton,
         // For a macro, the button is per-card (or the NEW MACRO form's button)
         // and is stashed when the rebind begins. Fall back to HotkeyButton only
         // if the stash is empty, which should not happen in practice.
@@ -764,9 +832,26 @@ public partial class MainWindow : Window
     {
         var claimed = new HashSet<int>();
 
+        // Who claimed each key, not merely that it is claimed. The clicker and
+        // the switcher are allowed to share one, so "already taken" is not
+        // enough to decide — it matters who took it.
+        var owners = new Dictionary<int, RebindTarget>();
+
         foreach ((RebindTarget target, HotkeyBinding binding) in AllBindings())
         {
-            if (!binding.IsValid || claimed.Add(binding.VirtualKey)) continue;
+            if (!binding.IsValid) continue;
+
+            if (claimed.Add(binding.VirtualKey))
+            {
+                owners[binding.VirtualKey] = target;
+                continue;
+            }
+
+            if (owners.TryGetValue(binding.VirtualKey, out RebindTarget owner)
+                && MayShareKey(owner, target))
+            {
+                continue;
+            }
 
             switch (target)
             {
@@ -776,6 +861,7 @@ public partial class MainWindow : Window
                 case RebindTarget.Build: _hotkeySettings.BuildHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Switcher: _hotkeySettings.SwitcherHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Master: _hotkeySettings.MasterHotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.ClickSwitch: _hotkeySettings.ClickSwitchHotkey = HotkeyBinding.Unbound; break;
                 default: _hotkeySettings.ReplayHotkey = HotkeyBinding.Unbound; break;
             }
         }
@@ -799,6 +885,36 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Whether two actions are allowed to answer to the same key.
+    /// </summary>
+    /// <remarks>
+    /// Only the clicker and the switcher, and only because that pairing is the
+    /// point rather than an accident: one key that starts clicking and starts
+    /// rotating is how the technique is actually played, and binding them apart
+    /// means pressing two keys at the moment there is least time to.
+    ///
+    /// Every other pair stays refused. Two actions on one key is normally a
+    /// mistake, and firing both looks like the app malfunctioning.
+    /// </remarks>
+    private static bool MayShareKey(RebindTarget a, RebindTarget b) =>
+        (a == RebindTarget.Click && b == RebindTarget.Switcher)
+        || (a == RebindTarget.Switcher && b == RebindTarget.Click);
+
+    /// <summary>What an action is called when it has to be named in a refusal.</summary>
+    private static string ActionName(RebindTarget target) => target switch
+    {
+        RebindTarget.Click => "Clicker",
+        RebindTarget.Replay => "Replay",
+        RebindTarget.Record => "Record",
+        RebindTarget.Combo => "Combo",
+        RebindTarget.Build => "Building",
+        RebindTarget.Switcher => "Switcher",
+        RebindTarget.Master => "Master",
+        RebindTarget.ClickSwitch => "Click+switch",
+        _ => "A macro"
+    };
+
+    /// <summary>
     /// Every action and its current binding. One place, so the collision check
     /// and the button labels cannot disagree about how many actions exist.
     /// </summary>
@@ -810,7 +926,8 @@ public partial class MainWindow : Window
         (RebindTarget.Combo, _hotkeySettings.ComboHotkey),
         (RebindTarget.Build, _hotkeySettings.BuildHotkey),
         (RebindTarget.Switcher, _hotkeySettings.SwitcherHotkey),
-        (RebindTarget.Master, _hotkeySettings.MasterHotkey)
+        (RebindTarget.Master, _hotkeySettings.MasterHotkey),
+        (RebindTarget.ClickSwitch, _hotkeySettings.ClickSwitchHotkey)
     };
 
     /// <summary>How long a refused rebind sits on the button before reverting.</summary>
@@ -831,11 +948,42 @@ public partial class MainWindow : Window
     /// content with a MinWidth floor, and a longer message would make the button
     /// jump wider and snap back.
     /// </remarks>
-    private void ShowRebindRefused(RebindTarget target)
+    /// <summary>
+    /// Names whatever already answers to a key.
+    /// </summary>
+    /// <remarks>
+    /// "In use" on its own sent someone hunting for a binding they could not
+    /// find, because the key they picked was F8 and F8 is the replay default —
+    /// a binding that lives on a different page from the one they were on. The
+    /// refusal has to say which action holds the key, or it reads as the app
+    /// being wrong about a key nobody set.
+    /// </remarks>
+    private string HolderOf(int virtualKey, RebindTarget target, KeyMacro? macroTarget)
+    {
+        foreach ((RebindTarget other, HotkeyBinding binding) in AllBindings())
+        {
+            if (other == target || MayShareKey(target, other)) continue;
+            if (binding.IsValid && binding.VirtualKey == virtualKey) return ActionName(other);
+        }
+
+        foreach (KeyMacro macro in _macroList)
+        {
+            if (ReferenceEquals(macro, macroTarget)) continue;
+            if (macro.Hotkey.IsValid && macro.Hotkey.VirtualKey == virtualKey) return macro.Name;
+        }
+
+        // The unsaved NEW MACRO pick is the only holder left it could be.
+        return "A macro";
+    }
+
+    private void ShowRebindRefused(RebindTarget target, string holder)
     {
         Button button = RebindButtonFor(target);
 
-        button.Content = "In use";
+        // Trimmed so a long macro name cannot stretch the button across the row.
+        string name = holder.Length > 14 ? holder[..13].TrimEnd() + "…" : holder;
+
+        button.Content = name + " has it";
         button.Foreground = (Brush)FindResource("Accent");
 
         // Restarted rather than stacked, so trying three keys in a row leaves
@@ -916,7 +1064,7 @@ public partial class MainWindow : Window
         // adding a fixed action cannot leave a gap; macro slots come from the
         // list, so adding a macro cannot either. The current slot is skipped by
         // (target, macroTarget) — same rule as the fixed rebind, extended.
-        bool CollidesWithFixed(RebindTarget t) => t != target;
+        bool CollidesWithFixed(RebindTarget t) => t != target && !MayShareKey(target, t);
         bool CollidesWithMacro(KeyMacro m) =>
             target != RebindTarget.Macro || !ReferenceEquals(m, macroTarget);
 
@@ -932,7 +1080,7 @@ public partial class MainWindow : Window
         if (clash)
         {
             CancelRebind();
-            ShowRebindRefused(target);
+            ShowRebindRefused(target, HolderOf(binding.VirtualKey, target, macroTarget));
             return;
         }
 
@@ -950,6 +1098,7 @@ public partial class MainWindow : Window
                 case RebindTarget.Build: _hotkeySettings.BuildHotkey = binding; break;
                 case RebindTarget.Switcher: _hotkeySettings.SwitcherHotkey = binding; break;
                 case RebindTarget.Master: _hotkeySettings.MasterHotkey = binding; break;
+                case RebindTarget.ClickSwitch: _hotkeySettings.ClickSwitchHotkey = binding; break;
                 default: _hotkeySettings.ReplayHotkey = binding; break;
             }
 
@@ -1042,7 +1191,7 @@ public partial class MainWindow : Window
         bool UltraAccuracy, bool HitFix, bool HoldMode,
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
         int ComboHotkeyVk, int BuildHotkeyVk, int SwitcherHotkeyVk,
-        int MasterHotkeyVk,
+        int MasterHotkeyVk, int ClickSwitchHotkeyVk,
         bool HotkeysArmed, bool BuildMode)
     {
         /// <summary>
@@ -1071,7 +1220,7 @@ public partial class MainWindow : Window
     private const double BuildDuty = 0.01;
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, 0, 0, false, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, 0, 0, 0, false, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -1288,6 +1437,7 @@ public partial class MainWindow : Window
             _hotkeySettings.BuildHotkey.VirtualKey,
             _hotkeySettings.SwitcherHotkey.VirtualKey,
             _hotkeySettings.MasterHotkey.VirtualKey,
+            _hotkeySettings.ClickSwitchHotkey.VirtualKey,
             // Armed only when nothing is being rebound and the master switch is
             // on. Null-conditional because this runs once from the constructor,
             // before every control is necessarily built.
@@ -1593,6 +1743,20 @@ public partial class MainWindow : Window
         // building run with the ordinary key would leave the fixed rate armed,
         // and the next ordinary start would silently run at 35/s.
         _buildMode = false;
+
+        // Same rule, and for a sharper reason: the switcher is a latch on its
+        // own thread, so every stop that is not the combined hotkey used to
+        // leave it running. The rotation then kept swapping weapons with
+        // nothing clicking — worse than useless mid-fight, and it happened
+        // whichever way the clicker was stopped: its own key, the Stop button,
+        // or the corner escape hatch.
+        //
+        // Unconditional rather than only undoing what the combined hotkey
+        // started. A rotation exists to feed the clicking; one running without
+        // it is never what was wanted, and tracking who switched it on would
+        // make the same key behave differently depending on history.
+        SetSwitcher(false);
+
         UpdateEngineSettings();
 
         RefreshStatus();
@@ -2100,6 +2264,7 @@ public partial class MainWindow : Window
         BuildHotkeyButton.Content = _hotkeySettings.BuildHotkey.Name;
         SwitcherHotkeyButton.Content = _hotkeySettings.SwitcherHotkey.Name;
         MasterHotkeyButton.Content = _hotkeySettings.MasterHotkey.Name;
+        ClickSwitchHotkeyButton.Content = _hotkeySettings.ClickSwitchHotkey.Name;
 
         // The bindings live on three different pages, so Settings is the only
         // place they can all be read at once.
@@ -2111,6 +2276,7 @@ public partial class MainWindow : Window
                 $"{_hotkeySettings.RecordHotkey.Name} — record",
                 $"{_hotkeySettings.ComboHotkey.Name} — click + shake",
                 $"{_hotkeySettings.BuildHotkey.Name} — building",
+                $"{_hotkeySettings.ClickSwitchHotkey.Name} — click + switcher",
                 $"{_hotkeySettings.MasterHotkey.Name} — hotkeys on/off");
         }
 
@@ -4378,11 +4544,40 @@ public partial class MainWindow : Window
                 MeasuredCpsText.Text = _running
                     ? $"Measured {rate:0.0} /s"
                     : "Measured — /s";
+
+                UpdateOutputPanel(rate);
             }
         }
 
         _lastRateTimestamp = now;
         _lastClickCount = clicks;
+    }
+
+    /// <summary>
+    /// Says what is actually being delivered, and whether it matches the ask.
+    /// </summary>
+    /// <remarks>
+    /// The decision lives in <see cref="ClickOutput"/> so it can be tested
+    /// without a window; this only paints what it decided.
+    /// </remarks>
+    private void UpdateOutputPanel(double deliveredCps)
+    {
+        if (OutputRateText == null) return;
+
+        double set = _settings.Timing.Cps;
+        OutputState state = ClickOutput.Classify(_running, set, deliveredCps);
+
+        OutputSetText.Text = $"set {set:0.0} /s";
+        OutputRateText.Text = state == OutputState.Idle ? "—" : deliveredCps.ToString("0.0");
+        OutputVerdictText.Text = ClickOutput.Verdict(state, set, deliveredCps);
+
+        // The rate itself only turns accent when it is short of the ask, so the
+        // colour means "these two numbers disagree" rather than "look here".
+        OutputRateText.SetResourceReference(ForegroundProperty,
+            state == OutputState.Shortfall ? "Accent" : "TextBright");
+
+        OutputVerdictText.SetResourceReference(ForegroundProperty,
+            ClickOutput.IsWarning(state) ? "Accent" : "TextMuted");
     }
 
     /// <summary>
