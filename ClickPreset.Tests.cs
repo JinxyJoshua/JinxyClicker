@@ -41,15 +41,50 @@ public class ClickPresetTests
     }
 
     [Fact]
-    public void TheBuiltInPresets_AreTheElevenNamedOnes()
+    public void TheBuiltInPresets_AreTheNamedOnes()
     {
         string[] expected =
         {
+            "Measured",
             "Ish", "Snoopy", "Stunned", "Sky", "Ara", "Spooky",
             "Milo", "Lee", "Sharkiffy", "AraStxr", "YoNoobLike"
         };
 
         Assert.Equal(expected, PresetStore.Defaults().Select(p => p.Name).ToArray());
+    }
+
+    /// <summary>
+    /// The measured preset leads, and is the only one carrying a figure taken
+    /// off a real match rather than picked.
+    /// </summary>
+    /// <remarks>
+    /// Pinned because all three parts matter together: 41.2 CPS at 77.37% in
+    /// hold mode is what landed 34 hits on a run that 193 CPS landed 33. Change
+    /// any one of them and it stops being the thing that was measured.
+    /// </remarks>
+    [Fact]
+    public void TheMeasuredPresetLeadsAndKeepsItsFigures()
+    {
+        ClickPreset first = PresetStore.Defaults()[0];
+
+        Assert.Equal("Measured", first.Name);
+        Assert.Equal(41.2, first.Cps, 2);
+        Assert.Equal(77.37, first.Cdc, 2);
+        Assert.True(first.HoldMode, "hold mode is part of what was measured");
+    }
+
+    /// <summary>
+    /// Every shipped rate sits inside the slider. A preset the sliders cannot
+    /// represent would apply and then read back as something else.
+    /// </summary>
+    [Fact]
+    public void EveryShippedPresetIsReachableOnTheSliders()
+    {
+        foreach (ClickPreset preset in PresetStore.Defaults())
+        {
+            Assert.InRange(preset.Cps, 1.0, 200.0);
+            Assert.InRange(preset.Cdc, 0.0, 100.0);
+        }
     }
 
     /// <summary>
