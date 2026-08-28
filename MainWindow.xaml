@@ -824,6 +824,40 @@
               <Grid>
                 <StackPanel x:Name="PageClicker">
 
+                    <!-- What is actually leaving the app, as opposed to what the
+                         sliders were set to. These are routinely not the same
+                         number, and until now the difference was an 11px hint
+                         under a slider showing the larger, wrong one. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="2"
+                            BorderThickness="1" BorderBrush="{StaticResource Outline}"
+                            Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="ACTUALLY SENDING" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="OutputSetText" DockPanel.Dock="Right"
+                                           Text="set 10.0 /s" Foreground="{StaticResource TextMuted}"
+                                           FontSize="11" VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock x:Name="OutputRateText" Text="—"
+                                           FontSize="38" FontWeight="Black"
+                                           Foreground="{StaticResource TextBright}"/>
+                                <TextBlock Text="clicks / sec" VerticalAlignment="Bottom"
+                                           Foreground="{StaticResource TextMuted}"
+                                           FontSize="12" Margin="9,0,0,8"/>
+                            </StackPanel>
+
+                            <!-- Accent only when the two disagree. A verdict that
+                                 is always lit stops being read. -->
+                            <TextBlock x:Name="OutputVerdictText"
+                                       Text="Start clicking to measure what the game actually receives."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Stats -->
                     <UniformGrid Columns="2" Margin="0,0,0,14">
                         <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,7,0">
@@ -891,6 +925,23 @@
                                     </StackPanel>
                                     <Button x:Name="ComboHotkeyButton" Content="Not set"
                                             Click="ComboHotkey_Click"
+                                            DockPanel.Dock="Right" VerticalAlignment="Center"
+                                            ToolTip="Click, then press a key or mouse side button"
+                                            FontSize="17" FontWeight="Bold"
+                                            Height="42" MinWidth="96"
+                                            Padding="16,0" Margin="0"/>
+                                </DockPanel>
+
+                                <Separator Opacity=".15" Margin="0,12,0,10"/>
+
+                                <DockPanel LastChildFill="False">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="AUTOCLICKER + SWITCHER" Style="{StaticResource CardLabel}"/>
+                                        <TextBlock Text="Starts and stops both together"
+                                                   Style="{StaticResource CardHint}"/>
+                                    </StackPanel>
+                                    <Button x:Name="ClickSwitchHotkeyButton" Content="Not set"
+                                            Click="ClickSwitchHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
                                             ToolTip="Click, then press a key or mouse side button"
                                             FontSize="17" FontWeight="Bold"
