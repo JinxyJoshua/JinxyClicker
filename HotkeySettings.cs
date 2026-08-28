@@ -54,6 +54,20 @@ public class HotkeySettings
     /// by default, like every action added after the first release.</summary>
     public HotkeyBinding BuildHotkey { get; set; } = HotkeyBinding.Unbound;
 
+    /// <summary>Turns the auto switcher on and off. Unbound by default, like
+    /// every action added after the first release.</summary>
+    public HotkeyBinding SwitcherHotkey { get; set; } = HotkeyBinding.Unbound;
+
+    /// <summary>
+    /// Turns every other hotkey off, and back on again.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not disabled by itself. It is polled outside the armed
+    /// check, so switching hotkeys off leaves this one listening — a master
+    /// switch that could turn itself off would be a one-way door.
+    /// </remarks>
+    public HotkeyBinding MasterHotkey { get; set; } = HotkeyBinding.Unbound;
+
     public void Save()
     {
         try
@@ -72,7 +86,11 @@ public class HotkeySettings
                 ComboVk = ComboHotkey.VirtualKey,
                 ComboName = ComboHotkey.Name,
                 BuildVk = BuildHotkey.VirtualKey,
-                BuildName = BuildHotkey.Name
+                BuildName = BuildHotkey.Name,
+                SwitcherVk = SwitcherHotkey.VirtualKey,
+                SwitcherName = SwitcherHotkey.Name,
+                MasterVk = MasterHotkey.VirtualKey,
+                MasterName = MasterHotkey.Name
             });
 
             File.WriteAllText(SETTINGS_FILE, json);
@@ -94,6 +112,8 @@ public class HotkeySettings
             RecordHotkey = ReadBinding(data, "RecordVk", "RecordName", "RecordHotkeyKey", RecordHotkey);
             ComboHotkey = ReadBinding(data, "ComboVk", "ComboName", "ComboHotkeyKey", ComboHotkey);
             BuildHotkey = ReadBinding(data, "BuildVk", "BuildName", "BuildHotkeyKey", BuildHotkey);
+            SwitcherHotkey = ReadBinding(data, "SwitcherVk", "SwitcherName", "SwitcherHotkeyKey", SwitcherHotkey);
+            MasterHotkey = ReadBinding(data, "MasterVk", "MasterName", "MasterHotkeyKey", MasterHotkey);
         }
         catch { }
     }

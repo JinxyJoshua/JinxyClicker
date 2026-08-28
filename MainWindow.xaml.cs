@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace JinxyClicker;
@@ -48,8 +49,26 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Replay, Record, Combo, Build }
+    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, Macro }
     private RebindTarget _rebinding = RebindTarget.None;
+
+    /// <summary>
+    /// The macro being rebound when <see cref="_rebinding"/> is <see cref="RebindTarget.Macro"/>.
+    /// Null means the NEW MACRO form's toggle field, whose captured binding is
+    /// held in <see cref="_pendingNewMacroHotkey"/> until Save creates the macro.
+    /// </summary>
+    /// <remarks>
+    /// The fixed hotkeys have one slot each and the enum names them. Macros are
+    /// dynamic, so their identity has to be carried alongside — same shape as
+    /// the fixed rebind, one extra field to say which macro.
+    /// </remarks>
+    private KeyMacro? _rebindingMacro;
+
+    /// <summary>The rebind button that shows "Select A Hotkey" while capturing.</summary>
+    private Button? _rebindingMacroButton;
+
+    /// <summary>Toggle key picked in the NEW MACRO form, before Save turns it into a macro.</summary>
+    private HotkeyBinding _pendingNewMacroHotkey = HotkeyBinding.Unbound;
 
     /// <summary>
     /// True while the building hotkey is driving the clicker, which substitutes
@@ -143,6 +162,10 @@ public partial class MainWindow : Window
                 IsBackground = true,
                 Name = "ShakeEngine"
             }.Start();
+
+            // After the window exists, since the handle does not before that.
+            SourceInitialized += (_, _) => ArmMacroSuppression();
+            StartMacroTicker();
 
             TweakList.ItemsSource = _tweaks;
             InputTweakList.ItemsSource = _inputTweaks;
@@ -310,8 +333,15 @@ public partial class MainWindow : Window
         bool recordWasDown = false;
         bool comboWasDown = false;
         bool buildWasDown = false;
+        bool switcherWasDown = false;
+        bool masterWasDown = false;
         bool wasInCorner = false;
         bool wasArmed = false;
+
+        // Per-macro edge state, keyed by name because the KeyMacro reference
+        // changes whenever a macro is rebound (KeyMacro is immutable — see
+        // AssignMacroHotkey). Names are unique — the store's Upsert enforces it.
+        var macroWasDown = new Dictionary<string, bool>();
 
         while (!token.IsCancellationRequested)
         {
@@ -329,11 +359,23 @@ public partial class MainWindow : Window
 
             wasInCorner = inCorner;
 
+            // Outside the armed check, like the corner escape hatch above and
+            // for the same reason. This key is what switches the others off, so
+            // gating it on their being on would make it a one-way door: press
+            // once to disable, and there is no press that brings them back.
+            bool masterDown = IsKeyDown(s.MasterHotkeyVk);
+
+            if (masterDown && !masterWasDown)
+                Dispatcher.InvokeAsync(OnMasterHotkey, DispatcherPriority.Send);
+
+            masterWasDown = masterDown;
+
             bool clickDown = IsKeyDown(s.HotkeyVk);
             bool recordDown = IsKeyDown(s.RecordHotkeyVk);
             bool replayDown = IsKeyDown(s.ReplayHotkeyVk);
             bool comboDown = IsKeyDown(s.ComboHotkeyVk);
             bool buildDown = IsKeyDown(s.BuildHotkeyVk);
+            bool switcherDown = IsKeyDown(s.SwitcherHotkeyVk);
 
             // The first armed pass adopts whatever is held without acting on it.
             //
@@ -363,6 +405,11 @@ public partial class MainWindow : Window
 
                 if (replayDown && !replayWasDown)
                     Dispatcher.InvokeAsync(OnReplayHotkey, DispatcherPriority.Send);
+
+                // Press only, not both edges. The switcher latches — holding
+                // the key down is not a request to keep swapping.
+                if (switcherDown && !switcherWasDown)
+                    Dispatcher.InvokeAsync(OnSwitcherHotkey, DispatcherPriority.Send);
             }
 
             // Updated every pass, armed or not, so the edge is always measured
@@ -373,10 +420,80 @@ public partial class MainWindow : Window
             replayWasDown = replayDown;
             comboWasDown = comboDown;
             buildWasDown = buildDown;
+            switcherWasDown = switcherDown;
+
+            // Per-macro toggles, same edge-triggered rule as the fixed hotkeys.
+            // Snapshotted per pass — a rebind that swaps a KeyMacro out from
+            // under this loop just changes the VK on the next tick, and the was
+            // -down entry keyed by name carries over.
+            //
+            // The armed check is honoured (the master switch turns these off
+            // with everything else), and the wasArmed prime-once rule prevents
+            // rebind or master-on from firing on a still-held key. Bindings not
+            // present this pass are dropped from macroWasDown so a rebind to
+            // Unbound cannot rearm on a stale entry after re-binding to a key.
+            KeyMacro[] macrosNow = _macroList.ToArray();
+            var namesSeen = new HashSet<string>();
+
+            foreach (KeyMacro m in macrosNow)
+            {
+                if (!m.Hotkey.IsValid) continue;
+
+                namesSeen.Add(m.Name);
+                bool down = IsKeyDown(m.Hotkey.VirtualKey);
+                macroWasDown.TryGetValue(m.Name, out bool wasDown);
+
+                if (s.HotkeysArmed && wasArmed && down && !wasDown)
+                {
+                    // Copy for the closure — the array reference above is fine,
+                    // but the loop variable itself is captured by the lambda.
+                    KeyMacro macroForDispatch = m;
+                    Dispatcher.InvokeAsync(() => OnMacroHotkey(macroForDispatch), DispatcherPriority.Send);
+                }
+
+                macroWasDown[m.Name] = down;
+            }
+
+            // Prune entries whose macro is gone or unbound, so re-adding a macro
+            // with the same name later cannot inherit a wasDown from before.
+            if (macroWasDown.Count > namesSeen.Count)
+            {
+                foreach (string stale in macroWasDown.Keys.Where(n => !namesSeen.Contains(n)).ToArray())
+                    macroWasDown.Remove(stale);
+            }
+
             wasArmed = s.HotkeysArmed;
 
             Thread.Sleep(HotkeyPollMs);
         }
+    }
+
+    /// <summary>
+    /// Toggles a macro on and off, keyed by name so a rebind that replaced the
+    /// KeyMacro object between poll and dispatch still finds it.
+    /// </summary>
+    /// <remarks>
+    /// Focus-in-a-textbox guard, same as the fixed hotkeys — a key typed into
+    /// one of the form fields must not also toggle a macro. Not repeat-guarded
+    /// because HotkeyLoop only dispatches on the down edge.
+    /// </remarks>
+    private void OnMacroHotkey(KeyMacro macro)
+    {
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
+        // Lookup by name so a replacement (rebind, interval change) is picked
+        // up rather than an orphaned old object being restarted.
+        KeyMacro? current = _macroList.FirstOrDefault(m =>
+            string.Equals(m.Name, macro.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (current == null) return;
+
+        if (_macros.IsRunning(current.Name)) _macros.Stop(current.Name);
+        else _macros.Start(current);
+
+        // Keeps the toggle switch's IsChecked in step with the runner without
+        // rebuilding the whole card set on every tick.
+        BuildMacroCards();
     }
 
     /// <summary>How close to a corner counts as being in it.</summary>
@@ -493,6 +610,12 @@ public partial class MainWindow : Window
     }
 
     private void HotkeysEnabled_Changed(object sender, RoutedEventArgs e) => UpdateEngineSettings();
+
+    private void MasterHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Master) CancelRebind();
+        else BeginRebind(RebindTarget.Master);
+    }
 
     private void RecordHotkey_Click(object sender, RoutedEventArgs e)
     {
@@ -618,6 +741,12 @@ public partial class MainWindow : Window
         RebindTarget.Record => RecordHotkeyButton,
         RebindTarget.Combo => ComboHotkeyButton,
         RebindTarget.Build => BuildHotkeyButton,
+        RebindTarget.Switcher => SwitcherHotkeyButton,
+        RebindTarget.Master => MasterHotkeyButton,
+        // For a macro, the button is per-card (or the NEW MACRO form's button)
+        // and is stashed when the rebind begins. Fall back to HotkeyButton only
+        // if the stash is empty, which should not happen in practice.
+        RebindTarget.Macro => _rebindingMacroButton ?? HotkeyButton,
         _ => HotkeyButton
     };
 
@@ -645,9 +774,28 @@ public partial class MainWindow : Window
                 case RebindTarget.Record: _hotkeySettings.RecordHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Combo: _hotkeySettings.ComboHotkey = HotkeyBinding.Unbound; break;
                 case RebindTarget.Build: _hotkeySettings.BuildHotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.Switcher: _hotkeySettings.SwitcherHotkey = HotkeyBinding.Unbound; break;
+                case RebindTarget.Master: _hotkeySettings.MasterHotkey = HotkeyBinding.Unbound; break;
                 default: _hotkeySettings.ReplayHotkey = HotkeyBinding.Unbound; break;
             }
         }
+
+        // Named actions above win over macros, and earlier macros win over later
+        // ones. A macro that repeats a key already taken is dropped in place —
+        // same rule the fixed slots use, so the list has one owner per key.
+        bool anyMacroChanged = false;
+        for (int i = 0; i < _macroList.Count; i++)
+        {
+            KeyMacro m = _macroList[i];
+            if (!m.Hotkey.IsValid) continue;
+
+            if (claimed.Add(m.Hotkey.VirtualKey)) continue;
+
+            _macroList[i] = new KeyMacro(m.Name, m.Keys, m.KeysText, m.IntervalMs, hotkey: HotkeyBinding.Unbound);
+            anyMacroChanged = true;
+        }
+
+        if (anyMacroChanged) MacroStore.Save(_macroList);
     }
 
     /// <summary>
@@ -660,7 +808,9 @@ public partial class MainWindow : Window
         (RebindTarget.Replay, _hotkeySettings.ReplayHotkey),
         (RebindTarget.Record, _hotkeySettings.RecordHotkey),
         (RebindTarget.Combo, _hotkeySettings.ComboHotkey),
-        (RebindTarget.Build, _hotkeySettings.BuildHotkey)
+        (RebindTarget.Build, _hotkeySettings.BuildHotkey),
+        (RebindTarget.Switcher, _hotkeySettings.SwitcherHotkey),
+        (RebindTarget.Master, _hotkeySettings.MasterHotkey)
     };
 
     /// <summary>How long a refused rebind sits on the button before reverting.</summary>
@@ -708,6 +858,8 @@ public partial class MainWindow : Window
     private void CancelRebind()
     {
         _rebinding = RebindTarget.None;
+        _rebindingMacro = null;
+        _rebindingMacroButton = null;
         ApplyHotkeyToUi();
 
         // Re-arms the poll thread, which BeginRebind disarmed.
@@ -748,7 +900,10 @@ public partial class MainWindow : Window
     private void CaptureRebind(HotkeyBinding binding)
     {
         RebindTarget target = _rebinding;
+        KeyMacro? macroTarget = _rebindingMacro;
         _rebinding = RebindTarget.None;
+        _rebindingMacro = null;
+        _rebindingMacroButton = null;
 
         if (!binding.IsValid)
         {
@@ -757,25 +912,49 @@ public partial class MainWindow : Window
         }
 
         // Every other binding, not just one — a key could collide with any of
-        // the actions it is not replacing. Built from the same table that does
-        // the assignment, so adding an action cannot leave a gap here.
-        if (AllBindings().Any(b => b.Target != target && b.Binding.VirtualKey == binding.VirtualKey))
+        // the actions it is not replacing. Fixed slots come from AllBindings so
+        // adding a fixed action cannot leave a gap; macro slots come from the
+        // list, so adding a macro cannot either. The current slot is skipped by
+        // (target, macroTarget) — same rule as the fixed rebind, extended.
+        bool CollidesWithFixed(RebindTarget t) => t != target;
+        bool CollidesWithMacro(KeyMacro m) =>
+            target != RebindTarget.Macro || !ReferenceEquals(m, macroTarget);
+
+        bool clash =
+            AllBindings().Any(b => CollidesWithFixed(b.Target) && b.Binding.VirtualKey == binding.VirtualKey)
+            || _macroList.Any(m => m.Hotkey.IsValid && CollidesWithMacro(m) && m.Hotkey.VirtualKey == binding.VirtualKey)
+            // The NEW MACRO form's pending pick counts too, unless it is the
+            // slot being rebound now.
+            || (!(target == RebindTarget.Macro && macroTarget == null)
+                && _pendingNewMacroHotkey.IsValid
+                && _pendingNewMacroHotkey.VirtualKey == binding.VirtualKey);
+
+        if (clash)
         {
             CancelRebind();
             ShowRebindRefused(target);
             return;
         }
 
-        switch (target)
+        if (target == RebindTarget.Macro)
         {
-            case RebindTarget.Click: _hotkeySettings.Hotkey = binding; break;
-            case RebindTarget.Record: _hotkeySettings.RecordHotkey = binding; break;
-            case RebindTarget.Combo: _hotkeySettings.ComboHotkey = binding; break;
-            case RebindTarget.Build: _hotkeySettings.BuildHotkey = binding; break;
-            default: _hotkeySettings.ReplayHotkey = binding; break;
+            AssignMacroHotkey(macroTarget, binding);
         }
+        else
+        {
+            switch (target)
+            {
+                case RebindTarget.Click: _hotkeySettings.Hotkey = binding; break;
+                case RebindTarget.Record: _hotkeySettings.RecordHotkey = binding; break;
+                case RebindTarget.Combo: _hotkeySettings.ComboHotkey = binding; break;
+                case RebindTarget.Build: _hotkeySettings.BuildHotkey = binding; break;
+                case RebindTarget.Switcher: _hotkeySettings.SwitcherHotkey = binding; break;
+                case RebindTarget.Master: _hotkeySettings.MasterHotkey = binding; break;
+                default: _hotkeySettings.ReplayHotkey = binding; break;
+            }
 
-        _hotkeySettings.Save();
+            _hotkeySettings.Save();
+        }
 
         // The poll thread re-primes its own edge state while disarmed, so
         // releasing the just-bound key cannot read as a fresh press.
@@ -785,6 +964,37 @@ public partial class MainWindow : Window
 
         // Otherwise the rebind button keeps focus and swallows the next Space.
         Focus();
+    }
+
+    /// <summary>
+    /// Sets the new binding on either an existing macro or the NEW MACRO form.
+    /// </summary>
+    /// <remarks>
+    /// KeyMacro is immutable, so an existing macro is replaced with an otherwise
+    /// identical copy that carries the new toggle. Stopping the runner first
+    /// matches SaveMacro_Click's rule — otherwise the old KeyMacro's thread
+    /// keeps typing after its card is gone.
+    /// </remarks>
+    private void AssignMacroHotkey(KeyMacro? macro, HotkeyBinding binding)
+    {
+        if (macro == null)
+        {
+            // NEW MACRO form: hold the pick until Save creates the macro.
+            _pendingNewMacroHotkey = binding;
+            if (NewMacroHotkeyButton != null) NewMacroHotkeyButton.Content = binding.Name;
+            return;
+        }
+
+        _macros.Stop(macro.Name);
+
+        var replacement = new KeyMacro(
+            macro.Name, macro.Keys, macro.KeysText, macro.IntervalMs,
+            hotkey: binding);
+
+        MacroStore.Upsert(_macroList, replacement);
+        MacroStore.Save(_macroList);
+
+        BuildMacroCards();
     }
 
     private void ToggleRunning()
@@ -831,7 +1041,9 @@ public partial class MainWindow : Window
         double Cps, double Duty, bool Shaky, ShakeRange Shake, double ShakeSpeed,
         bool UltraAccuracy, bool HitFix, bool HoldMode,
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
-        int ComboHotkeyVk, int BuildHotkeyVk, bool HotkeysArmed, bool BuildMode)
+        int ComboHotkeyVk, int BuildHotkeyVk, int SwitcherHotkeyVk,
+        int MasterHotkeyVk,
+        bool HotkeysArmed, bool BuildMode)
     {
         /// <summary>
         /// The timing actually sent, which is the fixed building rate whenever
@@ -859,10 +1071,12 @@ public partial class MainWindow : Window
     private const double BuildDuty = 0.01;
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, false, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, 0, 0, false, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
+        ApplySwitcherToUi(s);
+
         CpsSlider.Value = Math.Clamp(s.Cps, CpsSlider.Minimum, CpsSlider.Maximum);
         CdcSlider.Value = Math.Clamp(s.Cdc, CdcSlider.Minimum, CdcSlider.Maximum);
 
@@ -919,6 +1133,13 @@ public partial class MainWindow : Window
         // Clamped to the slider's own range rather than trusted: the floor is
         // what stops a stored zero from bringing back an invisible window.
         OpacitySlider.Value = Math.Clamp(s.WindowOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
+
+        // Name first, then the slider — the slider's changed event repaints the
+        // layers, so the picture it repaints with has to be known by then.
+        _wallpaperFile = Wallpaper.Resolve(s.WallpaperFile) != null ? s.WallpaperFile : "";
+        WallpaperDimmingSlider.Value = Wallpaper.ClampDimming(s.WallpaperDimming);
+
+        ApplyWallpaper();
 
         // Deliberately not restored from the file. Ticking this box starts an
         // ffmpeg gdigrab capture of the whole desktop, and a GDI screen grab
@@ -1012,10 +1233,17 @@ public partial class MainWindow : Window
             AccentColor = _accentHex,
             WindowOpacity = OpacitySlider.Value,
             LightTheme = ThemeLight.IsChecked == true,
+            WallpaperFile = _wallpaperFile,
+            WallpaperDimming = (int)WallpaperDimmingSlider.Value,
             RecordDisplay = _captureDisplay?.DeviceName,
             HotkeysEnabled = HotkeysEnabledToggle.IsChecked == true,
             RobloxPriority = RobloxPriority.IsChecked == true,
             ClipFolder = ClipFolderBox.Text.Trim(),
+            SwitcherSlotA = SlotABox.Text.Trim(),
+            SwitcherSlotB = SlotBBox.Text.Trim(),
+            SwitcherIntervalMs = MacroStore.ParseInterval(SwitcherIntervalBox.Text) ?? 500,
+            SwitcherIntervalBMs = MacroStore.ParseInterval(SwitcherIntervalBBox.Text) ?? 40,
+            SwitcherEquipMs = MacroStore.ParseInterval(SwitcherEquipBox.Text) ?? KeyMacro.DefaultEquipMs,
             RecordFps = RecordFps,
             // RestoreBounds rather than Width/Height: while maximised those
             // report the maximised size, which would be restored as the
@@ -1058,6 +1286,8 @@ public partial class MainWindow : Window
             _hotkeySettings.RecordHotkey.VirtualKey,
             _hotkeySettings.ComboHotkey.VirtualKey,
             _hotkeySettings.BuildHotkey.VirtualKey,
+            _hotkeySettings.SwitcherHotkey.VirtualKey,
+            _hotkeySettings.MasterHotkey.VirtualKey,
             // Armed only when nothing is being rebound and the master switch is
             // on. Null-conditional because this runs once from the constructor,
             // before every control is necessarily built.
@@ -1868,6 +2098,8 @@ public partial class MainWindow : Window
         RecordHotkeyButton.Content = _hotkeySettings.RecordHotkey.Name;
         ComboHotkeyButton.Content = _hotkeySettings.ComboHotkey.Name;
         BuildHotkeyButton.Content = _hotkeySettings.BuildHotkey.Name;
+        SwitcherHotkeyButton.Content = _hotkeySettings.SwitcherHotkey.Name;
+        MasterHotkeyButton.Content = _hotkeySettings.MasterHotkey.Name;
 
         // The bindings live on three different pages, so Settings is the only
         // place they can all be read at once.
@@ -1878,7 +2110,8 @@ public partial class MainWindow : Window
                 $"{_hotkeySettings.ReplayHotkey.Name} — replay",
                 $"{_hotkeySettings.RecordHotkey.Name} — record",
                 $"{_hotkeySettings.ComboHotkey.Name} — click + shake",
-                $"{_hotkeySettings.BuildHotkey.Name} — building");
+                $"{_hotkeySettings.BuildHotkey.Name} — building",
+                $"{_hotkeySettings.MasterHotkey.Name} — hotkeys on/off");
         }
 
         RefreshStatus();
@@ -3127,7 +3360,154 @@ public partial class MainWindow : Window
         if (sender is not RadioButton { Tag: string tag }) return;
 
         ApplyTheme(tag == "Light");
+
+        // The sidebar's brush is thinned in code when a wallpaper is set, and
+        // repainting the palette hands it back an opaque one. Reapplied here,
+        // or switching mode quietly hides the picture behind the sidebar.
+        ApplyWallpaper();
+
         _settingsDirty = true;
+    }
+
+    /// <summary>Stored wallpaper file name, or empty when none is set.</summary>
+    private string _wallpaperFile = "";
+
+    /// <summary>
+    /// How much of the sidebar's own colour survives over a wallpaper.
+    /// </summary>
+    /// <remarks>
+    /// Not fully transparent. The nav buttons need something behind them to
+    /// read against, and a photograph alone is not reliably darker than the
+    /// text sitting on it.
+    /// </remarks>
+    private const byte SidebarOverWallpaperAlpha = 0xB0;
+
+    private void ChooseWallpaper_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose a wallpaper",
+            Filter = Wallpaper.FileFilter,
+            CheckFileExists = true
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        string? stored = Wallpaper.Store(dialog.FileName);
+
+        if (stored == null)
+        {
+            MessageBox.Show(this, "That image could not be used. It may be open in another program, or in a format this app cannot read.",
+                "Wallpaper", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _wallpaperFile = stored;
+        _settingsDirty = true;
+
+        ApplyWallpaper();
+    }
+
+    private void RemoveWallpaper_Click(object sender, RoutedEventArgs e)
+    {
+        Wallpaper.Clear();
+
+        _wallpaperFile = "";
+        _settingsDirty = true;
+
+        ApplyWallpaper();
+    }
+
+    private void WallpaperDimming_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // Fires while the XAML is still being parsed, before the layers exist.
+        if (WallpaperDim == null) return;
+
+        ApplyWallpaper();
+
+        _settingsDirty = true;
+    }
+
+    /// <summary>
+    /// Paints the wallpaper layers, or takes them away.
+    /// </summary>
+    /// <remarks>
+    /// One place decides all of it — image, dimming, the preview on the Theme
+    /// page and the sidebar's transparency — so the four cannot drift into
+    /// disagreeing about whether a wallpaper is set.
+    /// </remarks>
+    private void ApplyWallpaper()
+    {
+        int percent = Wallpaper.ClampDimming((int)WallpaperDimmingSlider.Value);
+        WallpaperDimmingText.Text = percent + "%";
+
+        string? path = Wallpaper.Resolve(_wallpaperFile);
+        ImageSource? image = path == null ? null : LoadWallpaper(path);
+
+        // A file that will not decode is not a wallpaper. Forgetting it here
+        // stops a broken picture being reloaded on every launch.
+        if (image == null) _wallpaperFile = "";
+
+        WallpaperImage.Source = image;
+        WallpaperPreview.Source = image;
+
+        Visibility shown = image == null ? Visibility.Collapsed : Visibility.Visible;
+
+        WallpaperImage.Visibility = shown;
+        WallpaperDim.Visibility = shown;
+        WallpaperPreview.Visibility = shown;
+        WallpaperEmptyText.Visibility = image == null ? Visibility.Visible : Visibility.Collapsed;
+        WallpaperDim.Opacity = Wallpaper.DimmingOpacity(percent);
+
+        WallpaperNameText.Text = image == null ? "No wallpaper set" : _wallpaperFile;
+        RemoveWallpaperButton.IsEnabled = image != null;
+
+        ApplySidebarOverWallpaper(image != null);
+    }
+
+    /// <summary>Thins the sidebar so the picture reaches behind it.</summary>
+    private void ApplySidebarOverWallpaper(bool wallpaperSet)
+    {
+        if (Resources["Sidebar"] is not SolidColorBrush sidebar) return;
+
+        Color color = sidebar.Color;
+
+        SidebarPanel.Background = wallpaperSet
+            ? new SolidColorBrush(Color.FromArgb(SidebarOverWallpaperAlpha, color.R, color.G, color.B))
+            : sidebar;
+    }
+
+    /// <summary>
+    /// Decodes a wallpaper, detached from the file on disk.
+    /// </summary>
+    /// <remarks>
+    /// OnLoad caching and a stream that is closed straight after: without it
+    /// WPF holds the file open for as long as the image is shown, and choosing
+    /// a replacement fails because the copy it is overwriting is locked by the
+    /// window displaying it.
+    /// </remarks>
+    private static ImageSource? LoadWallpaper(string path)
+    {
+        try
+        {
+            var image = new BitmapImage();
+
+            using (var stream = File.OpenRead(path))
+            {
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = stream;
+                image.EndInit();
+            }
+
+            image.Freeze();
+
+            return image;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>The chosen accent, in the hex form the settings file stores.</summary>
@@ -3361,22 +3741,482 @@ public partial class MainWindow : Window
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        PageTitleText.Text = title;
+        // Uppercased here rather than at every call site, so a page added later
+        // cannot arrive in sentence case and break the header's rhythm.
+        PageTitleText.Text = title.ToUpperInvariant();
         PageSubtitleText.Text = subtitle;
     }
 
     private Button[] NavButtons => new[]
     {
         NavClicker, NavPresets, NavTweaks, NavOptimizations,
-        NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
+        NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
     };
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PagePresets, PageTweaks, PageOptimizations,
-        PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
+        PageMacros, PageSwitcher, PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
     };
 
+    // ---- macros ----
+
+    private readonly MacroRunner _macros = new();
+    private readonly List<KeyMacro> _macroList = MacroStore.Load();
+
+    /// <summary>
+    /// The switcher's own macro name.
+    /// </summary>
+    /// <remarks>
+    /// Leading space so it can never collide with something typed on the Macros
+    /// page — a name is trimmed before it is saved there, so no user macro can
+    /// ever be called this.
+    /// </remarks>
+    private const string SwitcherName = " AutoSwitcher";
+
+    /// <summary>This window's handle, captured once for the macro threads.</summary>
+    /// <remarks>
+    /// Read on the UI thread and stored, because WindowInteropHelper cannot be
+    /// touched from anywhere else. GetForegroundWindow can, so the comparison
+    /// itself is safe on a macro thread.
+    /// </remarks>
+    private IntPtr _ownWindow;
+
+    /// <summary>The send count when the switcher was last turned on.</summary>
+    private long _switcherStartedAt;
+
+    /// <summary>How long the game takes to put a weapon in hand. Tunable, because
+    /// it is a guess that should be corrected against the hit counter.</summary>
+    private int _switcherEquipMs = KeyMacro.DefaultEquipMs;
+
+    /// <summary>Clicks the first slot must receive before the cycle moves on.</summary>
+    /// <remarks>
+    /// Two, so a click landing on the same instant the equip finishes cannot be
+    /// the only one counted.
+    /// </remarks>
+    private const int SwitcherShots = 2;
+
+    /// <summary>
+    /// Updates the switcher's live count while it runs.
+    /// </summary>
+    /// <remarks>
+    /// A number that climbs is the difference between "it is not working" and
+    /// "it is working and you are looking at the wrong window" — which is
+    /// exactly the confusion this feature produces on first use, because the
+    /// keys deliberately go somewhere you are not looking.
+    /// </remarks>
+    private readonly DispatcherTimer _macroTicker =
+        new() { Interval = TimeSpan.FromMilliseconds(400) };
+
+    private void StartMacroTicker()
+    {
+        _macroTicker.Tick += (_, _) =>
+        {
+            if (!_macros.IsRunning(SwitcherName))
+            {
+                _macroTicker.Stop();
+                return;
+            }
+
+            long swaps = _macros.Sent - _switcherStartedAt;
+
+            SwitcherCountText.Text = swaps == 0
+                ? "Waiting — nothing sent yet. Switch to the game and it starts."
+                : $"{swaps:N0} presses sent.";
+        };
+    }
+
+    /// <summary>
+    /// Stops macros typing into this application.
+    /// </summary>
+    /// <remarks>
+    /// While a macro is being set up the focused window is this one, so its
+    /// keys land in the very fields being edited — and their change handler
+    /// restarts the macro, so it fights itself and never reaches the game.
+    /// Suppressing while we are in front makes "switch to the game" something
+    /// the app does rather than something it asks for.
+    /// </remarks>
+    private void ArmMacroSuppression()
+    {
+        _ownWindow = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+        _macros.Suppressed = () => _ownWindow != IntPtr.Zero
+                                   && GetForegroundWindow() == _ownWindow;
+
+        // The same lock the shake engine takes. Without it a slot switch lands
+        // between a mouse-down and its release and the game sees an interrupted
+        // click — which is exactly why switching by hand fires fast and
+        // switching on a timer does not.
+        _macros.InputGate = _inputGate;
+
+        // Lets a weapon dip end on the click that fires it rather than on a
+        // timer generous enough to be safe. Read only.
+        _macros.Clicks = () => Interlocked.Read(ref _clickCount);
+    }
+
+    private void NavMacros_Click(object sender, RoutedEventArgs e)
+    {
+        BuildMacroCards();
+        ShowPage(NavMacros, PageMacros, "Macros", "Spam a key, or cycle a few");
+    }
+
+    private void NavSwitcher_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(NavSwitcher, PageSwitcher, "Auto Switcher", "Swap between two hotbar slots");
+
+    private void BuildMacroCards()
+    {
+        MacroList.Items.Clear();
+
+        foreach (KeyMacro macro in _macroList) MacroList.Items.Add(MacroCard(macro));
+
+        RefreshMacroRunning();
+    }
+
+    /// <summary>
+    /// One macro card: what it sends, how often, and a switch.
+    /// </summary>
+    /// <remarks>
+    /// Built in code rather than as a DataTemplate because the toggle reflects
+    /// the runner, and whether a macro is running is a fact about the process
+    /// rather than a property of the macro.
+    /// </remarks>
+    private Border MacroCard(KeyMacro macro)
+    {
+        var name = new TextBlock
+        {
+            Text = macro.Name,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 14,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+
+        var summary = new TextBlock
+        {
+            Text = macro.SummaryText,
+            FontSize = 11,
+            Margin = new Thickness(0, 6, 0, 0),
+            Foreground = (Brush)FindResource("Accent")
+        };
+
+        var toggle = new CheckBox
+        {
+            IsChecked = _macros.IsRunning(macro.Name),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0)
+        };
+
+        toggle.Checked += (_, _) => { _macros.Start(macro); RefreshMacroRunning(); };
+        toggle.Unchecked += (_, _) => { _macros.Stop(macro.Name); RefreshMacroRunning(); };
+
+        // Rebind button for this macro's toggle key. Same "click, press a key"
+        // flow as the fixed hotkeys — the button IS the prompt while it waits.
+        var hotkeyLabel = new TextBlock
+        {
+            Text = "TOGGLE HOTKEY",
+            FontSize = 9,
+            FontWeight = FontWeights.Bold,
+            Foreground = (Brush)FindResource("TextMuted"),
+            Margin = new Thickness(0, 10, 0, 4)
+        };
+
+        var hotkeyButton = new Button
+        {
+            Content = macro.Hotkey.Name,
+            Padding = new Thickness(10, 4, 10, 4),
+            FontSize = 11,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+
+        hotkeyButton.Click += (_, _) =>
+        {
+            if (_rebinding == RebindTarget.Macro && ReferenceEquals(_rebindingMacro, macro))
+            {
+                CancelRebind();
+                return;
+            }
+
+            _rebindingMacro = macro;
+            _rebindingMacroButton = hotkeyButton;
+            BeginRebind(RebindTarget.Macro);
+        };
+
+        var remove = new Button
+        {
+            Content = "Delete",
+            Padding = new Thickness(10, 4, 10, 4),
+            FontSize = 11,
+            Margin = new Thickness(0, 10, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+
+        remove.Click += (_, _) =>
+        {
+            // Stopped before it is forgotten. Dropping a running macro from the
+            // list without cancelling leaves a thread typing a key with nothing
+            // on screen left to switch it off.
+            _macros.Stop(macro.Name);
+
+            // The rebind flow holds a reference to the macro being rebound —
+            // deleting that macro mid-rebind would otherwise leave the button
+            // waiting for a key that can never land anywhere useful.
+            if (_rebinding == RebindTarget.Macro && ReferenceEquals(_rebindingMacro, macro))
+                CancelRebind();
+
+            _macroList.Remove(macro);
+            MacroStore.Save(_macroList);
+
+            BuildMacroCards();
+        };
+
+        var header = new DockPanel { LastChildFill = true };
+        DockPanel.SetDock(toggle, Dock.Right);
+        header.Children.Add(toggle);
+        header.Children.Add(name);
+
+        var body = new StackPanel();
+        body.Children.Add(header);
+        body.Children.Add(summary);
+        body.Children.Add(hotkeyLabel);
+        body.Children.Add(hotkeyButton);
+        body.Children.Add(remove);
+
+        return new Border
+        {
+            Background = (Brush)FindResource("Control"),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(14),
+            Margin = new Thickness(0, 0, 10, 10),
+            Width = 210,
+            Child = body
+        };
+    }
+
+    private void RefreshMacroRunning()
+    {
+        // The switcher runs on the same engine but belongs to its own page, so
+        // it must not be counted here.
+        int count = _macros.RunningCount - (_macros.IsRunning(SwitcherName) ? 1 : 0);
+
+        MacroRunningText.Text = count switch
+        {
+            0 => "Nothing running.",
+            1 => "1 macro running.",
+            _ => $"{count} macros running."
+        };
+    }
+
+    private void StopAllMacros_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (KeyMacro macro in _macroList) _macros.Stop(macro.Name);
+
+        BuildMacroCards();
+    }
+
+    private void SaveMacro_Click(object sender, RoutedEventArgs e)
+    {
+        MacroErrorText.Visibility = Visibility.Collapsed;
+
+        string name = MacroNameBox.Text.Trim();
+
+        if (name.Length == 0)
+        {
+            ShowMacroError("Give it a name.");
+            return;
+        }
+
+        // The second box is optional, so it is joined only when it holds
+        // something. Passing an empty one through would produce a trailing
+        // separator and a parse that refuses a perfectly good single key.
+        string typed = MacroKey1Box.Text.Trim();
+        string second = MacroKey2Box.Text.Trim();
+
+        if (second.Length > 0) typed += "," + second;
+
+        (int[] Keys, string Text)? keys = MacroStore.ParseKeys(typed);
+
+        if (keys == null)
+        {
+            ShowMacroError("Each key box takes one letter or digit — R, or 1, or Q.");
+            return;
+        }
+
+        int? interval = MacroStore.ParseInterval(MacroIntervalBox.Text);
+
+        if (interval == null)
+        {
+            ShowMacroError($"Interval must be between {KeyMacro.MinIntervalMs} and {KeyMacro.MaxIntervalMs} ms.");
+            return;
+        }
+
+        // Replacing a running macro would otherwise leave the old thread going
+        // with the old keys, invisibly, its card having been rebuilt.
+        _macros.Stop(name);
+
+        MacroStore.Upsert(_macroList, new KeyMacro(
+            name, keys.Value.Keys, keys.Value.Text, interval.Value,
+            hotkey: _pendingNewMacroHotkey));
+        MacroStore.Save(_macroList);
+
+        MacroNameBox.Clear();
+        MacroKey1Box.Clear();
+        MacroKey2Box.Clear();
+        MacroIntervalBox.Clear();
+
+        // The pending pick has been baked into the macro; the form's toggle
+        // slot goes back to Unbound so the next macro starts fresh.
+        _pendingNewMacroHotkey = HotkeyBinding.Unbound;
+        if (NewMacroHotkeyButton != null) NewMacroHotkeyButton.Content = "Not set";
+
+        BuildMacroCards();
+    }
+
+    /// <summary>Rebind entry point for the NEW MACRO form's toggle-hotkey slot.</summary>
+    private void NewMacroHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Macro && _rebindingMacro == null)
+        {
+            CancelRebind();
+            return;
+        }
+
+        _rebindingMacro = null;                       // null == form slot
+        _rebindingMacroButton = NewMacroHotkeyButton; // shows "Select A Hotkey"
+        BeginRebind(RebindTarget.Macro);
+    }
+
+    private void ShowMacroError(string message)
+    {
+        MacroErrorText.Text = message;
+        MacroErrorText.Visibility = Visibility.Visible;
+    }
+
+    // ---- auto switcher ----
+
+    private void Switcher_Changed(object sender, RoutedEventArgs e) => RefreshSwitcher();
+
+    private void SwitcherHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding == RebindTarget.Switcher) CancelRebind();
+        else BeginRebind(RebindTarget.Switcher);
+    }
+
+    /// <summary>
+    /// Flips the switcher from its hotkey.
+    /// </summary>
+    /// <remarks>
+    /// Goes through the checkbox rather than starting the macro directly, so
+    /// the page and the engine cannot disagree about whether it is running —
+    /// the toggle is the single source of that answer.
+    /// </remarks>
+    private void OnSwitcherHotkey() =>
+        SwitcherEnabled.IsChecked = SwitcherEnabled.IsChecked != true;
+
+    /// <summary>
+    /// Turns every other hotkey off, and back on again.
+    /// </summary>
+    /// <remarks>
+    /// Flips the same switch the Settings checkbox does rather than keeping a
+    /// second notion of whether hotkeys are on, so the box always shows the
+    /// truth however it was last changed.
+    ///
+    /// Note this leaves a running clicker running — the same as unticking the
+    /// box by hand — and its stop key is off along with the rest. Dropping the
+    /// pointer into a screen corner still stops it.
+    /// </remarks>
+    private void OnMasterHotkey() =>
+        HotkeysEnabledToggle.IsChecked = HotkeysEnabledToggle.IsChecked != true;
+
+    private void SwitcherField_Changed(object sender, TextChangedEventArgs e) => RefreshSwitcher();
+
+    /// <summary>
+    /// Rebuilds the switcher from its fields and starts or stops it.
+    /// </summary>
+    /// <remarks>
+    /// Always stopped first. The keys and the rate can change while it runs, and
+    /// a running thread holds the values it was started with — so the only way
+    /// to apply an edit is to replace the thread.
+    /// </remarks>
+    private void RefreshSwitcher()
+    {
+        if (SlotABox == null || SlotBBox == null || SwitcherIntervalBox == null) return;
+
+        _macros.Stop(SwitcherName);
+
+        (int[] Keys, string Text)? keys =
+            MacroStore.ParseKeys(SlotABox.Text.Trim() + "," + SlotBBox.Text.Trim());
+
+        int? holdA = MacroStore.ParseInterval(SwitcherIntervalBox.Text);
+        int? holdB = MacroStore.ParseInterval(SwitcherIntervalBBox.Text);
+
+        _switcherEquipMs = MacroStore.ParseInterval(SwitcherEquipBox.Text) ?? KeyMacro.DefaultEquipMs;
+
+        if (keys == null || keys.Value.Keys.Length != 2 || holdA == null || holdB == null)
+        {
+            SwitcherStatusText.Text =
+                "Both slots need one letter or digit, and both hold times must be between "
+                + $"{KeyMacro.MinIntervalMs} and {KeyMacro.MaxIntervalMs} ms.";
+
+            return;
+        }
+
+        int? interval = holdA;
+
+        _settingsDirty = true;
+
+        if (SwitcherEnabled.IsChecked != true)
+        {
+            SwitcherStatusText.Text = "Off.";
+            SwitcherCountText.Text = "";
+            _macroTicker.Stop();
+            return;
+        }
+
+        // Raised to whatever actually guarantees a shot, rather than trusting
+        // the number in the box. The click period comes from the clicker's own
+        // live settings, so changing CPS changes this without anyone noticing
+        // they had to.
+        double clickPeriod = _settings.Timing.PeriodMs;
+        int floor = KeyMacro.MinimumDwellMs(clickPeriod, _switcherEquipMs);
+
+        int firstHold = Math.Max(holdA.Value, floor);
+        bool raised = firstHold > holdA.Value;
+
+        _macros.Start(new KeyMacro(
+            SwitcherName, keys.Value.Keys, keys.Value.Text, firstHold,
+            new[] { firstHold, holdB.Value },
+            clicksWanted: SwitcherShots,
+            equipMs: _switcherEquipMs));
+
+        _switcherStartedAt = _macros.Sent;
+
+        SwitcherStatusText.Text =
+            $"On — {SlotABox.Text.Trim()} for {firstHold} ms, then {SlotBBox.Text.Trim()} for {holdB.Value} ms."
+            + (raised
+                ? $"  Raised from {holdA.Value} to {firstHold} ms: at {1000.0 / clickPeriod:0} clicks a second "
+                  + $"that is the shortest hold that still lands two clicks after the {_switcherEquipMs} ms equip. "
+                  + "Anything shorter draws the weapon and swaps away before it fires."
+                : "")
+            + "  Nothing is sent while this window is in front, so switch to the game.";
+
+        _macroTicker.Start();
+    }
+
+    /// <remarks>
+    /// Never restored as running. A switcher that starts typing into whatever
+    /// happens to be focused the moment the app opens is a nasty surprise, and
+    /// the app opens long before the game does.
+    /// </remarks>
+    private void ApplySwitcherToUi(AppSettings s)
+    {
+        SlotABox.Text = s.SwitcherSlotA;
+        SlotBBox.Text = s.SwitcherSlotB;
+        SwitcherIntervalBox.Text = s.SwitcherIntervalMs.ToString(CultureInfo.CurrentCulture);
+        SwitcherIntervalBBox.Text = s.SwitcherIntervalBMs.ToString(CultureInfo.CurrentCulture);
+        SwitcherEquipBox.Text = s.SwitcherEquipMs.ToString(CultureInfo.CurrentCulture);
+
+        SwitcherEnabled.IsChecked = false;
+        SwitcherStatusText.Text = "Off.";
+    }
     // ---- Windows tweaks ----
 
     private void RefreshTweaks()
@@ -3598,6 +4438,11 @@ public partial class MainWindow : Window
         PresetStore.Save(_clickPresets);
         _hotkeySettings.Save();
         _tweakState.Save();
+
+        // Every macro thread stopped before the window goes. A background
+        // thread outliving the UI would keep typing into whatever is focused
+        // with nothing left on screen to stop it.
+        _macros.Dispose();
 
         // A recording still running at this point would leave an unplayable
         // file, so it gets a chance to finalise before the process goes.

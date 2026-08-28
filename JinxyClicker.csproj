@@ -21,4 +21,14 @@
     <None Remove="Testing/**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Shipped inside the assembly so a fresh install can lay it down as the
+      window background on first launch, without dragging along a loose file
+      that could go missing between install and run. LogicalName pins the
+      manifest name so relocating the source file cannot silently rename it.
+    -->
+    <EmbeddedResource Include="icon-source.png" LogicalName="DefaultWallpaper.png" />
+  </ItemGroup>
+
 </Project>

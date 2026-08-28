@@ -19,6 +19,12 @@
     <Compile Include="../ClickPreset.Tests.cs" />
     <Compile Include="../AppSettings.cs" />
     <Compile Include="../SettingsPath.cs" />
+    <Compile Include="../Wallpaper.cs" />
+    <Compile Include="../Wallpaper.Tests.cs" />
+    <Compile Include="../KeyMacro.cs" />
+    <Compile Include="../KeyMacro.Tests.cs" />
+    <Compile Include="../KeyMacroDwell.Tests.cs" />
+    <Compile Include="../KeyMacroWait.Tests.cs" />
     <Compile Include="../CaptureBackend.cs" />
     <Compile Include="../CaptureBackend.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
