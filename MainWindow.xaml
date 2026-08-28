@@ -108,14 +108,14 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid>
-                            <Border x:Name="Root" CornerRadius="8"
+                            <Border x:Name="Root" CornerRadius="1"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"/>
                             <!-- Neutral sheen so hover/press read the same on the
                                  dark fill and on the accent fill. -->
-                            <Border x:Name="Sheen" CornerRadius="8" Background="{StaticResource Sheen}" Opacity="0"/>
-                            <Border x:Name="FocusRing" CornerRadius="8" Opacity="0"
+                            <Border x:Name="Sheen" CornerRadius="1" Background="{StaticResource Sheen}" Opacity="0"/>
+                            <Border x:Name="FocusRing" CornerRadius="1" Opacity="0"
                                     BorderThickness="1" BorderBrush="{StaticResource Accent}"/>
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -149,17 +149,23 @@
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource TextSoft}"/>
-            <Setter Property="Padding" Value="16,11"/>
-            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="Margin" Value="0,0,0,1"/>
+            <!-- Uppercase and tracked out. The label carries the weight rather
+                 than a rounded pill behind it. -->
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid>
-                            <Border x:Name="Root" CornerRadius="8"
+                            <Border x:Name="Root" CornerRadius="0"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="8" Background="{StaticResource Sheen}" Opacity="0"/>
-                            <Border x:Name="SelBar" Width="3" Margin="0,8" Opacity="0"
-                                    HorizontalAlignment="Left" CornerRadius="2"
+                            <Border x:Name="Sheen" CornerRadius="0" Background="{StaticResource Sheen}" Opacity="0"/>
+                            <!-- Full height and square. An inset rounded bar is
+                                 the soft look this is moving away from. -->
+                            <Border x:Name="SelBar" Width="4" Opacity="0"
+                                    HorizontalAlignment="Left" CornerRadius="0"
                                     Background="{StaticResource Accent}"/>
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="Left"
@@ -210,9 +216,9 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Grid>
-                            <Border x:Name="Root" CornerRadius="8"
+                            <Border x:Name="Root" CornerRadius="1"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="8" Background="{StaticResource Sheen}" Opacity="0"/>
+                            <Border x:Name="Sheen" CornerRadius="1" Background="{StaticResource Sheen}" Opacity="0"/>
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
@@ -255,11 +261,11 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Grid>
-                            <Border x:Name="Ring" CornerRadius="12"
+                            <Border x:Name="Ring" CornerRadius="2"
                                     BorderThickness="2" BorderBrush="Transparent"/>
-                            <Border x:Name="Fill" CornerRadius="8" Margin="4"
+                            <Border x:Name="Fill" CornerRadius="1" Margin="4"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="8" Margin="4"
+                            <Border x:Name="Sheen" CornerRadius="1" Margin="4"
                                     Background="{StaticResource Sheen}" Opacity="0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -301,7 +307,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <Border x:Name="Root" CornerRadius="6"
+                        <Border x:Name="Root" CornerRadius="1"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}">
@@ -383,10 +389,10 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid>
-                            <Border x:Name="Root" CornerRadius="10" BorderThickness="1"
+                            <Border x:Name="Root" CornerRadius="2" BorderThickness="1"
                                     BorderBrush="Transparent"
                                     Background="{TemplateBinding Background}"/>
-                            <Border x:Name="Sheen" CornerRadius="10" Background="{StaticResource Sheen}" Opacity="0"/>
+                            <Border x:Name="Sheen" CornerRadius="2" Background="{StaticResource Sheen}" Opacity="0"/>
                             <Border x:Name="Rail" Width="3" Margin="0,10" Opacity="0"
                                     HorizontalAlignment="Left" CornerRadius="2"
                                     Background="{StaticResource Accent}"/>
@@ -670,11 +676,11 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
                         <Grid Width="46" Height="26">
-                            <Border x:Name="Track" CornerRadius="13"
+                            <Border x:Name="Track" CornerRadius="3"
                                     Background="{StaticResource Track}"
                                     BorderThickness="1" BorderBrush="{StaticResource Outline}"/>
-                            <Border x:Name="Glow" CornerRadius="13" Background="{StaticResource Sheen}" Opacity="0"/>
-                            <Border x:Name="Knob" Width="18" Height="18" CornerRadius="9"
+                            <Border x:Name="Glow" CornerRadius="3" Background="{StaticResource Sheen}" Opacity="0"/>
+                            <Border x:Name="Knob" Width="18" Height="18" CornerRadius="3"
                                     Background="{StaticResource TextMuted}"
                                     HorizontalAlignment="Left" Margin="4,0,0,0"/>
                         </Grid>
@@ -709,31 +715,54 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Background="{StaticResource Sidebar}">
-            <StackPanel Margin="14">
-                <TextBlock Text="Jinxy" FontSize="22" FontWeight="Bold"
-                           Foreground="{StaticResource Text}" Margin="8,14,8,2"/>
-                <TextBlock Text="ORIGINAL BUILD" FontSize="9" FontWeight="Bold"
-                           Foreground="{StaticResource Accent}" Margin="9,0,0,28"/>
+        <!-- Wallpaper, behind everything. First in the grid rather than given a
+             ZIndex, so the ordering is visible where the layers are declared.
+             Both layers span the columns: the picture sits behind the sidebar
+             as well as the page, and the sidebar is thinned to let it through
+             whenever one is set. -->
+        <Image x:Name="WallpaperImage" Grid.ColumnSpan="2"
+               Stretch="UniformToFill" Visibility="Collapsed"/>
+        <Border x:Name="WallpaperDim" Grid.ColumnSpan="2"
+                Background="#000000" Opacity="0.45" Visibility="Collapsed"/>
 
-                <Button x:Name="NavClicker" Content="Clicker" Style="{StaticResource NavButton}"
+        <!-- Sidebar -->
+        <Border x:Name="SidebarPanel" Grid.Column="0" Background="{StaticResource Sidebar}">
+            <StackPanel Margin="14">
+                <!-- Wordmark sits against a solid accent block rather than
+                     floating over the sidebar. The slab is the mark. -->
+                <StackPanel Orientation="Horizontal" Margin="4,16,8,2">
+                    <Border Background="{StaticResource Accent}" Width="5" Margin="0,2,10,2"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="JINXY" FontSize="24" FontWeight="Black"
+                                   Foreground="{StaticResource TextBright}"/>
+                        <TextBlock Text="ORIGINAL BUILD" FontSize="8" FontWeight="Bold"
+                                   Foreground="{StaticResource TextMuted}" Margin="1,1,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Height="1" Background="{StaticResource Divider}" Margin="4,16,8,18"/>
+
+                <Button x:Name="NavClicker" Content="CLICKER" Style="{StaticResource NavButton}"
                         Tag="Selected" Click="NavClicker_Click"/>
-                <Button x:Name="NavPresets" Content="Presets" Style="{StaticResource NavButton}"
+                <Button x:Name="NavPresets" Content="PRESETS" Style="{StaticResource NavButton}"
                         Click="NavPresets_Click"/>
-                <Button x:Name="NavTweaks" Content="Tweaks" Style="{StaticResource NavButton}"
+                <Button x:Name="NavMacros" Content="MACROS" Style="{StaticResource NavButton}"
+                        Click="NavMacros_Click"/>
+                <Button x:Name="NavSwitcher" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
+                        Click="NavSwitcher_Click"/>
+                <Button x:Name="NavTweaks" Content="TWEAKS" Style="{StaticResource NavButton}"
                         Click="NavTweaks_Click"/>
-                <Button x:Name="NavOptimizations" Content="Optimizations" Style="{StaticResource NavButton}"
+                <Button x:Name="NavOptimizations" Content="OPTIMIZATIONS" Style="{StaticResource NavButton}"
                         Click="NavOptimizations_Click"/>
-                <Button x:Name="NavMod" Content="Mod" Style="{StaticResource NavButton}"
+                <Button x:Name="NavMod" Content="MOD" Style="{StaticResource NavButton}"
                         Click="NavMod_Click"/>
-                <Button x:Name="NavRecorder" Content="Recorder" Style="{StaticResource NavButton}"
+                <Button x:Name="NavRecorder" Content="RECORDER" Style="{StaticResource NavButton}"
                         Click="NavRecorder_Click"/>
-                <Button x:Name="NavHistory" Content="History" Style="{StaticResource NavButton}"
+                <Button x:Name="NavHistory" Content="HISTORY" Style="{StaticResource NavButton}"
                         Click="NavHistory_Click"/>
-                <Button x:Name="NavTheme" Content="Theme" Style="{StaticResource NavButton}"
+                <Button x:Name="NavTheme" Content="THEME" Style="{StaticResource NavButton}"
                         Click="NavTheme_Click"/>
-                <Button x:Name="NavSettings" Content="Settings" Style="{StaticResource NavButton}"
+                <Button x:Name="NavSettings" Content="SETTINGS" Style="{StaticResource NavButton}"
                         Click="NavSettings_Click"/>
 
             </StackPanel>
@@ -754,10 +783,15 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
+                <!-- Accent rule under the title rather than a subtitle hanging
+                     softly beneath it. Squares the header off. -->
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock x:Name="PageTitleText" Text="Clicker" FontSize="30" FontWeight="Bold"/>
+                    <TextBlock x:Name="PageTitleText" Text="CLICKER" FontSize="28" FontWeight="Black"
+                               Foreground="{StaticResource TextBright}"/>
+                    <Border Height="3" Width="34" Background="{StaticResource Accent}"
+                            HorizontalAlignment="Left" Margin="0,5,0,0"/>
                     <TextBlock x:Name="PageSubtitleText" Text="Configure your own click engine"
-                               Foreground="{StaticResource TextMuted}" Margin="0,2,0,0"/>
+                               Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,7,0,0"/>
                 </StackPanel>
 
                 <!-- Pill and button share an explicit height so they align.
@@ -767,7 +801,7 @@
                     <Button x:Name="HideValuesButton" Content="Hide values"
                             Click="HideValues_Click" Height="40" Padding="16,0" Margin="0,0,10,0"
                             ToolTip="Masks the CPS and duty cycle so they are not readable on screen"/>
-                    <Border Background="{StaticResource Panel2}" CornerRadius="8" Height="40" Padding="14,0"
+                    <Border Background="{StaticResource Panel2}" CornerRadius="1" Height="40" Padding="14,0"
                             Margin="0,0,10,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="StatusDot" Width="8" Height="8"
@@ -792,7 +826,7 @@
 
                     <!-- Stats -->
                     <UniformGrid Columns="2" Margin="0,0,0,14">
-                        <Border Background="{StaticResource Panel}" CornerRadius="11" Padding="16" Margin="0,0,7,0">
+                        <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,7,0">
                             <StackPanel>
                                 <TextBlock Text="CPU" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                                 <!-- The two tiles measure different things: CPU is
@@ -806,7 +840,7 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
-                        <Border Background="{StaticResource Panel}" CornerRadius="11" Padding="16" Margin="7,0,0,0">
+                        <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="7,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="RAM" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
@@ -954,7 +988,7 @@
                     </Grid>
 
                     <!-- Precision -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="PRECISION" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold" Margin="0,0,0,4"/>
@@ -1120,7 +1154,7 @@
                 <!-- Remaining pages: same chrome, no components yet. -->
                 <StackPanel x:Name="PagePresets" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="CLICK PRESETS — CPS / CDC"
@@ -1201,7 +1235,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="CUSTOM PRESET" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1250,9 +1284,192 @@
 
                 </StackPanel>
 
+                <!-- Macros: any key, any rate, as many as you like. -->
+                <StackPanel x:Name="PageMacros" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="RUNNING" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Button x:Name="StopAllMacrosButton" DockPanel.Dock="Right"
+                                        Content="Stop all" Click="StopAllMacros_Click"
+                                        Padding="14,6" FontSize="11"/>
+                            </DockPanel>
+                            <TextBlock x:Name="MacroRunningText" Text="Nothing running."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       Margin="0,6,0,0"/>
+                            <TextBlock Text="A macro types a key over and over while it is on. It goes to whatever window is in front, so switch to the game before starting one."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ItemsControl x:Name="MacroList" Margin="0,0,0,14">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="NEW MACRO" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="One letter or digit per box. Fill the second and the macro alternates between the two; leave it empty and it just spams the first."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBox x:Name="MacroNameBox" Style="{StaticResource FieldBox}"/>
+                                    <TextBlock Text="NAME" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBox x:Name="MacroKey1Box" Style="{StaticResource FieldBox}"
+                                             MaxLength="1"/>
+                                    <TextBlock Text="KEY" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBox x:Name="MacroKey2Box" Style="{StaticResource FieldBox}"
+                                             MaxLength="1"/>
+                                    <TextBlock Text="2ND KEY (OPTIONAL)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="6">
+                                    <Button x:Name="NewMacroHotkeyButton" Content="Not set"
+                                            Click="NewMacroHotkey_Click"
+                                            Height="34" Padding="12,0"/>
+                                    <TextBlock Text="TOGGLE HOTKEY (OPTIONAL)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="8">
+                                    <TextBox x:Name="MacroIntervalBox" Style="{StaticResource NumericFieldBox}"/>
+                                    <TextBlock Text="EVERY (MS)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="10" x:Name="SaveMacroButton" Content="+  Save"
+                                        Style="{StaticResource AccentButton}" Click="SaveMacro_Click"
+                                        Height="34" Padding="20,0" VerticalAlignment="Top"/>
+                            </Grid>
+
+                            <TextBlock x:Name="MacroErrorText" Visibility="Collapsed"
+                                       Foreground="{StaticResource Accent}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Auto Switcher: the same engine, two keys, one purpose. -->
+                <StackPanel x:Name="PageSwitcher" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="AUTO SWITCHER" Style="{StaticResource CardLabel}"/>
+                                    <TextBlock Text="Swaps between two hotbar slots on a timer — sword and crossbow, or pickaxe and gumdrop."
+                                               Style="{StaticResource CardHint}"/>
+                                </StackPanel>
+                                <CheckBox x:Name="SwitcherEnabled" DockPanel.Dock="Right" Margin="0"
+                                          VerticalAlignment="Center"
+                                          Checked="Switcher_Changed" Unchecked="Switcher_Changed"/>
+                            </DockPanel>
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBox x:Name="SlotABox" Style="{StaticResource FieldBox}" MaxLength="1"
+                                             TextChanged="SwitcherField_Changed"/>
+                                    <TextBlock Text="FIRST SLOT" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBox x:Name="SlotBBox" Style="{StaticResource FieldBox}" MaxLength="1"
+                                             TextChanged="SwitcherField_Changed"/>
+                                    <TextBlock Text="SECOND SLOT" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBox x:Name="SwitcherIntervalBox" Style="{StaticResource NumericFieldBox}"
+                                             TextChanged="SwitcherField_Changed"/>
+                                    <TextBlock Text="HOLD FIRST (MS)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="6">
+                                    <TextBox x:Name="SwitcherEquipBox" Style="{StaticResource NumericFieldBox}"
+                                             TextChanged="SwitcherField_Changed"/>
+                                    <TextBlock Text="EQUIP DELAY (MS)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="8">
+                                    <TextBox x:Name="SwitcherIntervalBBox" Style="{StaticResource NumericFieldBox}"
+                                             TextChanged="SwitcherField_Changed"/>
+                                    <TextBlock Text="HOLD SECOND (MS)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock x:Name="SwitcherStatusText" Text=""
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,14,0,0"/>
+                            <TextBlock x:Name="SwitcherCountText" Text=""
+                                       Foreground="{StaticResource Accent}" FontSize="11"
+                                       FontWeight="Bold" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="KEYBIND" Style="{StaticResource CardLabel}"/>
+                                    <TextBlock Text="Turns the switcher on and off from inside the game"
+                                               Style="{StaticResource CardHint}"/>
+                                </StackPanel>
+                                <Button x:Name="SwitcherHotkeyButton" Content="Not set"
+                                        Click="SwitcherHotkey_Click"
+                                        DockPanel.Dock="Right" VerticalAlignment="Center"
+                                        ToolTip="Click, then press a key or mouse side button"
+                                        FontSize="17" FontWeight="Bold"
+                                        Height="42" MinWidth="96" Padding="16,0" Margin="0"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Slot keys are just the number keys Roblox already uses — the switcher presses 1 and 2 exactly as you would. It does not read the screen or the game."
+                                       Style="{StaticResource CardHint}" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
                 <StackPanel x:Name="PageTweaks" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="WINDOWS SYSTEM TWEAKS" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1273,7 +1490,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="PERFORMANCE" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1287,7 +1504,7 @@
 
                 <StackPanel x:Name="PageOptimizations" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="TEMP FILE CLEANER" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1310,7 +1527,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="INPUT" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1324,7 +1541,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="MEMORY" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1347,7 +1564,7 @@
 
                 <StackPanel x:Name="PageMod" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="FPS BOOST FASTFLAGS" Foreground="{StaticResource TextMuted}"
@@ -1381,7 +1598,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="GRAPHICS API" Foreground="{StaticResource TextMuted}"
@@ -1427,7 +1644,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
@@ -1450,7 +1667,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="WHAT THIS SETS" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1486,7 +1703,7 @@
 
                 <StackPanel x:Name="PageHistory" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="ALL TIME" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1529,7 +1746,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="THIS SESSION" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1556,7 +1773,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="BY DAY" Foreground="{StaticResource TextMuted}"
@@ -1603,7 +1820,7 @@
 
                 <StackPanel x:Name="PageRecorder" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="RECORD" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1642,7 +1859,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="INSTANT REPLAY" Foreground="{StaticResource TextMuted}"
@@ -1684,7 +1901,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="SHARE A CLIP" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1693,7 +1910,7 @@
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
                             <Border Background="{StaticResource AccentWash}" BorderBrush="{StaticResource Accent}"
-                                    BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,14,0,0">
+                                    BorderThickness="1" CornerRadius="1" Padding="12" Margin="0,14,0,0">
                                 <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Text}"
                                            Text="Uploading publishes the clip. Anyone with the link can watch it, there is no reliable way to delete it afterwards, and a screen recording captures whatever else was on screen at the time."/>
                             </Border>
@@ -1712,7 +1929,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="LINK" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1734,7 +1951,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageTheme" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MODE" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1754,7 +1971,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="ACCENT COLOR" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1823,7 +2040,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="WINDOW OPACITY" Foreground="{StaticResource TextMuted}"
@@ -1842,10 +2059,63 @@
                                     ValueChanged="OpacitySlider_ValueChanged"/>
                         </StackPanel>
                     </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="WALLPAPER" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="WallpaperNameText" DockPanel.Dock="Right"
+                                           Text="No wallpaper set"
+                                           Foreground="{StaticResource TextMuted}" FontSize="11"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Use your own image as the background behind the sidebar and main page. PNG, JPEG, BMP or WebP. The picture is copied next to the app so moving or deleting the original won't break it."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <Border Background="{StaticResource Panel2}" CornerRadius="2"
+                                    Height="130" Margin="0,12,0,0" ClipToBounds="True">
+                                <Grid>
+                                    <TextBlock x:Name="WallpaperEmptyText" Text="No wallpaper set"
+                                               Foreground="{StaticResource TextMuted}" FontSize="12"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Image x:Name="WallpaperPreview" Stretch="UniformToFill"
+                                           Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button x:Name="ChooseWallpaperButton" Content="Choose Image..."
+                                        Style="{StaticResource AccentButton}" Height="36" Padding="16,0"
+                                        Click="ChooseWallpaper_Click"/>
+                                <Button x:Name="RemoveWallpaperButton" Content="Remove"
+                                        Height="36" Padding="16,0" Margin="10,0,0,0"
+                                        Click="RemoveWallpaper_Click"/>
+                            </StackPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,16,0,0">
+                                <TextBlock Text="Background Dimming" Foreground="{StaticResource TextSoft}"
+                                           FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="WallpaperDimmingText" DockPanel.Dock="Right" Text="45%"
+                                           Foreground="{StaticResource Accent}" FontSize="11"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <Slider x:Name="WallpaperDimmingSlider" Minimum="0" Maximum="90" Value="45"
+                                    Margin="0,8,0,0" TickFrequency="5"
+                                    ValueChanged="WallpaperDimming_ValueChanged"/>
+
+                            <TextBlock Text="How far the image is darkened behind the interface. Higher values keep text readable on bright photos."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="HOTKEYS" Foreground="{StaticResource TextMuted}"
@@ -1855,17 +2125,33 @@
                                           Checked="HotkeysEnabled_Changed" Unchecked="HotkeysEnabled_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="Hotkeys are watched system-wide, so they fire inside a game — and just as readily while you are typing in a browser or a chat box. Turning this off silences all four without unbinding them."
+                            <TextBlock Text="Hotkeys are watched system-wide, so they fire inside a game — and just as readily while you are typing in a browser or a chat box. Turning this off silences the rest without unbinding them."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
+                            <Border Height="1" Background="{StaticResource Divider}" Margin="0,14,0,0"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="HOTKEY FOR THE SWITCH ABOVE" Foreground="{StaticResource TextSoft}"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Flips that checkbox from anywhere. Keeps listening while hotkeys are off, so it can always turn them back on."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11"
+                                               TextWrapping="Wrap" MaxWidth="430" HorizontalAlignment="Left"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <Button x:Name="MasterHotkeyButton" DockPanel.Dock="Right" Content="Not set"
+                                        MinWidth="110" Height="36" Padding="14,0" VerticalAlignment="Center"
+                                        Click="MasterHotkey_Click"/>
+                            </DockPanel>
+
                             <TextBlock x:Name="HotkeySummaryText" Text=""
                                        Foreground="{StaticResource TextDim}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                       TextWrapping="Wrap" Margin="0,14,0,0"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="CLIP FOLDER" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1884,7 +2170,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="RECORDING FRAMERATE" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1952,7 +2238,7 @@
                  Effect forces everything inside it through an intermediate
                  surface, which drops ClearType and softens all the text — so the
                  card itself must not be inside one. -->
-            <Border CornerRadius="14" Background="{StaticResource Panel}" MaxWidth="460" Margin="0,0,0,0"
+            <Border CornerRadius="3" Background="{StaticResource Panel}" MaxWidth="460" Margin="0,0,0,0"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Width="460" Height="{Binding ActualHeight, ElementName=ConfirmCard}">
                 <Border.Effect>
@@ -1960,7 +2246,7 @@
                 </Border.Effect>
             </Border>
 
-            <Border x:Name="ConfirmCard" Background="{StaticResource Panel}" CornerRadius="14" Padding="0"
+            <Border x:Name="ConfirmCard" Background="{StaticResource Panel}" CornerRadius="3" Padding="0"
                     MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BorderBrush="{StaticResource Track}" BorderThickness="1">
 

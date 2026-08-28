@@ -55,10 +55,31 @@ public sealed class AppSettings
     /// <summary>Light mode. Dark is the default and the designed appearance.</summary>
     public bool LightTheme { get; set; }
 
+    /// <summary>Bare file name of the wallpaper copy, or empty for none.</summary>
+    /// <remarks>
+    /// A name rather than a path, because the picture is copied into the
+    /// settings folder and the original is not depended on afterwards.
+    /// </remarks>
+    public string WallpaperFile { get; set; } = "";
+
+    /// <summary>How far the wallpaper is darkened, as a percentage.</summary>
+    public int WallpaperDimming { get; set; } = Wallpaper.DefaultDimming;
+
     /// <summary>Where clips are written. Null or empty means the Videos folder.</summary>
     public string? ClipFolder { get; set; }
 
     /// <summary>Capture framerate for both the recorder and the replay buffer.</summary>
+    /// <summary>The two hotbar slots the auto switcher swaps between.</summary>
+    public string SwitcherSlotA { get; set; } = "3";
+    public string SwitcherSlotB { get; set; } = "1";
+    public int SwitcherIntervalMs { get; set; } = 150;
+
+    /// <summary>How long the second slot is held. Usually a tap.</summary>
+    public int SwitcherIntervalBMs { get; set; } = 900;
+
+    /// <summary>How long the game takes to equip a weapon, in the user's judgement.</summary>
+    public int SwitcherEquipMs { get; set; } = 60;
+
     public int RecordFps { get; set; } = 30;
 
     /// <summary>Keeps the Roblox process above normal priority while on.</summary>
@@ -88,16 +109,31 @@ public sealed class AppSettings
     {
         try
         {
-            if (!File.Exists(SETTINGS_FILE)) return new AppSettings();
+            if (!File.Exists(SETTINGS_FILE)) return FreshInstall();
 
             return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SETTINGS_FILE))
                    ?? new AppSettings();
         }
         catch
         {
+            // Unreadable is not fresh — leave the wallpaper alone rather than
+            // installing the default on top of whatever the user picked.
             return new AppSettings();
         }
     }
+
+    /// <summary>
+    /// The first-run defaults, which include installing the shipped wallpaper.
+    /// </summary>
+    /// <remarks>
+    /// Kept separate from the plain constructor so anyone constructing an
+    /// AppSettings for tests or migrations does not accidentally trigger a
+    /// disk write to the settings folder.
+    /// </remarks>
+    private static AppSettings FreshInstall() => new()
+    {
+        WallpaperFile = Wallpaper.InstallDefault()
+    };
 
     public void Save()
     {
