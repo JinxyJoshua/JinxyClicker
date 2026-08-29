@@ -75,7 +75,17 @@ public sealed class AppSettings
     /// <summary>Where clips are written. Null or empty means the Videos folder.</summary>
     public string? ClipFolder { get; set; }
 
-    /// <summary>Capture framerate for both the recorder and the replay buffer.</summary>
+    /// <summary>
+    /// Whether the auto switcher may run at all.
+    /// </summary>
+    /// <remarks>
+    /// Separate from being switched on: disabled means its hotkey and its own
+    /// toggle both refuse it, and it stays that way across restarts. Stored as
+    /// "disabled" so a settings file written before this shipped — where the
+    /// value is missing and reads as false — leaves it enabled.
+    /// </remarks>
+    public bool SwitcherDisabled { get; set; }
+
     /// <summary>The two hotbar slots the auto switcher swaps between.</summary>
     public string SwitcherSlotA { get; set; } = "3";
     public string SwitcherSlotB { get; set; } = "1";
@@ -87,6 +97,7 @@ public sealed class AppSettings
     /// <summary>How long the game takes to equip a weapon, in the user's judgement.</summary>
     public int SwitcherEquipMs { get; set; } = 60;
 
+    /// <summary>Capture framerate for both the recorder and the replay buffer.</summary>
     public int RecordFps { get; set; } = 30;
 
     /// <summary>Keeps the Roblox process above normal priority while on.</summary>
