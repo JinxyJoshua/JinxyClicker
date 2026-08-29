@@ -167,6 +167,12 @@ public partial class MainWindow : Window
             SourceInitialized += (_, _) => ArmMacroSuppression();
             StartMacroTicker();
 
+            // After the window is up, not during construction. A prompt owned by
+            // a window that is not shown yet has nothing to sit in front of, and
+            // the check is a network call nobody should wait behind to see the
+            // app open.
+            Loaded += async (_, _) => await UpdateCheck.RunAsync(this);
+
             TweakList.ItemsSource = _tweaks;
             InputTweakList.ItemsSource = _inputTweaks;
             NetworkTweakList.ItemsSource = _networkTweaks;
