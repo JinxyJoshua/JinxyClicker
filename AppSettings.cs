@@ -39,6 +39,13 @@ public sealed class AppSettings
     public bool HitFix { get; set; } = true;
     public bool HoldMode { get; set; }
 
+    /// <summary>Which button is clicked: Left, Right or Middle.</summary>
+    /// <remarks>
+    /// Stored by name rather than as a number, so the file stays readable and a
+    /// reordered enum cannot silently change what an existing setting means.
+    /// </remarks>
+    public string ClickButton { get; set; } = "Left";
+
     public bool HideValues { get; set; }
 
     public bool ReplayEnabled { get; set; }

@@ -896,6 +896,8 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <!-- Button choice, spanning both columns. -->
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ControlCard}"
@@ -991,6 +993,30 @@
                                            Foreground="{StaticResource Accent}"
                                            FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource ControlCard}"
+                                Margin="0,14,0,0">
+                            <DockPanel LastChildFill="False">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="BUTTON" Style="{StaticResource CardLabel}"/>
+                                    <TextBlock Text="Which button gets clicked — right for blocks, wheel for scroll-bound actions"
+                                               Style="{StaticResource CardHint}"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <RadioButton x:Name="LeftButtonMode" Content="Left" GroupName="ClickButton"
+                                                 Style="{StaticResource SegmentButton}" Tag="Left"
+                                                 IsChecked="True" MinWidth="72"
+                                                 Checked="ClickButton_Checked"/>
+                                    <RadioButton x:Name="RightButtonMode" Content="Right" GroupName="ClickButton"
+                                                 Style="{StaticResource SegmentButton}" Tag="Right"
+                                                 MinWidth="72" Checked="ClickButton_Checked"/>
+                                    <RadioButton x:Name="MiddleButtonMode" Content="Wheel" GroupName="ClickButton"
+                                                 Style="{StaticResource SegmentButton}" Tag="Middle"
+                                                 MinWidth="72" Margin="0" Checked="ClickButton_Checked"/>
+                                </StackPanel>
+                            </DockPanel>
                         </Border>
 
                         <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ControlCard}"
