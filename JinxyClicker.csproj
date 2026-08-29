@@ -9,6 +9,15 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
 
     <!--
+      The app has to know its own version to tell whether a release is newer
+      than it. This lived only in Installer/JinxyClicker.iss, where the built
+      binary could not read it. Bump both together at release time — the
+      installer's AppVersion and this — or the update prompt compares against
+      a version nobody shipped.
+    -->
+    <Version>1.2.0</Version>
+
+    <!--
       The compiler records where it built, and that record ships. A release DLL
       carried the full build path in its CodeView entry — the folder name and
       the account name it was built under — readable in any hex editor by
