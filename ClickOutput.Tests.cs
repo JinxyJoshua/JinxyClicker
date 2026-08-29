@@ -87,11 +87,51 @@ public class ClickOutputTests
     [Theory]
     [InlineData(OutputState.Shortfall, true)]
     [InlineData(OutputState.OverDriven, true)]
+    [InlineData(OutputState.ClampedByHitFix, true)]
     [InlineData(OutputState.Matching, false)]
     [InlineData(OutputState.Idle, false)]
     public void ColoursOnlyWhatNeedsAction(OutputState state, bool expected)
     {
         Assert.Equal(expected, ClickOutput.IsWarning(state));
+    }
+
+    /// <summary>
+    /// HitFix floors every press and gap at 15ms, so it caps delivery near 33 /s
+    /// whatever the slider says — which makes a shortfall the normal state with
+    /// it on, including for the Measured preset at 41.2.
+    /// </summary>
+    /// <remarks>
+    /// It has to be named as the cause, because the advice differs. Telling
+    /// someone to lower the slider is wrong here: the ceiling does not move
+    /// until the setting drops beneath it.
+    /// </remarks>
+    [Fact]
+    public void BlamesHitFixWhenHitFixIsTheCeiling()
+    {
+        Assert.Equal(OutputState.ClampedByHitFix,
+            ClickOutput.Classify(running: true, setCps: 41.2, deliveredCps: 29.6,
+                hitFixClamping: true));
+    }
+
+    [Fact]
+    public void SaysWhichSettingToTouchWhenHitFixIsTheCause()
+    {
+        string verdict = ClickOutput.Verdict(OutputState.ClampedByHitFix, 41.2, 29.6);
+
+        Assert.Contains("HitFix", verdict);
+        Assert.DoesNotContain("Lowering the slider", verdict);
+    }
+
+    /// <summary>
+    /// The same numbers without HitFix are an ordinary shortfall, and there the
+    /// slider is the right thing to point at.
+    /// </summary>
+    [Fact]
+    public void StillBlamesTheSettingWhenHitFixIsNotInvolved()
+    {
+        Assert.Equal(OutputState.Shortfall,
+            ClickOutput.Classify(running: true, setCps: 41.2, deliveredCps: 29.6,
+                hitFixClamping: false));
     }
 
     /// <summary>
