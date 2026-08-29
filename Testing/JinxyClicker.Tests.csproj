@@ -21,6 +21,10 @@
   <ItemGroup>
     <Compile Include="../ClickTiming.cs" />
     <Compile Include="../ClickTiming.Tests.cs" />
+    <Compile Include="../KitImages.cs" />
+    <Compile Include="../KitImages.Tests.cs" />
+    <Compile Include="../KitWheel.cs" />
+    <Compile Include="../KitWheel.Tests.cs" />
     <Compile Include="../Updater.cs" />
     <Compile Include="../Updater.Tests.cs" />
     <Compile Include="../ClickButton.cs" />

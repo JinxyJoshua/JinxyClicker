@@ -30,8 +30,9 @@ public sealed class KeyMacro
 
     public KeyMacro(string name, IEnumerable<int> keys, string keysText, int intervalMs,
                     int[]? holdsMs = null, int clicksWanted = 0, int equipMs = DefaultEquipMs,
-                    HotkeyBinding? hotkey = null)
+                    HotkeyBinding? hotkey = null, bool enabled = true)
     {
+        Enabled = enabled;
         Name = name;
         Keys = keys.Where(k => k is > 0 and < 256).ToArray();
         KeysText = keysText;
@@ -44,6 +45,21 @@ public sealed class KeyMacro
 
         Hotkey = hotkey ?? HotkeyBinding.Unbound;
     }
+
+    /// <summary>
+    /// Whether this macro may run at all.
+    /// </summary>
+    /// <remarks>
+    /// Switched off one macro at a time, rather than only by the master switch.
+    /// Somebody with six macros bound usually wants five of them live and one
+    /// out of the way — turning the lot off to silence a single key means
+    /// remembering which were on before, and turning them back on one by one.
+    ///
+    /// Separate from being stopped: a disabled macro cannot be started by its
+    /// key, by its switch, or by anything else, and stays that way across
+    /// restarts.
+    /// </remarks>
+    public bool Enabled { get; }
 
     /// <summary>
     /// Toggles this macro on and off when pressed. Unbound means no shortcut —
@@ -232,7 +248,10 @@ public sealed class MacroRunner : IDisposable
 
     public void Start(KeyMacro macro)
     {
-        if (!macro.IsUsable || _running.ContainsKey(macro.Name)) return;
+        // Refused here rather than only in the UI, so nothing can start a
+        // disabled macro by any route — its key, its switch, or a restore on
+        // launch. Disabled means it does not run, not that one button is grey.
+        if (!macro.Enabled || !macro.IsUsable || _running.ContainsKey(macro.Name)) return;
 
         var cts = new CancellationTokenSource();
         _running[macro.Name] = cts;
@@ -576,6 +595,11 @@ public static class MacroStore
         // shipped, which defaults them to unbound on load — no migration.
         public int HotkeyVk { get; set; }
         public string HotkeyName { get; set; } = "";
+
+        // Absent from files written before this shipped, and a missing bool
+        // reads as false — which would silently disable every existing macro.
+        // Stored as "Disabled" so the old files' absence means enabled.
+        public bool Disabled { get; set; }
     }
 
     /// <summary>
@@ -610,7 +634,8 @@ public static class MacroStore
                 .Where(m => !IsLegacySwitcher(m.Name))
                 .Select(m => new KeyMacro(
                     m.Name, m.Keys, m.KeysText, m.IntervalMs,
-                    hotkey: m.HotkeyVk > 0 ? new HotkeyBinding(m.HotkeyVk, m.HotkeyName) : HotkeyBinding.Unbound))
+                    hotkey: m.HotkeyVk > 0 ? new HotkeyBinding(m.HotkeyVk, m.HotkeyName) : HotkeyBinding.Unbound,
+                    enabled: !m.Disabled))
                 .ToList();
         }
         catch
@@ -631,7 +656,8 @@ public static class MacroStore
                     KeysText = m.KeysText,
                     IntervalMs = m.IntervalMs,
                     HotkeyVk = m.Hotkey.VirtualKey,
-                    HotkeyName = m.Hotkey.Name
+                    HotkeyName = m.Hotkey.Name,
+                    Disabled = !m.Enabled
                 })
                 .ToList();
 

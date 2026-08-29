@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -172,6 +173,9 @@ public partial class MainWindow : Window
             // the check is a network call nobody should wait behind to see the
             // app open.
             Loaded += async (_, _) => await UpdateCheck.RunAsync(this);
+
+            RefreshKitWheel();
+            RefreshHotkeyKillButtons();
 
             TweakList.ItemsSource = _tweaks;
             InputTweakList.ItemsSource = _inputTweaks;
@@ -458,7 +462,9 @@ public partial class MainWindow : Window
 
             foreach (KeyMacro m in macrosNow)
             {
-                if (!m.Hotkey.IsValid) continue;
+                // A disabled macro is skipped entirely rather than polled and
+                // ignored, so its key is free to be pressed for anything else.
+                if (!m.Enabled || !m.Hotkey.IsValid) continue;
 
                 namesSeen.Add(m.Name);
                 bool down = IsKeyDown(m.Hotkey.VirtualKey);
@@ -630,7 +636,115 @@ public partial class MainWindow : Window
         UpdateEngineSettings();
     }
 
-    private void HotkeysEnabled_Changed(object sender, RoutedEventArgs e) => UpdateEngineSettings();
+    private void HotkeysEnabled_Changed(object sender, RoutedEventArgs e)
+    {
+        UpdateEngineSettings();
+        RefreshHotkeyKillButtons();
+    }
+
+    /// <summary>
+    /// Turns every hotkey off, and back on, from the page being worked on.
+    /// </summary>
+    /// <remarks>
+    /// The same switch as the checkbox in Settings, put where the risk is. Both
+    /// these pages are edited with the keys still live, so a stray press of a
+    /// bound key starts the clicker or swaps a slot in the middle of typing an
+    /// interval — and the control that stops that was three pages away.
+    /// </remarks>
+    /// <summary>Whether the auto switcher is allowed to run at all.</summary>
+    private bool _switcherDisabled;
+
+    private void SwitcherDisable_Click(object sender, RoutedEventArgs e)
+    {
+        _switcherDisabled = !_switcherDisabled;
+
+        // Stopped on the way out. Leaving it running while its own switch is
+        // greyed out is the trap this button exists to avoid.
+        if (_switcherDisabled)
+        {
+            SwitcherEnabled.IsChecked = false;
+            _macros.Stop(SwitcherName);
+        }
+
+        _settingsDirty = true;
+        RefreshHotkeyKillButtons();
+    }
+
+    private void HotkeyKill_Click(object sender, RoutedEventArgs e)
+    {
+        HotkeysEnabledToggle.IsChecked = HotkeysEnabledToggle.IsChecked != true;
+    }
+
+    /// <summary>
+    /// Paints both buttons from the one switch they share.
+    /// </summary>
+    /// <remarks>
+    /// Read from the checkbox rather than tracked separately, so the two
+    /// buttons and the checkbox cannot end up disagreeing about whether hotkeys
+    /// are on — which would make the button lie about what pressing it does.
+    /// </remarks>
+    private void RefreshHotkeyKillButtons()
+    {
+        if (MacrosHotkeyKill == null || SwitcherHotkeyKill == null) return;
+
+        bool on = HotkeysEnabledToggle?.IsChecked != false;
+
+        string label = on ? "DISABLE HOTKEYS" : "HOTKEYS ARE OFF";
+        string note = on
+            ? "Every bound key is live. Turn them off while you edit."
+            : "All hotkeys are off. Nothing you press will trigger anything.";
+
+        foreach (Button button in new[] { MacrosHotkeyKill, SwitcherHotkeyKill })
+        {
+            button.Content = label;
+
+            if (on) button.ClearValue(ForegroundProperty);
+            else button.SetResourceReference(ForegroundProperty, "Accent");
+        }
+
+        MacrosHotkeyKillNote.Text = note;
+        SwitcherHotkeyKillNote.Text = note;
+
+        // Everything running is stopped on the way out, before the switches
+        // are locked. Locking them while something still ran would leave it
+        // going with the only control for it greyed out.
+        if (!on)
+        {
+            _macros.StopAll();
+
+            if (SwitcherEnabled != null) SwitcherEnabled.IsChecked = false;
+        }
+        else if (_switcherDisabled && SwitcherEnabled != null)
+        {
+            SwitcherEnabled.IsChecked = false;
+        }
+
+        // Two independent reasons to be off: the master switch, or this one's
+        // own. Either is enough, and the stamp says which.
+        bool switcherLive = on && !_switcherDisabled;
+
+        if (SwitcherEnabled != null) SwitcherEnabled.IsEnabled = switcherLive;
+
+        if (SwitcherDisableButton != null)
+            SwitcherDisableButton.Content = _switcherDisabled ? "Enable" : "Disable";
+
+        // The switcher is one card rather than a list, so it is stamped in
+        // place instead of rebuilt.
+        if (SwitcherDisabledStamp != null && SwitcherCardBody != null)
+        {
+            SwitcherDisabledStamp.Visibility =
+                switcherLive ? Visibility.Collapsed : Visibility.Visible;
+
+            SwitcherCardBody.Opacity = switcherLive ? 1.0 : 0.45;
+
+            if (SwitcherStampText != null)
+                SwitcherStampText.Text = _switcherDisabled ? "DISABLED" : "HOTKEYS OFF";
+        }
+
+        // Each macro card carries its own copy of this state, so they are
+        // rebuilt rather than left showing whatever was true when they were made.
+        BuildMacroCards();
+    }
 
     private void MasterHotkey_Click(object sender, RoutedEventArgs e)
     {
@@ -1433,6 +1547,7 @@ public partial class MainWindow : Window
             SwitcherIntervalMs = MacroStore.ParseInterval(SwitcherIntervalBox.Text) ?? 500,
             SwitcherIntervalBMs = MacroStore.ParseInterval(SwitcherIntervalBBox.Text) ?? 40,
             SwitcherEquipMs = MacroStore.ParseInterval(SwitcherEquipBox.Text) ?? KeyMacro.DefaultEquipMs,
+            SwitcherDisabled = _switcherDisabled,
             RecordFps = RecordFps,
             // RestoreBounds rather than Width/Height: while maximised those
             // report the maximised size, which would be restored as the
@@ -3960,6 +4075,8 @@ public partial class MainWindow : Window
         foreach (UIElement p in Pages) p.Visibility = Visibility.Collapsed;
         page.Visibility = Visibility.Visible;
 
+        AnimatePageIn(page);
+
         // The status pill and start button belong to the clicker, not the shell.
         StatusBlock.Visibility = ReferenceEquals(page, PageClicker)
             ? Visibility.Visible
@@ -3971,15 +4088,57 @@ public partial class MainWindow : Window
         PageSubtitleText.Text = subtitle;
     }
 
+    /// <summary>How long a page takes to arrive.</summary>
+    /// <remarks>
+    /// Short on purpose. Navigation is something people do to get somewhere, so
+    /// the animation has to read as the page settling rather than as a wait —
+    /// past roughly a fifth of a second it stops being polish and starts being
+    /// the thing standing between someone and the control they came for.
+    /// </remarks>
+    private static readonly Duration PageFadeDuration =
+        new(TimeSpan.FromMilliseconds(170));
+
+    /// <summary>How far the page rises as it fades in, in pixels.</summary>
+    private const double PageRiseDistance = 10.0;
+
+    /// <summary>
+    /// Fades the arriving page in and lets it settle upward.
+    /// </summary>
+    /// <remarks>
+    /// Only the incoming page is animated. Cross-fading would need both on
+    /// screen at once, and these are stacked in one cell — the outgoing one
+    /// would push the layout around on its way out. Hiding it instantly and
+    /// moving the new one is the same effect without the reflow.
+    ///
+    /// The transform is replaced rather than reused: pages carry no transform of
+    /// their own, and reusing one left over from an interrupted animation is how
+    /// a page ends up permanently offset a few pixels.
+    /// </remarks>
+    private static void AnimatePageIn(UIElement page)
+    {
+        var slide = new TranslateTransform(0, PageRiseDistance);
+        page.RenderTransform = slide;
+
+        // Decelerating, so it arrives rather than stops. A linear slide reads as
+        // mechanical at this distance.
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        page.BeginAnimation(UIElement.OpacityProperty,
+            new DoubleAnimation(0.0, 1.0, PageFadeDuration));
+
+        slide.BeginAnimation(TranslateTransform.YProperty,
+            new DoubleAnimation(PageRiseDistance, 0.0, PageFadeDuration) { EasingFunction = ease });
+    }
+
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavPresets, NavTweaks, NavOptimizations,
+        NavClicker, NavPresets, NavKitWheel, NavTweaks, NavOptimizations,
         NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
     };
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PagePresets, PageTweaks, PageOptimizations,
+        PageClicker, PagePresets, PageKitWheel, PageTweaks, PageOptimizations,
         PageMacros, PageSwitcher, PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
     };
 
@@ -4106,6 +4265,12 @@ public partial class MainWindow : Window
     /// </remarks>
     private Border MacroCard(KeyMacro macro)
     {
+        bool hotkeysOn = HotkeysEnabledToggle?.IsChecked != false;
+
+        // Two ways to be off, shown the same way. Which one it is matters for
+        // the wording, not for whether the macro runs.
+        bool live = hotkeysOn && macro.Enabled;
+
         var name = new TextBlock
         {
             Text = macro.Name,
@@ -4126,7 +4291,13 @@ public partial class MainWindow : Window
         {
             IsChecked = _macros.IsRunning(macro.Name),
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0)
+            Margin = new Thickness(0),
+            // Nothing starts while hotkeys are off. The switch is the last way
+            // in once the keys are dead, so leaving it live would make DISABLED
+            // a claim the card does not keep.
+            IsEnabled = live,
+            ToolTip = live ? null
+                : macro.Enabled ? "Hotkeys are switched off" : "This macro is disabled"
         };
 
         toggle.Checked += (_, _) => { _macros.Start(macro); RefreshMacroRunning(); };
@@ -4134,12 +4305,16 @@ public partial class MainWindow : Window
 
         // Rebind button for this macro's toggle key. Same "click, press a key"
         // flow as the fixed hotkeys — the button IS the prompt while it waits.
+        //
+        // The label says when hotkeys are switched off, because otherwise the
+        // card shows a key next to the word HOTKEY and looks armed while
+        // pressing that key does nothing at all.
         var hotkeyLabel = new TextBlock
         {
-            Text = "TOGGLE HOTKEY",
+            Text = live ? "TOGGLE HOTKEY" : "TOGGLE HOTKEY — OFF",
             FontSize = 9,
             FontWeight = FontWeights.Bold,
-            Foreground = (Brush)FindResource("TextMuted"),
+            Foreground = (Brush)FindResource(live ? "TextMuted" : "Accent"),
             Margin = new Thickness(0, 10, 0, 4)
         };
 
@@ -4148,7 +4323,12 @@ public partial class MainWindow : Window
             Content = macro.Hotkey.Name,
             Padding = new Thickness(10, 4, 10, 4),
             FontSize = 11,
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            // Dimmed rather than disabled: rebinding while hotkeys are off is
+            // exactly when somebody would want to, since nothing can fire
+            // mid-edit. It only has to stop looking live.
+            Opacity = live ? 1.0 : 0.45,
+            ToolTip = live ? null : "This macro will not fire"
         };
 
         hotkeyButton.Click += (_, _) =>
@@ -4173,6 +4353,8 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left
         };
 
+        remove.Margin = new Thickness(0, 10, 0, 0);
+
         remove.Click += (_, _) =>
         {
             // Stopped before it is forgotten. Dropping a running macro from the
@@ -4192,6 +4374,36 @@ public partial class MainWindow : Window
             BuildMacroCards();
         };
 
+        // This macro's own switch, independent of the master one. Five macros
+        // live and one out of the way is the ordinary case, and the master
+        // switch cannot express it without remembering what was on before.
+        var enable = new Button
+        {
+            Content = macro.Enabled ? "Disable" : "Enable",
+            Padding = new Thickness(10, 4, 10, 4),
+            FontSize = 11,
+            Margin = new Thickness(0, 10, 8, 0),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+
+        enable.Click += (_, _) =>
+        {
+            _macros.Stop(macro.Name);
+
+            // KeyMacro is immutable, so flipping the flag is a replacement in
+            // place — same reason a rebind rebuilds it rather than mutating.
+            int at = _macroList.IndexOf(macro);
+            if (at < 0) return;
+
+            _macroList[at] = new KeyMacro(
+                macro.Name, macro.Keys, macro.KeysText, macro.IntervalMs,
+                macro.HoldsMs, macro.ClicksWanted, macro.EquipMs,
+                macro.Hotkey, enabled: !macro.Enabled);
+
+            MacroStore.Save(_macroList);
+            BuildMacroCards();
+        };
+
         var header = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(toggle, Dock.Right);
         header.Children.Add(toggle);
@@ -4202,7 +4414,47 @@ public partial class MainWindow : Window
         body.Children.Add(summary);
         body.Children.Add(hotkeyLabel);
         body.Children.Add(hotkeyButton);
-        body.Children.Add(remove);
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+        buttons.Children.Add(enable);
+        buttons.Children.Add(remove);
+        body.Children.Add(buttons);
+
+        // With hotkeys off the card is stamped across, rather than only saying
+        // so in small type. A card that still lists a key and a running switch
+        // looks armed, and "why did my key stop working" is the question this
+        // exists to answer before it is asked.
+        var stamp = new Grid();
+        stamp.Children.Add(body);
+
+        if (!live)
+        {
+            body.Opacity = 0.45;
+
+            stamp.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0x30, 0xE0, 0x2B, 0x2B)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE0, 0x2B, 0x2B)),
+                BorderThickness = new Thickness(2),
+                CornerRadius = new CornerRadius(6),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Padding = new Thickness(0, 6, 0, 6),
+                // Never takes a click. The delete button and the running switch
+                // stay reachable with hotkeys off — turning them off is exactly
+                // when someone is editing.
+                IsHitTestVisible = false,
+                Child = new TextBlock
+                {
+                    Text = macro.Enabled ? "HOTKEYS OFF" : "DISABLED",
+                    FontSize = 20,
+                    FontWeight = FontWeights.Black,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    TextAlignment = TextAlignment.Center
+                }
+            });
+        }
 
         return new Border
         {
@@ -4211,7 +4463,7 @@ public partial class MainWindow : Window
             Padding = new Thickness(14),
             Margin = new Thickness(0, 0, 10, 10),
             Width = 210,
-            Child = body
+            Child = stamp
         };
     }
 
@@ -4334,6 +4586,10 @@ public partial class MainWindow : Window
     /// </remarks>
     private void OnSwitcherHotkey()
     {
+        // A disabled switcher does not answer its key. Otherwise the button
+        // says Enable while the hotkey still starts it.
+        if (_switcherDisabled) return;
+
         // Same guard the click keys carry. Bound to a letter or a digit, this
         // otherwise fires while its own slot and interval boxes are being
         // typed into — the fields sit on the page the key belongs to, so it is
@@ -4444,6 +4700,8 @@ public partial class MainWindow : Window
     /// </remarks>
     private void ApplySwitcherToUi(AppSettings s)
     {
+        _switcherDisabled = s.SwitcherDisabled;
+
         SlotABox.Text = s.SwitcherSlotA;
         SlotBBox.Text = s.SwitcherSlotB;
         SwitcherIntervalBox.Text = s.SwitcherIntervalMs.ToString(CultureInfo.CurrentCulture);
