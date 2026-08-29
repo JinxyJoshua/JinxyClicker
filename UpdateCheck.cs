@@ -56,7 +56,7 @@ public static class UpdateCheck
 
             if (answer != MessageBoxResult.Yes) return;
 
-            await InstallAsync(release).ConfigureAwait(true);
+            await InstallAsync(release, owner).ConfigureAwait(true);
         }
         catch
         {
@@ -88,22 +88,55 @@ public static class UpdateCheck
     /// the internet, and that is worth confirming at the point it happens rather
     /// than trusting that it was confirmed earlier.
     /// </remarks>
-    private static async Task InstallAsync(ReleaseInfo release)
+    private static async Task InstallAsync(ReleaseInfo release, Window owner)
     {
         if (!Updater.IsTrustedDownload(release.InstallerUrl)) return;
 
         string target = Path.Combine(Path.GetTempPath(),
             $"JinxyClicker-{release.Tag}-setup.exe");
 
-        using (var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) })
+        // The installer is around a hundred megabytes, so this is tens of
+        // seconds on an ordinary connection. Without something on screen the
+        // app simply sits there after the prompt is accepted, looking like the
+        // click did nothing — which is exactly how it read the first time.
+        var progress = new UpdateProgressWindow(release.Tag) { Owner = owner };
+        progress.Show();
+
+        try
         {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd($"{Updater.Repo}-updater");
 
-            await using Stream source =
-                await http.GetStreamAsync(release.InstallerUrl).ConfigureAwait(false);
-            await using var file = File.Create(target);
+            using HttpResponseMessage response = await http
+                .GetAsync(release.InstallerUrl, HttpCompletionOption.ResponseHeadersRead)
+                .ConfigureAwait(true);
 
-            await source.CopyToAsync(file).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            long? total = response.Content.Headers.ContentLength;
+
+            await using (Stream source = await response.Content.ReadAsStreamAsync().ConfigureAwait(true))
+            await using (var file = File.Create(target))
+            {
+                var buffer = new byte[81920];
+                long written = 0;
+                int read;
+
+                while ((read = await source.ReadAsync(buffer).ConfigureAwait(true)) > 0)
+                {
+                    await file.WriteAsync(buffer.AsMemory(0, read)).ConfigureAwait(true);
+                    written += read;
+
+                    progress.Report(written, total);
+                }
+            }
+
+            progress.HandingOver();
+        }
+        catch
+        {
+            progress.Close();
+            throw;
         }
 
         // Inno Setup's own flags. CLOSEAPPLICATION and RESTARTAPPLICATIONS are
