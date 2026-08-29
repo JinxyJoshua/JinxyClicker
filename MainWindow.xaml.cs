@@ -338,6 +338,7 @@ public partial class MainWindow : Window
         bool masterWasDown = false;
         bool wasInCorner = false;
         bool wasArmed = false;
+        bool wasRebindIdle = false;
 
         // Per-macro edge state, keyed by name because the KeyMacro reference
         // changes whenever a macro is rebound (KeyMacro is immutable — see
@@ -366,10 +367,16 @@ public partial class MainWindow : Window
             // once to disable, and there is no press that brings them back.
             bool masterDown = IsKeyDown(s.MasterHotkeyVk);
 
-            if (masterDown && !masterWasDown)
+            // Gated on the rebind half only, never on the on/off switch. Both
+            // halves matter for different reasons: skipping the switch is the
+            // whole point of a master key, but skipping the rebind guard would
+            // fire the action on the very press that binds it — the key is
+            // still physically down at the moment it becomes the binding.
+            if (s.RebindIdle && wasRebindIdle && masterDown && !masterWasDown)
                 Dispatcher.InvokeAsync(OnMasterHotkey, DispatcherPriority.Send);
 
             masterWasDown = masterDown;
+            wasRebindIdle = s.RebindIdle;
 
             bool clickDown = IsKeyDown(s.HotkeyVk);
             bool recordDown = IsKeyDown(s.RecordHotkeyVk);
@@ -1192,7 +1199,7 @@ public partial class MainWindow : Window
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
         int ComboHotkeyVk, int BuildHotkeyVk, int SwitcherHotkeyVk,
         int MasterHotkeyVk, int ClickSwitchHotkeyVk,
-        bool HotkeysArmed, bool BuildMode)
+        bool HotkeysArmed, bool RebindIdle, bool BuildMode)
     {
         /// <summary>
         /// The timing actually sent, which is the fixed building rate whenever
@@ -1220,7 +1227,7 @@ public partial class MainWindow : Window
     private const double BuildDuty = 0.01;
 
     private volatile ClickSettings _settings =
-        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, 0, 0, 0, false, false);
+        new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, 0, 0, 0, false, true, false);
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -1442,6 +1449,10 @@ public partial class MainWindow : Window
             // on. Null-conditional because this runs once from the constructor,
             // before every control is necessarily built.
             _rebinding == RebindTarget.None && HotkeysEnabledToggle?.IsChecked != false,
+            // Half of the condition above, on its own. The master key ignores
+            // the on/off switch — that is its job — but must still not fire
+            // while a rebind is capturing the very key being pressed.
+            _rebinding == RebindTarget.None,
             _buildMode);
 
         UpdateHitFixClamp();
@@ -4274,8 +4285,16 @@ public partial class MainWindow : Window
     /// the page and the engine cannot disagree about whether it is running —
     /// the toggle is the single source of that answer.
     /// </remarks>
-    private void OnSwitcherHotkey() =>
+    private void OnSwitcherHotkey()
+    {
+        // Same guard the click keys carry. Bound to a letter or a digit, this
+        // otherwise fires while its own slot and interval boxes are being
+        // typed into — the fields sit on the page the key belongs to, so it is
+        // the likeliest place for it to happen.
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
         SwitcherEnabled.IsChecked = SwitcherEnabled.IsChecked != true;
+    }
 
     /// <summary>
     /// Turns every other hotkey off, and back on again.
@@ -4289,8 +4308,12 @@ public partial class MainWindow : Window
     /// box by hand — and its stop key is off along with the rest. Dropping the
     /// pointer into a screen corner still stops it.
     /// </remarks>
-    private void OnMasterHotkey() =>
+    private void OnMasterHotkey()
+    {
+        if (IsActive && Keyboard.FocusedElement is TextBox) return;
+
         HotkeysEnabledToggle.IsChecked = HotkeysEnabledToggle.IsChecked != true;
+    }
 
     private void SwitcherField_Changed(object sender, TextChangedEventArgs e) => RefreshSwitcher();
 
@@ -4564,8 +4587,23 @@ public partial class MainWindow : Window
     {
         if (OutputRateText == null) return;
 
-        double set = _settings.Timing.Cps;
-        OutputState state = ClickOutput.Classify(_running, set, deliveredCps);
+        // The rate that was asked for, not the one HitFix settled on. Timing.Cps
+        // is derived from a period HitFix has already raised, so comparing
+        // against it compares the clamp with itself — always agreeing, and
+        // reporting a "set" figure the sliders never showed. The gap between
+        // the ask and the delivery is the entire point of this panel.
+        double set = _buildMode ? BuildCps : _settings.Cps;
+
+        // Whether HitFix is the thing holding the rate down, asked by resolving
+        // the same request both ways and seeing if the floors moved it. Cheap,
+        // and it cannot drift from what the click loop actually runs, because
+        // it is the same Resolve.
+        double duty = _buildMode ? BuildDuty : _settings.Duty;
+        bool hitFixClamping = _settings.HitFix && !_buildMode
+            && ClickTimings.Resolve(set, duty, hitFix: true).PeriodMs
+             > ClickTimings.Resolve(set, duty, hitFix: false).PeriodMs;
+
+        OutputState state = ClickOutput.Classify(_running, set, deliveredCps, hitFixClamping);
 
         OutputSetText.Text = $"set {set:0.0} /s";
         OutputRateText.Text = state == OutputState.Idle ? "—" : deliveredCps.ToString("0.0");
