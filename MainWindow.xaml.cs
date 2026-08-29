@@ -700,6 +700,22 @@ public partial class MainWindow : Window
         if (ShakyTracking != null) ShakyTracking.IsChecked = on;
     }
 
+    /// <summary>Which button the click engine presses.</summary>
+    private ClickButton _clickButton = ClickButton.Left;
+
+    private void ClickButton_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tag }) return;
+
+        _clickButton = ClickButtons.Parse(tag);
+
+        // Published to the click loop rather than read by it, the same as every
+        // other setting — the loop takes one snapshot per cycle.
+        UpdateEngineSettings();
+
+        _settingsDirty = true;
+    }
+
     /// <summary>
     /// Starts the clicker and the auto switcher on one press, and stops both.
     /// </summary>
@@ -1199,7 +1215,8 @@ public partial class MainWindow : Window
         int HotkeyVk, int ReplayHotkeyVk, int RecordHotkeyVk,
         int ComboHotkeyVk, int BuildHotkeyVk, int SwitcherHotkeyVk,
         int MasterHotkeyVk, int ClickSwitchHotkeyVk,
-        bool HotkeysArmed, bool RebindIdle, bool BuildMode)
+        bool HotkeysArmed, bool RebindIdle, bool BuildMode,
+        ClickButton Button = ClickButton.Left)
     {
         /// <summary>
         /// The timing actually sent, which is the fixed building rate whenever
@@ -1289,6 +1306,15 @@ public partial class MainWindow : Window
         // Clamped to the slider's own range rather than trusted: the floor is
         // what stops a stored zero from bringing back an invisible window.
         OpacitySlider.Value = Math.Clamp(s.WindowOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
+
+        // Checking the button raises Checked, which publishes it to the engine.
+        _clickButton = ClickButtons.Parse(s.ClickButton);
+        (_clickButton switch
+        {
+            JinxyClicker.ClickButton.Right => RightButtonMode,
+            JinxyClicker.ClickButton.Middle => MiddleButtonMode,
+            _ => LeftButtonMode
+        }).IsChecked = true;
 
         // Name first, then the slider — the slider's changed event repaints the
         // layers, so the picture it repaints with has to be known by then.
@@ -1383,6 +1409,7 @@ public partial class MainWindow : Window
             PingSync = PingSync.IsChecked == true,
             HitFix = HitFix.IsChecked == true,
             HoldMode = _holdMode,
+            ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
             ReplayEnabled = ReplayEnabled.IsChecked == true,
             ReplaySeconds = ReplaySeconds,
@@ -1453,7 +1480,8 @@ public partial class MainWindow : Window
             // the on/off switch — that is its job — but must still not fire
             // while a rebind is capturing the very key being pressed.
             _rebinding == RebindTarget.None,
-            _buildMode);
+            _buildMode,
+            _clickButton);
 
         UpdateHitFixClamp();
     }
@@ -1787,6 +1815,9 @@ public partial class MainWindow : Window
         // held down across the whole desktop.
         bool buttonDown = false;
 
+        // Which button the press in flight used, so the release matches it.
+        ClickButton held = ClickButton.Left;
+
         // Windows 11 throttles timer resolution for processes that are not in
         // the foreground, which silently undoes the TimeBeginPeriod below at
         // exactly the moment it matters — the clicker is in the background
@@ -1867,7 +1898,13 @@ public partial class MainWindow : Window
 
                 lock (_inputGate)
                 {
-                    SendLeftDown();
+                    // Captured, not re-read on release. Switching button while
+                    // clicking would otherwise press one and release another,
+                    // leaving the first held down across the whole desktop with
+                    // nothing left to let it go.
+                    held = s.Button;
+
+                    SendButtonDown(held);
                     buttonDown = true;
                     deadline += (long)(downMs * freq / 1000.0);
 
@@ -1875,7 +1912,7 @@ public partial class MainWindow : Window
 
                     if (!cancelled)
                     {
-                        SendLeftUp();
+                        SendButtonUp(held);
                         buttonDown = false;
                         Interlocked.Increment(ref _clickCount);
                     }
@@ -1898,7 +1935,8 @@ public partial class MainWindow : Window
             // Banked here too, or the final partial run would be lost on stop.
             BankActiveTime(ref activeSince);
 
-            if (buttonDown) SendLeftUp();
+            // The one that was pressed, whatever is selected now.
+            if (buttonDown) SendButtonUp(held);
             if (raisedTimer) TimeEndPeriod(TimerResolutionMs);
         }
     }
@@ -2317,8 +2355,11 @@ public partial class MainWindow : Window
 
     // Press and release are separate calls so the duty cycle can put real time
     // between them. Sending both at once always produced a zero-length hold.
-    private static void SendLeftDown() => SendMouseEvent(MOUSEEVENTF_LEFTDOWN);
-    private static void SendLeftUp() => SendMouseEvent(MOUSEEVENTF_LEFTUP);
+    private static void SendButtonDown(ClickButton button) =>
+        SendMouseEvent(ClickButtons.DownFlag(button));
+
+    private static void SendButtonUp(ClickButton button) =>
+        SendMouseEvent(ClickButtons.UpFlag(button));
 
     private static void SendMouseEvent(uint flags)
     {
