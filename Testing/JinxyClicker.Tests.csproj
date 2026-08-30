@@ -21,6 +21,10 @@
   <ItemGroup>
     <Compile Include="../ClickTiming.cs" />
     <Compile Include="../ClickTiming.Tests.cs" />
+    <Compile Include="../KitArt.cs" />
+    <Compile Include="../KitArt.Tests.cs" />
+    <Compile Include="../KitArtImage.cs" />
+    <Compile Include="../KitArtImage.Tests.cs" />
     <Compile Include="../KitImages.cs" />
     <Compile Include="../KitImages.Tests.cs" />
     <Compile Include="../KitWheel.cs" />
@@ -48,6 +52,13 @@
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A real WebP, because the alpha bug it pins only happens on that decode
+         path. Copied out so the tests can read it beside the assembly. -->
+    <None Include="fixtures\**" CopyToOutputDirectory="PreserveNewest"
+          Link="fixtures\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

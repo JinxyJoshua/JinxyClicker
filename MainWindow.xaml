@@ -71,7 +71,81 @@
         <SolidColorBrush x:Key="TextDim" Color="{DynamicResource TextDimColor}"/>
         <SolidColorBrush x:Key="TextMuted" Color="{DynamicResource TextMutedColor}"/>
         <SolidColorBrush x:Key="Sheen" Color="{DynamicResource SheenColor}"/>
+
+        <!--
+            Tooltips, dressed to match the rest of the window.
+
+            Untouched, WPF gives them the system default: near-white with dark
+            text and a drop shadow. Against a dark purple app that is a pale
+            rectangle that appears over whatever you are pointing at, and on the
+            Kit Wheel it lands beside the kit picture and reads as though the
+            picture itself has a background.
+
+            An implicit style, so every tooltip in the window is covered rather
+            than the twenty that happen to be written out by hand today.
+        -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <!-- The default template paints its own chrome, so recolouring
+                 alone leaves a pale border and the shadow behind. -->
+            <Setter Property="HasDropShadow" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{StaticResource Panel}"
+                                BorderBrush="{StaticResource Outline}"
+                                BorderThickness="1" CornerRadius="2"
+                                Padding="8,5">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <SolidColorBrush x:Key="Accent" Color="{DynamicResource AccentColor}"/>
+
+        <!--
+            The small cross beside a hotkey, which takes the key off that one
+            action and leaves every other binding alone.
+
+            Deliberately its own control rather than a keyboard shortcut. There
+            was no way at all to get back to "Not set" once an action had a key,
+            and a shortcut only helps the people who find out it exists.
+
+            Shown only when there is something to clear, so a row that already
+            reads "Not set" does not offer to unset it.
+        -->
+        <Style x:Key="ClearBindingButton" TargetType="Button">
+            <Setter Property="Content" Value="&#x2715;"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="ToolTip" Value="Unbind this key, leaving the action with no hotkey"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chip" Background="Transparent" CornerRadius="2"
+                                BorderThickness="1" BorderBrush="{StaticResource Outline}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chip" Property="Background" Value="#3A1F2E"/>
+                                <Setter TargetName="Chip" Property="BorderBrush" Value="#7A3B52"/>
+                                <Setter Property="Foreground" Value="#FF9C9C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Tints of the accent, as brushes rather than the ARGB literals they
              replace: the accent is user-chosen, and a literal would keep the old
@@ -469,6 +543,18 @@
             <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="10,0"/>
         </Style>
+
+        <!--
+            The default for any TextBox that does not name a style.
+
+            Three of them never did — the saved-wheel name, the kit search and
+            the add-kit box — so they fell back to the stock WPF chrome: a white
+            box with black text, in a window that is otherwise dark throughout.
+
+            Implicit rather than three more Style attributes, because the next
+            box added would have been white too.
+        -->
+        <Style TargetType="TextBox" BasedOn="{StaticResource FieldBox}"/>
 
         <!-- Same field, numbers only. The preset name field stays unfiltered. -->
         <Style x:Key="NumericFieldBox" TargetType="TextBox" BasedOn="{StaticResource FieldBox}">
@@ -923,9 +1009,11 @@
                                         <TextBlock Text="Starts and stops clicking"
                                                    Style="{StaticResource CardHint}"/>
                                     </StackPanel>
+                                    <Button x:Name="ClearClickKey" Tag="Click" Style="{StaticResource ClearBindingButton}"
+                                            Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                     <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button"
+                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -939,10 +1027,12 @@
                                         <TextBlock Text="Starts and stops both together"
                                                    Style="{StaticResource CardHint}"/>
                                     </StackPanel>
+                                    <Button x:Name="ClearComboKey" Tag="Combo" Style="{StaticResource ClearBindingButton}"
+                                            Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                     <Button x:Name="ComboHotkeyButton" Content="Not set"
                                             Click="ComboHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button"
+                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -956,10 +1046,12 @@
                                         <TextBlock Text="Starts and stops both together"
                                                    Style="{StaticResource CardHint}"/>
                                     </StackPanel>
+                                    <Button x:Name="ClearClickSwitchKey" Tag="ClickSwitch" Style="{StaticResource ClearBindingButton}"
+                                            Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                     <Button x:Name="ClickSwitchHotkeyButton" Content="Not set"
                                             Click="ClickSwitchHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button"
+                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -973,10 +1065,12 @@
                                         <TextBlock Text="Fixed 35 CPS at 1% — Ignores the sliders"
                                                    Style="{StaticResource CardHint}"/>
                                     </StackPanel>
+                                    <Button x:Name="ClearBuildKey" Tag="Build" Style="{StaticResource ClearBindingButton}"
+                                            Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                     <Button x:Name="BuildHotkeyButton" Content="Not set"
                                             Click="BuildHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button"
+                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1457,9 +1551,17 @@
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="6">
-                                    <Button x:Name="NewMacroHotkeyButton" Content="Not set"
-                                            Click="NewMacroHotkey_Click"
-                                            Height="34" Padding="12,0"/>
+                                    <DockPanel>
+                                        <Button x:Name="ClearNewMacroKey" DockPanel.Dock="Right"
+                                                Style="{StaticResource ClearBindingButton}"
+                                                Height="34" Width="34"
+                                                Visibility="Collapsed"
+                                                Click="ClearNewMacroHotkey_Click"/>
+                                        <Button x:Name="NewMacroHotkeyButton" Content="Not set"
+                                                Click="NewMacroHotkey_Click"
+                                                ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                                Height="34" Padding="12,0"/>
+                                    </DockPanel>
                                     <TextBlock Text="TOGGLE HOTKEY (OPTIONAL)" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
@@ -1596,10 +1698,12 @@
                                     <TextBlock Text="Turns the switcher on and off from inside the game"
                                                Style="{StaticResource CardHint}"/>
                                 </StackPanel>
+                                <Button x:Name="ClearSwitcherKey" Tag="Switcher" Style="{StaticResource ClearBindingButton}"
+                                        Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                 <Button x:Name="SwitcherHotkeyButton" Content="Not set"
                                         Click="SwitcherHotkey_Click"
                                         DockPanel.Dock="Right" VerticalAlignment="Center"
-                                        ToolTip="Click, then press a key or mouse side button"
+                                        ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                         FontSize="17" FontWeight="Bold"
                                         Height="42" MinWidth="96" Padding="16,0" Margin="0"/>
                             </DockPanel>
@@ -1819,11 +1923,12 @@
                             <!-- The whole row is the control, so the summary and
                                  the chevron are both part of what you click. -->
                             <Button x:Name="KitListToggle" Click="KitListToggle_Click"
-                                    Background="Transparent" BorderThickness="0"
+                                    Background="#241C46" BorderThickness="0"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Stretch"
                                     VerticalContentAlignment="Stretch"
-                                    Padding="6,9" Cursor="Hand">
+                                    Padding="14,13" Cursor="Hand"
+                                    Margin="0,0,0,2">
                                 <!-- Its own template so the whole row is the
                                      target. The shared button style sizes a
                                      border to its content and centres it, which
@@ -1833,27 +1938,45 @@
                                      an unset one does not. -->
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
+                                        <!-- Filled and outlined rather than bare. As a
+                                             transparent row of muted 10px text this was
+                                             indistinguishable from a heading, and people did
+                                             not know the kit list was behind it. -->
                                         <Border x:Name="Row" CornerRadius="2"
                                                 Background="{TemplateBinding Background}"
-                                                Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Center"/>
+                                                BorderThickness="1" BorderBrush="#4A3A76">
+                                            <DockPanel>
+                                                <!-- The accent stripe carries most of the
+                                                     "this is a control" signal, before any
+                                                     text has been read. -->
+                                                <Border DockPanel.Dock="Left" Width="4"
+                                                        CornerRadius="2,0,0,2"
+                                                        Background="#A78BFA"/>
+                                                <Border Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Center"/>
+                                                </Border>
+                                            </DockPanel>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="#2C2350"/>
+                                                <Setter TargetName="Row" Property="Background" Value="#332866"/>
+                                                <Setter TargetName="Row" Property="BorderBrush" Value="#A78BFA"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Button.Template>
                                 <DockPanel LastChildFill="True">
                                     <TextBlock x:Name="KitListChevron" DockPanel.Dock="Left" Text="▸"
-                                               Foreground="#A78BFA" FontSize="13"
-                                               FontWeight="Bold" Margin="0,0,9,0" VerticalAlignment="Center"/>
+                                               Foreground="#A78BFA" FontSize="16"
+                                               FontWeight="Bold" Margin="0,0,11,0" VerticalAlignment="Center"/>
+                                    <!-- Bright and heavy, not a muted 10px caption. This is
+                                         the one thing a first-time user has to do before
+                                         anything else on the page does something. -->
                                     <TextBlock Text="PICK YOUR KITS" DockPanel.Dock="Left"
-                                               Foreground="{StaticResource TextMuted}" FontSize="10"
-                                               FontWeight="Bold" VerticalAlignment="Center"/>
+                                               Foreground="{StaticResource TextBright}" FontSize="14"
+                                               FontWeight="Black" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="KitCountText" DockPanel.Dock="Right" Text="0 selected"
                                                Foreground="#A78BFA" FontSize="11"
                                                FontWeight="Bold" VerticalAlignment="Center"/>
@@ -1869,11 +1992,32 @@
                             <TextBlock Text="Tick the kits you want on the wheel. Saved as you go. The list is a starting point — add anything missing, remove anything retired."
                                        Style="{StaticResource CardHint}"/>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <!-- Search first, because with a hundred and thirteen
+                                 tiles finding one is the job, and scrolling for it
+                                 was the only way. -->
+                            <DockPanel Margin="0,12,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="SEARCH"
+                                           Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold"
+                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <Button x:Name="ClearKitSearchButton" DockPanel.Dock="Right"
+                                        Style="{StaticResource ClearBindingButton}"
+                                        Height="32" Width="32" Visibility="Collapsed"
+                                        ToolTip="Clear the search and show every kit"
+                                        Click="ClearKitSearch_Click"/>
+                                <TextBox x:Name="KitSearchBox" Height="32"
+                                         VerticalContentAlignment="Center" Padding="10,0"
+                                         TextChanged="KitSearchBox_TextChanged"/>
+                            </DockPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <!-- MinWidth, not Width: these relabel to "Select
+                                     matches" / "Clear matches" while a search is
+                                     active and a fixed width would clip them. -->
                                 <Button x:Name="SelectAllKitsButton" Content="Select all" Height="32"
-                                        Width="100" Click="SelectAllKits_Click"/>
-                                <Button x:Name="ClearKitsButton" Content="Clear" Height="32" Width="80"
-                                        Margin="8,0,0,0" Click="ClearKits_Click"/>
+                                        MinWidth="100" Padding="12,0" Click="SelectAllKits_Click"/>
+                                <Button x:Name="ClearKitsButton" Content="Clear" Height="32" MinWidth="80"
+                                        Padding="12,0" Margin="8,0,0,0" Click="ClearKits_Click"/>
                                 <TextBox x:Name="KitNameBox" Width="170" Height="32" Margin="16,0,0,0"
                                          VerticalContentAlignment="Center" Padding="10,0"
                                          KeyDown="KitNameBox_KeyDown"/>
@@ -2349,8 +2493,10 @@
                                         Click="Record_Click" Height="36" Width="164" Margin="0,0,10,0"/>
                                 <Button x:Name="RecordHotkeyButton" Content="Not set"
                                         Click="RecordHotkey_Click"
-                                        ToolTip="Click, then press a key or mouse side button"
+                                        ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                         Height="36" Padding="16,0" MinWidth="64" Margin="0,0,10,0"/>
+                                <Button x:Name="ClearRecordKey" Tag="Record" Style="{StaticResource ClearBindingButton}"
+                                        Click="ClearBinding_Click"/>
                                 <Button x:Name="OpenClipFolderButton" Content="Open clips folder"
                                         Click="OpenClipFolder_Click" Height="36" Padding="16,0" Margin="0"/>
                             </StackPanel>
@@ -2393,8 +2539,10 @@
                                         Click="SaveReplay_Click" Height="36" Width="120" Margin="0,0,10,0"/>
                                 <Button x:Name="ReplayHotkeyButton" Content="F8"
                                         Click="ReplayHotkey_Click"
-                                        ToolTip="Click, then press a key or mouse side button"
+                                        ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
                                         Height="36" Padding="16,0" MinWidth="64" Margin="0"/>
+                                <Button x:Name="ClearReplayKey" Tag="Replay" Style="{StaticResource ClearBindingButton}"
+                                        Click="ClearBinding_Click"/>
                             </StackPanel>
 
                             <TextBlock x:Name="ReplayStatusText" Text="" TextWrapping="Wrap"
@@ -2436,8 +2584,11 @@
                                        FontSize="10" FontWeight="Bold"/>
 
                             <DockPanel LastChildFill="False" Margin="0,10,0,0">
+                                <!-- MinWidth so swapping in "Copied" on click does
+                                     not widen the button and shove the field. -->
                                 <Button x:Name="CopyLinkButton" Content="Copy" DockPanel.Dock="Right"
                                         Click="CopyLink_Click" IsEnabled="False"
+                                        MinWidth="92"
                                         Padding="16,6" Margin="10,0,0,0"/>
                                 <TextBox x:Name="ClipUrlBox" Style="{StaticResource FieldBox}"
                                          IsReadOnly="True" Width="440" HorizontalAlignment="Left"
@@ -2641,6 +2792,8 @@
                                                TextWrapping="Wrap" MaxWidth="430" HorizontalAlignment="Left"
                                                Margin="0,3,0,0"/>
                                 </StackPanel>
+                                <Button x:Name="ClearMasterKey" Tag="Master" Style="{StaticResource ClearBindingButton}"
+                                        Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                 <Button x:Name="MasterHotkeyButton" DockPanel.Dock="Right" Content="Not set"
                                         MinWidth="110" Height="36" Padding="14,0" VerticalAlignment="Center"
                                         Click="MasterHotkey_Click"/>

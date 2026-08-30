@@ -15,7 +15,7 @@
       installer's AppVersion and this — or the update prompt compares against
       a version nobody shipped.
     -->
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
 
     <!--
       The compiler records where it built, and that record ships. A release DLL
@@ -63,6 +63,23 @@
       manifest name so relocating the source file cannot silently rename it.
     -->
     <EmbeddedResource Include="icon-source.png" LogicalName="DefaultWallpaper.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Kit art, copied out beside the executable rather than embedded. There are
+      a hundred and thirteen of them and the Kit Wheel only ever shows a handful
+      at once, so loose files let it decode the ones it needs; embedding would
+      put all eight megabytes in the assembly to reach any one of them.
+
+      Link flattens them into a "kits" folder, which is where KitImages looks.
+      Publish carries them through, so the installer picks them up with the rest
+      of the publish output and needs no line of its own.
+    -->
+    <Content Include="Assets\Kits\*.png"
+             Link="kits\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
