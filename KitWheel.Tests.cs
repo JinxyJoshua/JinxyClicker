@@ -371,4 +371,142 @@ public class KitWheelTests
     {
         Assert.Single(KitWheel.ApplyPreset(new[] { "Melody" }, new[] { "melody" }));
     }
+
+    // ---- what a brand new install starts with ----
+
+    /// <summary>
+    /// Nothing ticked on a first run. The whole roster arrives, but the person
+    /// chooses from it — a wheel pre-loaded with 113 kits would roll something
+    /// they have never played on the very first spin.
+    /// </summary>
+    [Fact]
+    public void AFirstRunHasNoKitsSelected()
+    {
+        KitRoster fresh = KitWheelStore.Fresh();
+
+        Assert.Empty(fresh.Selected);
+    }
+
+    /// <summary>But the list itself is there to choose from.</summary>
+    [Fact]
+    public void AFirstRunStillOffersTheWholeRoster()
+    {
+        KitRoster fresh = KitWheelStore.Fresh();
+
+        Assert.Equal(KitWheel.StarterRoster().Count, fresh.Kits.Count);
+        Assert.Empty(fresh.Presets);
+    }
+
+    /// <summary>A stored roster with nothing ticked stays that way.</summary>
+    [Fact]
+    public void KeepsAnEmptySelectionWhenReadingItBack()
+    {
+        const string stored = """
+        {"Kits":["Melody","Ember"],"Selected":[],"Presets":[]}
+        """;
+
+        Assert.Empty(KitWheelStore.Parse(stored).Selected);
+    }
+
+    /// <summary>
+    /// The one exception, and it is for upgrades only: the original file was a
+    /// bare list of names written before anything could be ticked, so every
+    /// name in it meant "on the wheel".
+    /// </summary>
+    [Fact]
+    public void TreatsTheOldFormatAsEverythingSelected()
+    {
+        KitRoster roster = KitWheelStore.Parse("""["Melody","Ember"]""");
+
+        Assert.Equal(2, roster.Selected.Count);
+    }
+
+    /// <summary>Unreadable stored data must not tick everything by accident.</summary>
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{"Kits":["Melody"]}""")]
+    public void NeverInventsASelection(string json)
+    {
+        Assert.Empty(KitWheelStore.Parse(json).Selected);
+    }
+
+    // ---- searching the roster ----
+
+    private static readonly List<string> Sample =
+        new() { "Melody", "Axolotl Amy", "Ember", "Frost Reaper", "Amethyst" };
+
+    [Fact]
+    public void FindsAKitByTheStartOfItsName()
+    {
+        Assert.Equal(new[] { "Melody" }, KitWheel.Matching(Sample, "Mel"));
+    }
+
+    /// <summary>
+    /// Contains, not starts-with. Half the roster is two words and somebody
+    /// hunting for "Axolotl Amy" is as likely to type the second one.
+    /// </summary>
+    [Fact]
+    public void FindsAKitByAWordInTheMiddleOfItsName()
+    {
+        Assert.Contains("Axolotl Amy", KitWheel.Matching(Sample, "Amy"));
+    }
+
+    [Theory]
+    [InlineData("ember")]
+    [InlineData("EMBER")]
+    [InlineData("EmBeR")]
+    public void DoesNotCareAboutCase(string term)
+    {
+        Assert.Contains("Ember", KitWheel.Matching(Sample, term));
+    }
+
+    /// <summary>Surrounding spaces come free with typing and must not matter.</summary>
+    [Fact]
+    public void IgnoresSpaceAroundWhatWasTyped()
+    {
+        Assert.Equal(new[] { "Melody" }, KitWheel.Matching(Sample, "  Melody  "));
+    }
+
+    /// <summary>
+    /// An empty box is no filter rather than no matches — clearing the search
+    /// has to put the whole roster back, not empty the list.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void ShowsEverythingWhenNothingIsTyped(string? term)
+    {
+        Assert.Equal(Sample.Count, KitWheel.Matching(Sample, term).Count);
+    }
+
+    [Fact]
+    public void FindsNothingWhenNothingMatches()
+    {
+        Assert.Empty(KitWheel.Matching(Sample, "zzz"));
+    }
+
+    /// <summary>One term can legitimately match several kits.</summary>
+    [Fact]
+    public void ReturnsEveryKitThatMatches()
+    {
+        List<string> hits = KitWheel.Matching(Sample, "me");
+
+        Assert.Contains("Melody", hits);
+        Assert.Contains("Amethyst", hits);
+    }
+
+    /// <summary>The order of the roster is kept, so the tiles do not reshuffle.</summary>
+    [Fact]
+    public void KeepsTheRosterOrder()
+    {
+        Assert.Equal(new[] { "Melody", "Amethyst" }, KitWheel.Matching(Sample, "me"));
+    }
+
+    /// <summary>A search on the real roster has to actually find something.</summary>
+    [Fact]
+    public void WorksAgainstTheShippedRoster()
+    {
+        Assert.NotEmpty(KitWheel.Matching(KitWheel.StarterRoster(), "a"));
+    }
 }

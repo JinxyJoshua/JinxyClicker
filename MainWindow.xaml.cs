@@ -627,6 +627,12 @@ public partial class MainWindow : Window
     private void BeginRebind(RebindTarget target)
     {
         _rebinding = target;
+
+        // Deliberately still the short prompt. Spelling out "Del clears" here
+        // reads well but roughly doubles the button at this font size, and
+        // these sit docked beside their description — the button would grow,
+        // squeeze the text next to it, then snap back on every rebind. The
+        // hint lives in the tooltip instead.
         RebindButtonFor(target).Content = "Select A Hotkey";
 
         // Load-bearing. The poll thread reads HotkeysArmed from the snapshot,
@@ -945,6 +951,12 @@ public partial class MainWindow : Window
         RefreshStatus();
     }
 
+    private static void ShowClearFor(Button? cross, HotkeyBinding binding)
+    {
+        if (cross != null)
+            cross.Visibility = binding.IsValid ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private Button RebindButtonFor(RebindTarget target) => target switch
     {
         RebindTarget.Replay => ReplayHotkeyButton,
@@ -1172,6 +1184,11 @@ public partial class MainWindow : Window
         // Escape is the emergency stop and is checked ahead of everything, so
         // binding it would produce a key that silently never fires.
         if (e.Key == Key.Escape) CancelRebind();
+        // Delete and Backspace unbind instead of binding. Without this there is
+        // no way back to "Not set" once an action has a key: every press while
+        // armed became the new binding, and the only way out was Escape, which
+        // keeps the old one.
+        else if (e.Key == Key.Delete || e.Key == Key.Back) ClearRebind();
         else CaptureRebind(HotkeyBinding.FromKey(e.Key));
     }
 
@@ -1227,6 +1244,91 @@ public partial class MainWindow : Window
             return;
         }
 
+        ApplyBinding(target, macroTarget, binding);
+    }
+
+    /// <summary>
+    /// Takes the key off one action, from the cross beside it.
+    /// </summary>
+    /// <remarks>
+    /// Each row clears only itself. The Tag names which action, so the eight
+    /// crosses share one handler and a new bindable action needs a Tag rather
+    /// than another copy of this.
+    ///
+    /// A rebind in progress is cancelled first. Otherwise clearing row B while
+    /// row A sits armed would leave A still waiting, and the next key pressed
+    /// anywhere would land on A.
+    /// </remarks>
+    /// <summary>
+    /// Clears the hotkey the NEW MACRO form is holding.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the eight fixed rows because this pick is not a binding
+    /// yet — it lives in the form until Save turns it into a macro, so there is
+    /// nothing on disk to rewrite.
+    /// </remarks>
+    private void ClearNewMacroHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebinding != RebindTarget.None) CancelRebind();
+
+        _pendingNewMacroHotkey = HotkeyBinding.Unbound;
+
+        if (NewMacroHotkeyButton != null)
+            NewMacroHotkeyButton.Content = HotkeyBinding.Unbound.Name;
+
+        ShowClearFor(ClearNewMacroKey, _pendingNewMacroHotkey);
+    }
+
+    private void ClearBinding_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string tag }) return;
+        if (!Enum.TryParse(tag, out RebindTarget target)) return;
+
+        if (_rebinding != RebindTarget.None) CancelRebind();
+
+        ApplyBinding(target, null, HotkeyBinding.Unbound);
+    }
+
+    /// <summary>
+    /// Takes the key off whatever was being rebound, leaving it unbound.
+    /// </summary>
+    /// <remarks>
+    /// No collision check, because nothing can collide with no key — several
+    /// actions read "Not set" at once and always have.
+    ///
+    /// This is the only route back. Binding is easy to undo by binding
+    /// something else, but an action that should answer to nothing had no way
+    /// of getting there once it had a key.
+    /// </remarks>
+    private void ClearRebind()
+    {
+        RebindTarget target = _rebinding;
+        KeyMacro? macroTarget = _rebindingMacro;
+
+        _rebinding = RebindTarget.None;
+        _rebindingMacro = null;
+        _rebindingMacroButton = null;
+
+        ApplyBinding(target, macroTarget, HotkeyBinding.Unbound);
+    }
+
+    /// <summary>
+    /// Writes a binding to whichever slot was being rebound, and puts the UI
+    /// and the poll thread back in step with it.
+    /// </summary>
+    /// <remarks>
+    /// Shared by binding a key and by clearing one. Kept together so the two
+    /// cannot drift — clearing has to save, refresh the button and re-arm the
+    /// poll thread in exactly the same way binding does, and a second copy of
+    /// that sequence would eventually forget one of them.
+    /// </remarks>
+    private void ApplyBinding(RebindTarget target, KeyMacro? macroTarget, HotkeyBinding binding)
+    {
+        // Nothing was being rebound. Worth refusing explicitly: the switch below
+        // ends in a default that means Replay, so a None arriving here would
+        // quietly rewrite the replay key.
+        if (target == RebindTarget.None) return;
+
         if (target == RebindTarget.Macro)
         {
             AssignMacroHotkey(macroTarget, binding);
@@ -1274,6 +1376,7 @@ public partial class MainWindow : Window
             // NEW MACRO form: hold the pick until Save creates the macro.
             _pendingNewMacroHotkey = binding;
             if (NewMacroHotkeyButton != null) NewMacroHotkeyButton.Content = binding.Name;
+            ShowClearFor(ClearNewMacroKey, binding);
             return;
         }
 
@@ -2435,6 +2538,18 @@ public partial class MainWindow : Window
         SwitcherHotkeyButton.Content = _hotkeySettings.SwitcherHotkey.Name;
         MasterHotkeyButton.Content = _hotkeySettings.MasterHotkey.Name;
         ClickSwitchHotkeyButton.Content = _hotkeySettings.ClickSwitchHotkey.Name;
+
+        // A row with no key has nothing to clear, so it does not offer to.
+        // Collapsed rather than hidden: these sit in a docked row, and a
+        // reserved gap beside every unbound action reads as a missing control.
+        ShowClearFor(ClearClickKey, _hotkeySettings.Hotkey);
+        ShowClearFor(ClearReplayKey, _hotkeySettings.ReplayHotkey);
+        ShowClearFor(ClearRecordKey, _hotkeySettings.RecordHotkey);
+        ShowClearFor(ClearComboKey, _hotkeySettings.ComboHotkey);
+        ShowClearFor(ClearBuildKey, _hotkeySettings.BuildHotkey);
+        ShowClearFor(ClearSwitcherKey, _hotkeySettings.SwitcherHotkey);
+        ShowClearFor(ClearMasterKey, _hotkeySettings.MasterHotkey);
+        ShowClearFor(ClearClickSwitchKey, _hotkeySettings.ClickSwitchHotkey);
 
         // The bindings live on three different pages, so Settings is the only
         // place they can all be read at once.
@@ -3998,6 +4113,11 @@ public partial class MainWindow : Window
         ShowUploadStatus("Uploaded. The link is ready to share.", isError: false);
     }
 
+    /// <summary>How long the copy button says so before going back.</summary>
+    private static readonly TimeSpan CopiedNoticeDuration = TimeSpan.FromSeconds(1.6);
+
+    private DispatcherTimer? _copiedNoticeTimer;
+
     private void CopyLink_Click(object sender, RoutedEventArgs e)
     {
         if (ClipUrlBox.Text.Length == 0) return;
@@ -4006,12 +4126,46 @@ public partial class MainWindow : Window
         {
             Clipboard.SetText(ClipUrlBox.Text);
             ShowUploadStatus("Link copied.", isError: false);
+            ShowCopiedOnButton();
         }
         catch (Exception ex)
         {
-            // The clipboard can be locked by another process.
+            // The clipboard can be locked by another process. The button keeps
+            // saying "Copy", because it did not.
             ShowUploadStatus($"Could not copy: {ex.Message}", isError: true);
         }
+    }
+
+    /// <summary>
+    /// Confirms the copy on the button itself, then puts it back.
+    /// </summary>
+    /// <remarks>
+    /// The status line underneath already says it, but that sits below the
+    /// field and reads as part of the upload's running commentary — pressing a
+    /// button and having nothing about that button change is what makes people
+    /// press it twice. The button has a MinWidth so swapping the longer word in
+    /// does not resize it and shift the field beside it.
+    /// </remarks>
+    private void ShowCopiedOnButton()
+    {
+        CopyLinkButton.Content = "Copied";
+        CopyLinkButton.Foreground = (Brush)FindResource("Accent");
+
+        // Restarted rather than stacked, so copying three times in a row leaves
+        // one pending revert instead of three fighting over the label.
+        _copiedNoticeTimer?.Stop();
+        _copiedNoticeTimer = new DispatcherTimer { Interval = CopiedNoticeDuration };
+
+        _copiedNoticeTimer.Tick += (_, _) =>
+        {
+            _copiedNoticeTimer?.Stop();
+            _copiedNoticeTimer = null;
+
+            CopyLinkButton.Content = "Copy";
+            CopyLinkButton.ClearValue(Control.ForegroundProperty);
+        };
+
+        _copiedNoticeTimer.Start();
     }
 
     // ---- in-app confirmation ----
@@ -4328,7 +4482,12 @@ public partial class MainWindow : Window
             // exactly when somebody would want to, since nothing can fire
             // mid-edit. It only has to stop looking live.
             Opacity = live ? 1.0 : 0.45,
-            ToolTip = live ? null : "This macro will not fire"
+            // The "will not fire" warning takes priority when it applies — it
+            // is the more urgent thing to say about this button — but a macro
+            // that is live still needs to say how to take its key away.
+            ToolTip = live
+                ? "Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                : "This macro will not fire"
         };
 
         hotkeyButton.Click += (_, _) =>
@@ -4413,7 +4572,36 @@ public partial class MainWindow : Window
         body.Children.Add(header);
         body.Children.Add(summary);
         body.Children.Add(hotkeyLabel);
-        body.Children.Add(hotkeyButton);
+
+        // The key and its cross on one row. The cross only exists when there is
+        // a key to take off, so a macro with no hotkey shows the button at full
+        // width exactly as it did before.
+        var hotkeyRow = new DockPanel();
+
+        if (macro.Hotkey.IsValid)
+        {
+            var clearHotkey = new Button
+            {
+                Style = (Style)FindResource("ClearBindingButton"),
+                Opacity = live ? 1.0 : 0.45,
+                ToolTip = $"Unbind {macro.Hotkey.Name} from {macro.Name}"
+            };
+
+            clearHotkey.Click += (_, _) =>
+            {
+                // Same reason as the fixed rows: a rebind left armed elsewhere
+                // would swallow the next key pressed.
+                if (_rebinding != RebindTarget.None) CancelRebind();
+
+                ApplyBinding(RebindTarget.Macro, macro, HotkeyBinding.Unbound);
+            };
+
+            DockPanel.SetDock(clearHotkey, Dock.Right);
+            hotkeyRow.Children.Add(clearHotkey);
+        }
+
+        hotkeyRow.Children.Add(hotkeyButton);
+        body.Children.Add(hotkeyRow);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         buttons.Children.Add(enable);
@@ -4542,6 +4730,7 @@ public partial class MainWindow : Window
         // slot goes back to Unbound so the next macro starts fresh.
         _pendingNewMacroHotkey = HotkeyBinding.Unbound;
         if (NewMacroHotkeyButton != null) NewMacroHotkeyButton.Content = "Not set";
+        ShowClearFor(ClearNewMacroKey, _pendingNewMacroHotkey);
 
         BuildMacroCards();
     }

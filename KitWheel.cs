@@ -115,6 +115,22 @@ public static class KitWheel
     /// pool rather than picking freely each time. Rolling the same kit twice
     /// would make the remaining count meaningless and the run never finish.
     /// </remarks>
+    /// <summary>The kits whose name contains what was typed.</summary>
+    /// <remarks>
+    /// Contains rather than starts-with: the roster is full of two-word names,
+    /// and somebody looking for "Axolotl Amy" is as likely to type "amy". Blank
+    /// means no filter at all rather than no matches, so clearing the box puts
+    /// the whole roster back.
+    /// </remarks>
+    public static List<string> Matching(IEnumerable<string> kits, string? search)
+    {
+        string term = (search ?? "").Trim();
+
+        return term.Length == 0
+            ? kits.ToList()
+            : kits.Where(k => k.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
     public static List<string> Remaining(IEnumerable<string> kits, IEnumerable<string> used)
     {
         var done = new HashSet<string>(used, StringComparer.OrdinalIgnoreCase);
@@ -227,28 +243,49 @@ public static class KitWheelStore
 {
     private static readonly string StoreFile = SettingsPath.For("kit_wheel.json");
 
+    /// <summary>
+    /// The roster a machine that has never run this before starts with.
+    /// </summary>
+    /// <remarks>
+    /// Every kit on the list, and <em>none of them ticked</em>. That is the
+    /// point rather than an oversight: the wheel is meant to be the kits you
+    /// actually play, so a first run asks the question instead of answering it
+    /// with all 113 — which would make the first roll land on something the
+    /// person has never used.
+    ///
+    /// Named rather than written inline twice, because both the no-file case
+    /// and the unreadable-file case have to agree on it.
+    /// </remarks>
+    public static KitRoster Fresh() => new() { Kits = KitWheel.StarterRoster() };
+
     public static KitRoster Load()
     {
         try
         {
-            if (!File.Exists(StoreFile))
-                return new KitRoster { Kits = KitWheel.StarterRoster() };
+            if (!File.Exists(StoreFile)) return Fresh();
 
-            string json = File.ReadAllText(StoreFile).TrimStart();
-
-            // The first version of this file was a bare array of names, written
-            // before anything could be ticked. Read as a roster with everything
-            // selected, which is what it meant at the time.
-            KitRoster roster = json.StartsWith("[")
-                ? LegacyList(json)
-                : JsonSerializer.Deserialize<KitRoster>(json) ?? new KitRoster();
-
-            return Clean(roster);
+            return Parse(File.ReadAllText(StoreFile));
         }
         catch
         {
-            return new KitRoster { Kits = KitWheel.StarterRoster() };
+            return Fresh();
         }
+    }
+
+    /// <summary>Reads a stored roster, in either the current or the first format.</summary>
+    public static KitRoster Parse(string json)
+    {
+        json = json.TrimStart();
+
+        // The first version of this file was a bare array of names, written
+        // before anything could be ticked. Read as a roster with everything
+        // selected, which is what it meant at the time — the one case where a
+        // roster arrives fully ticked, and only for people upgrading.
+        KitRoster roster = json.StartsWith("[")
+            ? LegacyList(json)
+            : JsonSerializer.Deserialize<KitRoster>(json) ?? new KitRoster();
+
+        return Clean(roster);
     }
 
     private static KitRoster LegacyList(string json)

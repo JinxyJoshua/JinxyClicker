@@ -28,6 +28,23 @@ recoverable by running:
 
     ffmpeg.exe -version
 
+Kit artwork
+-----------
+The pictures in <install folder>\kits are character renders from Roblox BedWars,
+installed so the Kit Wheel can show a kit rather than only name it. They are the
+game's own artwork and are not ours. They are included for identification, and
+sourced from the community wiki:
+
+    https://robloxbedwars.fandom.com
+
+Roblox and BedWars are trademarks of their respective owners. This program is
+not affiliated with, endorsed by, or connected to Roblox Corporation or the
+makers of BedWars.
+
+Removing the kits folder does not stop the program working — a kit with no
+picture is shown by name, and any picture you choose yourself is used ahead of
+the one installed here.
+
 Jinxy Clicker
 -------------
 Jinxy Clicker itself is original work and contains no third-party application's

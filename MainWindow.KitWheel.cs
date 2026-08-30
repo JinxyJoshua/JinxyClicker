@@ -6,6 +6,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace JinxyClicker;
@@ -67,8 +69,50 @@ public partial class MainWindow
     private const double ReelFastMs = 30;
     private const double ReelSlowMs = 130;
 
-    private void NavKitWheel_Click(object sender, RoutedEventArgs e) =>
+    private void NavKitWheel_Click(object sender, RoutedEventArgs e)
+    {
         ShowPage(NavKitWheel, PageKitWheel, "Kit Randomizer", "Roll a kit you have not played yet");
+
+        OpenKitListIfNothingPicked();
+
+        _ = FetchMissingKitArtAsync();
+    }
+
+    private readonly CancellationTokenSource _kitArtCts = new();
+    private bool _kitArtStarted;
+
+    /// <summary>
+    /// Pulls down any kit pictures this copy of the app has not got.
+    /// </summary>
+    /// <remarks>
+    /// The install ships a picture for every kit on the roster, so the usual
+    /// outcome is that this finds nothing missing and never touches the network.
+    /// It covers what the installer cannot: a kit added to the roster by hand,
+    /// or one whose picture failed to install.
+    ///
+    /// Started from opening the page rather than from launch: somebody who never
+    /// opens it never spends the bandwidth, and by the time the page is on
+    /// screen the pictures are wanted.
+    /// </remarks>
+    private async Task FetchMissingKitArtAsync()
+    {
+        if (_kitArtStarted) return;
+
+        _kitArtStarted = true;
+
+        await KitArtFetch.RunAsync(
+            _roster.Kits,
+            batchDone: () =>
+            {
+                // Cached nulls from before the download have to go, or the
+                // tiles keep showing placeholders for pictures now on disk.
+                _kitArt.Clear();
+                RefreshKitWheel();
+
+                return Task.CompletedTask;
+            },
+            _kitArtCts.Token).ConfigureAwait(true);
+    }
 
     // ---- the roster ----
 
@@ -146,21 +190,87 @@ public partial class MainWindow
         RefreshKitWheel();
     }
 
+    // ---- searching the roster ----
+
+    private string _kitSearch = "";
+
+    /// <summary>The kits the list is currently showing.</summary>
+    private List<string> ShownKits() => KitWheel.Matching(_roster.Kits, _kitSearch);
+
+    private bool Searching => _kitSearch.Trim().Length > 0;
+
+    private void KitSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _kitSearch = KitSearchBox.Text;
+
+        RefreshKitWheel();
+    }
+
+    private void ClearKitSearch_Click(object sender, RoutedEventArgs e) =>
+        KitSearchBox.Clear();
+
+    /// <summary>
+    /// Ticks everything the list is showing.
+    /// </summary>
+    /// <remarks>
+    /// Scoped to the search results when there is a search, which is the point
+    /// of having one — type "ice", take all of them. The button says which it
+    /// will do, because "Select all" doing either would be a guess either way.
+    ///
+    /// Adds to the selection rather than replacing it, so selecting the matches
+    /// for one search and then another accumulates instead of the second wiping
+    /// the first. With no search this still ends up as the whole roster.
+    /// </remarks>
     private void SelectAllKits_Click(object sender, RoutedEventArgs e)
     {
         if (_rolling) return;
 
-        _roster.Selected = new List<string>(_roster.Kits);
+        if (!Searching)
+        {
+            _roster.Selected = new List<string>(_roster.Kits);
+        }
+        else
+        {
+            foreach (string kit in ShownKits())
+            {
+                if (!_roster.Selected.Any(s => s.Equals(kit, StringComparison.OrdinalIgnoreCase)))
+                    _roster.Selected.Add(kit);
+            }
+        }
+
         Save();
         RefreshKitWheel();
     }
 
+    /// <summary>
+    /// Unticks everything the list is showing.
+    /// </summary>
+    /// <remarks>
+    /// Only the matches while searching. Clearing the whole wheel from behind a
+    /// filter — where most of what would be cleared is not even on screen — is
+    /// the kind of thing that gets noticed one roll too late.
+    ///
+    /// The rolled list is only emptied on a full clear. Dropping a few kits mid
+    /// run should not restart the run.
+    /// </remarks>
     private void ClearKits_Click(object sender, RoutedEventArgs e)
     {
         if (_rolling) return;
 
-        _roster.Selected.Clear();
-        _rolled.Clear();
+        if (!Searching)
+        {
+            _roster.Selected.Clear();
+            _rolled.Clear();
+        }
+        else
+        {
+            foreach (string kit in ShownKits())
+            {
+                _roster.Selected.RemoveAll(k => k.Equals(kit, StringComparison.OrdinalIgnoreCase));
+                _rolled.RemoveAll(k => k.Equals(kit, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
         Save();
         RefreshKitWheel();
     }
@@ -306,36 +416,22 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Decodes a picture without holding the file open.
+    /// Reads a picture and puts it on the backdrop, ready to show.
     /// </summary>
     /// <remarks>
-    /// OnLoad caching and a stream closed straight after: otherwise WPF keeps
-    /// the file locked for as long as the image is shown, and replacing a kit's
-    /// picture fails because the file being overwritten is in use by the list
-    /// displaying it. The same trap the wallpaper hit.
+    /// Both steps live in KitArtImage rather than here. The decode in particular
+    /// is not the one-liner it appears to be — done the obvious way WPF discards
+    /// the transparency and every kit draws as a coloured rectangle.
+    ///
+    /// Composed here rather than baked into the file, so the backdrop can change
+    /// without re-fetching a hundred pictures, and a picture somebody drops in
+    /// themselves gets the same framing.
     /// </remarks>
     private static ImageSource? DecodeFrozen(string path)
     {
-        try
-        {
-            var image = new System.Windows.Media.Imaging.BitmapImage();
+        System.Windows.Media.Imaging.BitmapSource? image = KitArtImage.Decode(path);
 
-            using (var stream = System.IO.File.OpenRead(path))
-            {
-                image.BeginInit();
-                image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                image.StreamSource = stream;
-                image.EndInit();
-            }
-
-            image.Freeze();
-
-            return image;
-        }
-        catch
-        {
-            return null;
-        }
+        return image == null ? null : KitArtImage.OnBackdrop(image);
     }
 
     private void SetKitImage_Click(object sender, RoutedEventArgs e)
@@ -374,19 +470,46 @@ public partial class MainWindow
     /// The header keeps showing what is picked, so closing it does not hide the
     /// answer, only the controls.
     /// </remarks>
-    private void KitListToggle_Click(object sender, RoutedEventArgs e)
+    private void KitListToggle_Click(object sender, RoutedEventArgs e) =>
+        SetKitListOpen(KitListBody.Visibility != Visibility.Visible);
+
+    private void SetKitListOpen(bool open)
     {
-        bool opening = KitListBody.Visibility != Visibility.Visible;
+        KitListBody.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        KitListChevron.Text = open ? "▾" : "▸";
 
-        KitListBody.Visibility = opening ? Visibility.Visible : Visibility.Collapsed;
-        KitListChevron.Text = opening ? "▾" : "▸";
-
-        if (!opening) return;
+        if (!open) return;
 
         // Fades in rather than appearing, so a list this tall does not read as
         // the page having jumped.
         KitListBody.BeginAnimation(OpacityProperty,
             new DoubleAnimation(0.0, 1.0, new Duration(TimeSpan.FromMilliseconds(140))));
+    }
+
+    private bool _kitListAutoOpened;
+
+    /// <summary>
+    /// Opens the roster by itself when there is nothing on the wheel yet.
+    /// </summary>
+    /// <remarks>
+    /// Closed is the right default once a set is picked, but on a first run it
+    /// hides the only thing there is to do — the page offers a roll button that
+    /// cannot roll and a collapsed row people were not noticing.
+    ///
+    /// Two guards, and both matter. It runs at most once per launch, so someone
+    /// who deliberately closes it is not overruled every time they come back to
+    /// the page. And it only fires with nothing picked, so it stops happening
+    /// the moment the wheel has kits on it.
+    /// </remarks>
+    private void OpenKitListIfNothingPicked()
+    {
+        if (_kitListAutoOpened) return;
+
+        _kitListAutoOpened = true;
+
+        if (_roster.Selected.Count > 0) return;
+
+        SetKitListOpen(true);
     }
 
     /// <summary>
@@ -451,7 +574,11 @@ public partial class MainWindow
 
         List<string> chosen = _roster.Selected;
 
-        KitList.ItemsSource = _roster.Kits
+        // Only the matches are shown, but every count below still speaks for the
+        // whole roster — a search narrows the list, not the wheel.
+        List<string> shown = ShownKits();
+
+        KitList.ItemsSource = shown
             .Select(k =>
             {
                 ImageSource? art = LoadKitImage(k);
@@ -492,7 +619,21 @@ public partial class MainWindow
         KitCountText.Text = $"{chosen.Count} selected";
         KitSelectionText.Text = SelectionSummary(chosen);
         KitsRemainingText.Text = $"{left} KIT{(left == 1 ? "" : "S")} REMAINING";
-        KitEmptyText.Visibility = _roster.Kits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // An empty roster and a search that found nothing look identical on
+        // screen but mean opposite things — one needs a kit added, the other
+        // needs the search changed — so they do not share a message.
+        KitEmptyText.Text = _roster.Kits.Count == 0
+            ? "No kits on the roster. Type one above and press Add kit."
+            : $"No kit matches “{_kitSearch.Trim()}”.";
+
+        KitEmptyText.Visibility =
+            shown.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // The buttons say which they will act on, because either meaning is a
+        // reasonable guess and guessing wrong on Clear loses a selection.
+        SelectAllKitsButton.Content = Searching ? "Select matches" : "Select all";
+        ClearKitsButton.Content = Searching ? "Clear matches" : "Clear";
+        ClearKitSearchButton.Visibility = Searching ? Visibility.Visible : Visibility.Collapsed;
 
         ChallengeProgressText.Text = $"{_rolled.Count} / {chosen.Count}";
         ChallengeProgressBar.Value = KitWheel.Progress(chosen.Count, _rolled.Count);

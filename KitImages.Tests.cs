@@ -102,4 +102,114 @@ public class KitImagesTests
         Assert.Contains("*.jpg", filter);
         Assert.Contains("*.webp", filter);
     }
+
+    // ---- the two folders ----
+    //
+    // The install ships a picture for every kit, beside the executable. The
+    // folder under AppData holds the ones a person chose. Which of the two wins
+    // is the whole behaviour, so both directions are pinned here.
+    //
+    // Real kit names are deliberately not used: these write files, and a test
+    // must not be able to disturb art the app is actually showing.
+
+    private const string Invented = "Test Kit 8f2c1e";
+
+    private static string ShippedPath(string kit)
+    {
+        string folder = System.IO.Path.Combine(System.AppContext.BaseDirectory, "kits");
+
+        System.IO.Directory.CreateDirectory(folder);
+
+        return System.IO.Path.Combine(folder, KitImages.FileNameFor(kit, ".png"));
+    }
+
+    [Fact]
+    public void FindsThePictureThatCameWithTheApp()
+    {
+        string shipped = ShippedPath(Invented);
+
+        try
+        {
+            System.IO.File.WriteAllText(shipped, "shipped");
+
+            Assert.Equal(shipped, KitImages.Find(Invented));
+        }
+        finally
+        {
+            System.IO.File.Delete(shipped);
+        }
+    }
+
+    /// <summary>
+    /// A picture somebody chose beats the one the install shipped. Otherwise
+    /// choosing your own art for a kit would appear to do nothing.
+    /// </summary>
+    [Fact]
+    public void PrefersTheChosenPictureOverTheShippedOne()
+    {
+        string shipped = ShippedPath(Invented);
+        string chosen = KitImages.PathFor(Invented, ".png");
+
+        try
+        {
+            System.IO.File.WriteAllText(shipped, "shipped");
+            System.IO.File.WriteAllText(chosen, "chosen");
+
+            Assert.Equal(chosen, KitImages.Find(Invented));
+        }
+        finally
+        {
+            System.IO.File.Delete(shipped);
+            System.IO.File.Delete(chosen);
+        }
+    }
+
+    /// <summary>
+    /// Clearing a chosen picture uncovers the shipped one rather than leaving
+    /// the kit blank.
+    /// </summary>
+    [Fact]
+    public void FallsBackToTheShippedPictureWhenTheChosenOneGoes()
+    {
+        string shipped = ShippedPath(Invented);
+        string chosen = KitImages.PathFor(Invented, ".png");
+
+        try
+        {
+            System.IO.File.WriteAllText(shipped, "shipped");
+            System.IO.File.WriteAllText(chosen, "chosen");
+
+            KitImages.Remove(Invented);
+
+            Assert.Equal(shipped, KitImages.Find(Invented));
+        }
+        finally
+        {
+            System.IO.File.Delete(shipped);
+            System.IO.File.Delete(chosen);
+        }
+    }
+
+    /// <summary>
+    /// Removing a kit's picture must not reach into the install folder. It is
+    /// not this account's to change, and the deletion would be permanent.
+    /// </summary>
+    [Fact]
+    public void NeverDeletesAShippedPicture()
+    {
+        string shipped = ShippedPath(Invented);
+
+        try
+        {
+            System.IO.File.WriteAllText(shipped, "shipped");
+
+            KitImages.Remove(Invented);
+
+            Assert.True(System.IO.File.Exists(shipped));
+        }
+        finally
+        {
+            System.IO.File.Delete(shipped);
+        }
+    }
 }

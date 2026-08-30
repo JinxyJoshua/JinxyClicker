@@ -5,16 +5,19 @@ using System.Linq;
 namespace JinxyClicker;
 
 /// <summary>
-/// Pictures for kits, kept in a folder beside the settings.
+/// Pictures for kits, looked for beside the settings and then beside the app.
 /// </summary>
 /// <remarks>
-/// The app ships none. The game has well over a hundred kits and their art
-/// belongs to the game, so the picture for a kit is one somebody supplies —
-/// screenshotted once and kept, the same way the wallpaper is.
+/// Two folders, and the order matters. The install ships a picture for every
+/// kit on the roster; the folder beside the settings holds the ones a person
+/// chose themselves, and is searched first so their choice beats the shipped
+/// one. Clearing a kit's picture therefore returns it to the shipped picture
+/// rather than to no picture at all.
 ///
 /// Named after the kit rather than listed in a file, so dropping images into
 /// the folder by hand works exactly as well as choosing them in the app. A kit
-/// with no picture shows its name, which is what the list did before.
+/// with no picture in either place shows its name, which is what the list did
+/// before there were any.
 /// </remarks>
 public static class KitImages
 {
@@ -59,13 +62,54 @@ public static class KitImages
         return folder;
     }
 
+    /// <summary>Where a kit's picture would be written, or empty if it cannot be.</summary>
+    public static string PathFor(string kit, string extension)
+    {
+        try
+        {
+            return Path.Combine(Folder(), FileNameFor(kit, extension));
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// The pictures that came with the app.
+    /// </summary>
+    /// <remarks>
+    /// Beside the executable rather than under the settings folder, because
+    /// Setup put them there and the uninstaller has to be able to take them
+    /// away again. Nothing is ever written here — an install folder is not
+    /// somewhere a per-user app is entitled to write, and on a machine with
+    /// several accounts it is not that account's to change.
+    /// </remarks>
+    private static string ShippedFolder() =>
+        Path.Combine(AppContext.BaseDirectory, "kits");
+
     /// <summary>The picture for a kit, or null if it has none.</summary>
+    /// <remarks>
+    /// The chosen picture is looked for before the shipped one, so replacing a
+    /// kit's art is a matter of putting a file in front of it rather than
+    /// overwriting anything.
+    /// </remarks>
     public static string? Find(string kit)
     {
         try
         {
-            string folder = Folder();
+            return FindIn(Folder(), kit) ?? FindIn(ShippedFolder(), kit);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
+    private static string? FindIn(string folder, string kit)
+    {
+        try
+        {
             return Allowed
                 .Select(ext => Path.Combine(folder, FileNameFor(kit, ext)))
                 .FirstOrDefault(File.Exists);
