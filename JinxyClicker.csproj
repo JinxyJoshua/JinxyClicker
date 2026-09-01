@@ -43,6 +43,38 @@
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
+  <!--
+    The developer panel is not in a normal build.
+
+    Passing -p:DevTools=true defines DEVTOOLS, which is the only thing that
+    compiles MainWindow.DevTools.cs in. Without it the panel, its handlers and
+    even its labels are absent from the assembly — not hidden at runtime, not
+    behind a key, simply not built. Anyone handed the public installer has
+    nothing to find, whatever they know about it.
+
+    Usage counting is deliberately NOT behind this switch. Every copy reports,
+    or a total across everybody would only count the people who can see it.
+
+      Build:   dotnet build JinxyClicker.csproj -c Release -p:DevTools=true
+      Publish: the usual publish command, plus -p:DevTools=true
+  -->
+  <!--
+    Never compile anything out of bin or obj.
+
+    MSBuild normally excludes the intermediate folder for you, but only the one
+    it is currently using — so building to a different obj (which run-dev.cmd
+    does, to keep the dev build from overwriting the one Visual Studio makes)
+    leaves the old obj\Debug visible to the source glob, and its generated
+    AssemblyInfo.cs then collides with the real one.
+  -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(DevTools)' == 'true'">
+    <DefineConstants>$(DefineConstants);DEVTOOLS</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       Tests sit next to the code they cover. They are compiled by

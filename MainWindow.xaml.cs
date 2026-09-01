@@ -122,6 +122,21 @@ public partial class MainWindow : Window
         {
             InitializeComponent();
 
+            // At launch, not when the clicker starts. Windows decides a process
+            // is a background task from how it has behaved over the session, so
+            // the opt-out is worth having in place before that judgement is
+            // made rather than after it has already taken effect.
+            ProcessTiming.KeepResponsiveInBackground();
+
+            // The badge follows the engine rather than the buttons. Macros stop
+            // from paths that never touch this page — a hotkey on the poll
+            // thread, the master kill, deleting one — and the badge has to be
+            // right for all of them. InvokeAsync because the event is raised on
+            // whichever thread made the change.
+            _macros.Changed += () => Dispatcher.InvokeAsync(RefreshMacroBadge);
+
+            SetUpDevTools();
+
             // Load hotkey settings
             _hotkeySettings.Load();
             DropDuplicateHotkeys();
@@ -1505,6 +1520,8 @@ public partial class MainWindow : Window
         _valuesHidden = s.HideValues;
         ApplyValueVisibility();
 
+        StreamerModeCheck.IsChecked = s.StreamerMode;
+
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
         if (!SelectReplayLength(s.ReplaySeconds)) SelectReplayLength(30);
@@ -1634,6 +1651,7 @@ public partial class MainWindow : Window
             HoldMode = _holdMode,
             ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
+            StreamerMode = StreamerModeCheck.IsChecked == true,
             ReplayEnabled = ReplayEnabled.IsChecked == true,
             ReplaySeconds = ReplaySeconds,
             AccentColor = _accentHex,
@@ -2480,48 +2498,8 @@ public partial class MainWindow : Window
     /// behaviour the call simply fails, and the loop still works, just with the
     /// coarser sleeps it had before.
     /// </remarks>
-    private static void KeepTimerResolutionInBackground()
-    {
-        try
-        {
-            var state = new PROCESS_POWER_THROTTLING_STATE
-            {
-                Version = ProcessPowerThrottlingCurrentVersion,
-                ControlMask = ProcessPowerThrottlingIgnoreTimerResolution,
-                StateMask = 0
-            };
-
-            SetProcessInformation(
-                GetCurrentProcess(),
-                ProcessPowerThrottlingInformation,
-                ref state,
-                (uint)Marshal.SizeOf<PROCESS_POWER_THROTTLING_STATE>());
-        }
-        catch
-        {
-            // Older Windows, or a policy that forbids it. Not worth a crash.
-        }
-    }
-
-    private const int ProcessPowerThrottlingInformation = 4;
-    private const uint ProcessPowerThrottlingCurrentVersion = 1;
-    private const uint ProcessPowerThrottlingIgnoreTimerResolution = 0x4;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_POWER_THROTTLING_STATE
-    {
-        public uint Version;
-        public uint ControlMask;
-        public uint StateMask;
-    }
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool SetProcessInformation(
-        IntPtr process, int informationClass,
-        ref PROCESS_POWER_THROTTLING_STATE info, uint size);
-
-    [DllImport("kernel32.dll")]
-    private static extern IntPtr GetCurrentProcess();
+    private static void KeepTimerResolutionInBackground() =>
+        ProcessTiming.KeepResponsiveInBackground();
 
     private static bool IsKeyDown(int virtualKey) =>
         virtualKey != 0 && (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
@@ -4284,17 +4262,34 @@ public partial class MainWindow : Window
             new DoubleAnimation(PageRiseDistance, 0.0, PageFadeDuration) { EasingFunction = ease });
     }
 
+    /// <summary>
+    /// Tabs added at runtime rather than written in the markup.
+    /// </summary>
+    /// <remarks>
+    /// Empty in a normal build. A tab that only some builds have cannot live in
+    /// MainWindow.xaml, because the markup is compiled into every copy — so it
+    /// is assembled in code and registered here instead.
+    ///
+    /// They have to join these two lists rather than merely be added to the
+    /// panel: selecting a tab clears the highlight on every button in
+    /// NavButtons and hides every page in Pages, so one that is not listed
+    /// would stay lit after you navigated away from it, and stay on screen
+    /// underneath the page you moved to.
+    /// </remarks>
+    private readonly List<Button> _extraNav = new();
+    private readonly List<UIElement> _extraPages = new();
+
     private Button[] NavButtons => new[]
     {
         NavClicker, NavPresets, NavKitWheel, NavTweaks, NavOptimizations,
         NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
-    };
+    }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PagePresets, PageKitWheel, PageTweaks, PageOptimizations,
         PageMacros, PageSwitcher, PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
-    };
+    }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
 
@@ -4667,6 +4662,107 @@ public partial class MainWindow : Window
             1 => "1 macro running.",
             _ => $"{count} macros running."
         };
+
+        RefreshMacroBadge();
+    }
+
+    // ---- dev tools ----
+
+    private readonly UsageStats _usage = UsageStats.Load();
+
+    /// <summary>When this session started, for the time-open total.</summary>
+    private readonly System.Diagnostics.Stopwatch _sessionClock =
+        System.Diagnostics.Stopwatch.StartNew();
+
+    /// <summary>
+    /// Counts this launch, and shows the developer panel if this build has one.
+    /// </summary>
+    /// <remarks>
+    /// The counting happens in every build, including the public one. A total
+    /// across everybody is only meaningful if the copies that will never see
+    /// the number still add to it.
+    ///
+    /// The panel is the part that is not in every build. ShowDevToolsIfBuilt is
+    /// a partial method with no implementation unless DEVTOOLS is defined, so
+    /// in a public build this call — and everything behind it — is removed by
+    /// the compiler rather than merely hidden at runtime.
+    /// </remarks>
+    private void SetUpDevTools()
+    {
+        _usage.RecordLaunch(DateTime.Now);
+        _usage.Save();
+
+        // Counted for everyone, not just the panel holder.
+        UsageReporter.ReportOpen();
+
+        ShowDevToolsIfBuilt();
+    }
+
+    /// <summary>
+    /// Builds the developer panel. Compiled away entirely without DEVTOOLS.
+    /// </summary>
+    /// <remarks>
+    /// See MainWindow.DevTools.cs. A partial method with no implementation is
+    /// erased along with its call sites, so the public build carries no panel,
+    /// no handler, and no strings that hint either exists.
+    /// </remarks>
+    partial void ShowDevToolsIfBuilt();
+
+    /// <summary>Banks how long this session stayed open. Called on close.</summary>
+    private void SaveUsage()
+    {
+        double seconds = _sessionClock.Elapsed.TotalSeconds;
+
+        _usage.AddSession(seconds);
+        _usage.Save();
+
+        // Fire and forget. Closing must not wait on a counter.
+        UsageReporter.ReportSession(seconds);
+    }
+
+    /// <summary>The on-screen badge, made only once something needs it.</summary>
+    private MacroBadge? _macroBadge;
+
+    private void StreamerMode_Changed(object sender, RoutedEventArgs e)
+    {
+        bool on = StreamerModeCheck.IsChecked == true;
+
+        // Applied to a badge that already exists rather than only at creation,
+        // so the change shows immediately instead of at the next macro.
+        if (_macroBadge != null) _macroBadge.StreamerMode = on;
+
+        SaveAppSettings();
+    }
+
+    /// <summary>
+    /// Puts the on-screen badge in step with what is actually running.
+    /// </summary>
+    /// <remarks>
+    /// Every path that starts or stops a macro ends up here, because this is
+    /// the one place that already had to know. A badge that says a macro is on
+    /// after it stopped would be worse than no badge at all.
+    ///
+    /// The switcher is included even though the page's own counter excludes it.
+    /// The counter is about that page; the badge is about keys being sent to
+    /// the game, and the switcher sends them like anything else.
+    /// </remarks>
+    private void RefreshMacroBadge()
+    {
+        var running = _macroList
+            .Where(m => _macros.IsRunning(m.Name))
+            .Select(m => m.KeysText.Trim())
+            .Where(k => k.Length > 0)
+            .ToList();
+
+        if (_macros.IsRunning(SwitcherName)) running.Add("switcher");
+
+        // Not created until a macro actually runs, so somebody who never uses
+        // one never has a second window made on their behalf.
+        if (running.Count == 0 && _macroBadge == null) return;
+
+        _macroBadge ??= new MacroBadge { StreamerMode = StreamerModeCheck.IsChecked == true };
+
+        _macroBadge.Update(running);
     }
 
     private void StopAllMacros_Click(object sender, RoutedEventArgs e)
@@ -5161,6 +5257,10 @@ public partial class MainWindow : Window
 
         FlushHistory();
         _history.Save();
+
+        // How long this session stayed open. Banked here rather than ticked as
+        // it goes, so nothing is written while the app is simply sitting there.
+        SaveUsage();
 
         PresetStore.Save(_clickPresets);
         _hotkeySettings.Save();

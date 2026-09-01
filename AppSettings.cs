@@ -48,6 +48,17 @@ public sealed class AppSettings
 
     public bool HideValues { get; set; }
 
+    /// <summary>
+    /// Hides the on-screen "macro on" badge from screen capture.
+    /// </summary>
+    /// <remarks>
+    /// Off by default, so the badge behaves like any other window and shows up
+    /// in a recording. Turning it on hides it from OBS, Discord and the rest
+    /// while leaving it visible on the monitor — the warning is for the person
+    /// playing, and they still need it while streaming.
+    /// </remarks>
+    public bool StreamerMode { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

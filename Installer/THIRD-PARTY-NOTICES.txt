@@ -6,7 +6,7 @@ Replay features to capture the screen and encode video.
 
 FFmpeg
 ------
-Version:  8.1 (full build, www.gyan.dev)
+Version:  9.0.1 (essentials build, www.gyan.dev)
 Licence:  GNU General Public License version 3 or later (GPL-3.0-or-later)
 Website:  https://ffmpeg.org
 Source:   https://github.com/FFmpeg/FFmpeg
