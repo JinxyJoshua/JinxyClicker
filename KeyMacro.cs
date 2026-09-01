@@ -261,9 +261,30 @@ public sealed class MacroRunner : IDisposable
         new Thread(() => Loop(macro, token))
         {
             IsBackground = true,
+            // Matched to the click engine. At default priority this thread was
+            // descheduled under load, which made its sleeps overrun, which made
+            // it spin longer to catch up — the stutter fed itself.
+            Priority = ThreadPriority.AboveNormal,
             Name = "Macro:" + macro.Name
         }.Start();
+
+        Changed?.Invoke();
     }
+
+    /// <summary>
+    /// Raised whenever the set of running macros changes.
+    /// </summary>
+    /// <remarks>
+    /// So that anything reflecting that state cannot fall out of step with it.
+    /// Macros are started and stopped from a dozen places — a card's switch, a
+    /// hotkey on the polling thread, the master kill, deleting a macro, closing
+    /// the app — and an on-screen badge still claiming a macro is running after
+    /// it stopped is worse than showing nothing at all.
+    ///
+    /// Raised on whichever thread made the change, including the poll thread,
+    /// so a UI handler has to marshal.
+    /// </remarks>
+    public event Action? Changed;
 
     public void Stop(string name)
     {
@@ -271,13 +292,19 @@ public sealed class MacroRunner : IDisposable
 
         cts.Cancel();
         _running.Remove(name);
+
+        Changed?.Invoke();
     }
 
     public void StopAll()
     {
+        if (_running.Count == 0) return;
+
         foreach (CancellationTokenSource cts in _running.Values) cts.Cancel();
 
         _running.Clear();
+
+        Changed?.Invoke();
     }
 
     private void Loop(KeyMacro macro, CancellationToken token)
@@ -289,6 +316,16 @@ public sealed class MacroRunner : IDisposable
         // which is longer than the whole crossbow dip this is trying to time.
         // Raised here rather than borrowed from the clicker so a rotation is
         // accurate whether or not clicking happens to be running.
+        //
+        // The opt-out has to come first and was missing entirely: Windows
+        // ignores a background process's timer request, so without it the
+        // TimeBeginPeriod below did nothing whenever the game was in front —
+        // which is always. Sleeps then landed on 15.6 ms ticks, and the wait
+        // loop spun to make up the difference. The clicker had this; running a
+        // macro on its own did not, so a macro was accurate only when the
+        // clicker happened to be running too.
+        ProcessTiming.KeepResponsiveInBackground();
+
         bool raisedTimer = TimeBeginPeriod(TimerResolutionMs) == 0;
 
         try
@@ -367,6 +404,8 @@ public sealed class MacroRunner : IDisposable
         long deadline = Stopwatch.GetTimestamp() + (long)(ms * freq / 1000.0);
         double tail = SpinTailMs;
 
+        var spin = new SpinWait();
+
         while (true)
         {
             if (token.IsCancellationRequested) return false;
@@ -377,18 +416,43 @@ public sealed class MacroRunner : IDisposable
 
             if (remaining <= tail)
             {
-                Thread.SpinWait(40);
+                // SpinOnce rather than a bare SpinWait: it starts by spinning
+                // and then begins yielding, so a wait that runs long gives the
+                // core back to the game instead of holding it. The -1 disables
+                // its escalation to Sleep(1), which would overshoot by more
+                // than the whole tail it is trying to land inside.
+                spin.SpinOnce(sleep1Threshold: -1);
                 continue;
             }
+
+            spin.Reset();
 
             Thread.Sleep(1);
 
             // What that sleep actually cost, which is the floor on how close a
             // sleep can get us. Anything nearer than this has to be spun.
+            //
+            // Capped, and the cap is the fix for a real problem: this only ever
+            // grew. One slow sleep — a scheduler hiccup, or the timer not raised
+            // yet at 15.6 ms — set the tail to that, and from then on every
+            // interval shorter than it was spun end to end. A macro with a short
+            // dwell would burn a whole core for as long as it ran, which is what
+            // the in-game stutter was. Past the cap it is better to overshoot a
+            // press slightly than to take a core off the game.
             double slept = (Stopwatch.GetTimestamp() - now) * 1000.0 / freq;
-            if (slept > tail) tail = slept;
+            if (slept > tail) tail = Math.Min(slept, MaxSpinTailMs);
         }
     }
+
+    /// <summary>
+    /// The most of an interval that may be spent spinning.
+    /// </summary>
+    /// <remarks>
+    /// With the timer raised a sleep lands within about a millisecond, so this
+    /// is roughly twice what is ever needed. It exists to bound the damage when
+    /// a sleep does not land — not to be reached in normal running.
+    /// </remarks>
+    private const double MaxSpinTailMs = 2.0;
 
     /// <summary>
     /// Shortest stretch spun rather than slept, before measurement widens it.

@@ -2767,6 +2767,33 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="STREAMING" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                <StackPanel VerticalAlignment="Center" MaxWidth="470"
+                                            HorizontalAlignment="Left">
+                                    <TextBlock Text="STREAMER MODE" Foreground="{StaticResource TextSoft}"
+                                               FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Hides the &quot;macro on&quot; badge from OBS, Discord screen share and other capture software. It stays visible on your own monitor, so you can still see when a macro is holding a key."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11"
+                                               TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="StreamerModeCheck" DockPanel.Dock="Right"
+                                          VerticalAlignment="Center"
+                                          Checked="StreamerMode_Changed"
+                                          Unchecked="StreamerMode_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="The badge appears whenever a macro or the auto switcher is running, and names the keys being sent. It is there so a macro left on does not read as the game misbehaving — several kits bind the same keys."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">

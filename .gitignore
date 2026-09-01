@@ -63,3 +63,7 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# The dev build's update token. This repository is public, so this must never
+# be committed - it is packaged into the DEV installer only.
+dev-update.token

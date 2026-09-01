@@ -35,6 +35,11 @@ public static class UpdateCheck
 
     public static async Task RunAsync(Window owner)
     {
+        // A build with no update source never asks. That is how a dev build
+        // avoids downloading the public installer and replacing itself with the
+        // public app, dev tab and all.
+        if (!UpdateSource.Current.CanUpdate) return;
+
         try
         {
             ReleaseInfo? release = await FetchAsync().ConfigureAwait(true);
@@ -74,9 +79,28 @@ public static class UpdateCheck
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"{Updater.Repo}-updater");
         http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
 
+        Authorise(http);
+
         string json = await http.GetStringAsync(Updater.LatestReleaseUrl).ConfigureAwait(false);
 
         return Updater.ReadRelease(json);
+    }
+
+    /// <summary>
+    /// Adds the token when the source needs one, and nothing when it does not.
+    /// </summary>
+    /// <remarks>
+    /// Public releases are deliberately fetched without credentials. Sending a
+    /// token where none is needed would put it on the wire for no reason, and
+    /// the public path is the one that runs on thousands of machines.
+    /// </remarks>
+    private static void Authorise(HttpClient http)
+    {
+        if (!UpdateSource.Current.IsPrivate) return;
+
+        http.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", UpdateSource.Current.Token);
     }
 
     /// <summary>
@@ -106,6 +130,14 @@ public static class UpdateCheck
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd($"{Updater.Repo}-updater");
+
+            Authorise(http);
+
+            // A private asset is served from the API, which returns the release
+            // metadata as JSON unless this says otherwise. Without it the
+            // "installer" downloaded is a few hundred bytes of JSON.
+            if (UpdateSource.Current.IsPrivate)
+                http.DefaultRequestHeaders.Accept.ParseAdd("application/octet-stream");
 
             using HttpResponseMessage response = await http
                 .GetAsync(release.InstallerUrl, HttpCompletionOption.ResponseHeadersRead)

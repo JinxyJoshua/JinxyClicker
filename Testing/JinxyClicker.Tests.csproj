@@ -29,8 +29,17 @@
     <Compile Include="../KitImages.Tests.cs" />
     <Compile Include="../KitWheel.cs" />
     <Compile Include="../KitWheel.Tests.cs" />
+    <Compile Include="../UpdateSource.cs" />
+    <Compile Include="../UpdateSource.Tests.cs" />
     <Compile Include="../Updater.cs" />
     <Compile Include="../Updater.Tests.cs" />
+    <Compile Include="../ReleaseStats.cs" />
+    <Compile Include="../ReleaseStats.Tests.cs" />
+    <Compile Include="../UsagePeriod.cs" />
+    <Compile Include="../UsagePeriod.Tests.cs" />
+    <Compile Include="../UsageStats.cs" />
+    <Compile Include="../UsageReporter.cs" />
+    <Compile Include="../UsageStats.Tests.cs" />
     <Compile Include="../ClickButton.cs" />
     <Compile Include="../ClickButton.Tests.cs" />
     <Compile Include="../ClickOutput.cs" />
@@ -47,8 +56,9 @@
     <Compile Include="../KeyMacroWait.Tests.cs" />
     <Compile Include="../CaptureBackend.cs" />
     <Compile Include="../CaptureBackend.Tests.cs" />
-    <!-- Pulled in as a dependency of KeyMacro, not tested directly. -->
+    <!-- Pulled in as dependencies of KeyMacro, not tested directly. -->
     <Compile Include="../HotkeySettings.cs" />
+    <Compile Include="../ProcessTiming.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />

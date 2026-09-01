@@ -1,4 +1,6 @@
+using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Xunit;
 
@@ -20,6 +22,38 @@ namespace JinxyClicker.Tests;
 /// </remarks>
 public class KeyMacroWaitTests
 {
+    /// <summary>
+    /// Raises the system timer for the duration, the way the macro loop does.
+    /// </summary>
+    /// <remarks>
+    /// Without this a test process sleeps on the default ~15.6 ms scheduler
+    /// tick, which is not the environment this code ever runs in — MacroRunner
+    /// raises the timer to 1 ms before its first wait, and now also opts out of
+    /// the background throttling that was silently undoing that.
+    ///
+    /// The distinction matters because the wait may only spin for a bounded
+    /// tail. Given 1 ms sleeps that bound is never reached and the wait lands
+    /// accurately. Given 15.6 ms sleeps it would have to spin a whole tick
+    /// every time to keep up — a core taken off the game for as long as the
+    /// macro runs, which is what the in-game stutter was. So testing without
+    /// the timer raised measured the one configuration nobody runs in, and
+    /// demanded the behaviour that caused the stutter.
+    /// </remarks>
+    private sealed class RaisedTimer : IDisposable
+    {
+        private readonly bool _raised;
+
+        public RaisedTimer() => _raised = TimeBeginPeriod(1) == 0;
+
+        public void Dispose() { if (_raised) TimeEndPeriod(1); }
+
+        [DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+        private static extern uint TimeBeginPeriod(uint period);
+
+        [DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+        private static extern uint TimeEndPeriod(uint period);
+    }
+
     /// <summary>A wait that returns early is a key sent before the equip finished.</summary>
     [Fact]
     public void NeverReturnsEarly()
@@ -40,6 +74,8 @@ public class KeyMacroWaitTests
     [Fact]
     public void DoesNotAccumulateDriftAcrossManyWaits()
     {
+        using var timer = new RaisedTimer();
+
         var clock = Stopwatch.StartNew();
 
         for (int i = 0; i < 10; i++) MacroRunner.Wait(20, CancellationToken.None);

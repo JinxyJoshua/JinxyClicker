@@ -9,8 +9,24 @@
 #define AppVersion     "1.4.1"
 #define AppPublisher   "JinxyJoshua"
 #define AppExeName     "JinxyClicker.exe"
-#define PublishDir     "..\bin\Release\net10.0-windows\win-x64\publish"
 #define FfmpegDir      "..\ffmpeg"
+
+; Two installers come out of this one script. Compiling with /DDEV=1 packages
+; the developer build instead of the public one - a different publish folder and
+; a different output name, so the two cannot be confused on disk or uploaded to
+; the wrong repository.
+;
+; The AppId is deliberately the SAME for both. They are one product, so
+; installing either replaces the other rather than leaving two copies fighting
+; over the same settings folder. A dev user stays on dev because a dev build
+; updates itself from the private repository and never from public releases.
+#ifdef DEV
+  #define PublishDir   "..\bin\DevBuild\Release\net10.0-windows\win-x64\publish"
+  #define OutputName   "JinxyAutoClicker-DEV-Setup-" + AppVersion
+#else
+  #define PublishDir   "..\bin\Release\net10.0-windows\win-x64\publish"
+  #define OutputName   "JinxyAutoClicker-Beta-Setup-" + AppVersion
+#endif
 
 [Setup]
 ; Never change AppId. It is how Windows recognises an existing install as the
@@ -23,7 +39,7 @@ AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 OutputDir=..\dist
-OutputBaseFilename=JinxyAutoClicker-Beta-Setup-{#AppVersion}
+OutputBaseFilename={#OutputName}
 SetupIconFile=..\icon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 UninstallDisplayName={#AppName}
@@ -54,6 +70,13 @@ Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#FfmpegDir}\ffmpeg.exe"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion
 Source: "{#FfmpegDir}\LICENSE"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+; The dev build's update token, packaged only into the DEV installer and never
+; committed. skipifsourcedoesntexist so a DEV installer still builds before one
+; exists - the build simply will not auto-update, which is the safe default.
+#ifdef DEV
+Source: "..\dev-update.token"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+#endif
 
 [Icons]
 ; WorkingDir is load-bearing, not decoration. The settings files resolve against

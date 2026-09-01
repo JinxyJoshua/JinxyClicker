@@ -25,8 +25,8 @@ public static class Updater
     public const string Owner = "JinxyJoshua";
     public const string Repo = "JinxyClicker";
 
-    public static string LatestReleaseUrl =>
-        $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest";
+    /// <summary>Where this build looks — public releases unless told otherwise.</summary>
+    public static string LatestReleaseUrl => UpdateSource.Current.LatestReleaseUrl;
 
     /// <summary>
     /// Hosts a download may come from.
@@ -37,17 +37,8 @@ public static class Updater
     /// with — or a repository that changes hands — cannot redirect the update
     /// to somewhere else entirely.
     /// </remarks>
-    private static readonly string[] TrustedHosts =
-    {
-        "github.com",
-        "objects.githubusercontent.com",
-        "release-assets.githubusercontent.com"
-    };
-
     public static bool IsTrustedDownload(string? url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)
-        && uri.Scheme == Uri.UriSchemeHttps
-        && TrustedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase);
+        UpdateSource.Current.IsTrustedDownload(url);
 
     /// <summary>
     /// Reads a release tag into a version.
@@ -122,7 +113,12 @@ public static class Updater
                 foreach (JsonElement asset in list.EnumerateArray())
                 {
                     string? name = asset.TryGetProperty("name", out JsonElement n) ? n.GetString() : null;
-                    string? url = asset.TryGetProperty("browser_download_url", out JsonElement u)
+                    // Which field to read depends on the source: a private
+                    // release's browser_download_url serves a login page to
+                    // anyone without a session, and downloading it would
+                    // install an HTML page renamed to .exe.
+                    string? url = asset.TryGetProperty(
+                        UpdateSource.Current.AssetUrlField, out JsonElement u)
                         ? u.GetString() : null;
 
                     if (name != null && url != null) assets.Add((name, url));
