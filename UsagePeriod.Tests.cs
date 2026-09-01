@@ -78,17 +78,61 @@ public class UsagePeriodTests
     }
 
     /// <summary>
-    /// One reading cannot describe a change, so the span says it does not know
-    /// rather than showing a zero — which would read as "nobody downloaded it".
+    /// A span holding one reading is still measurable, as long as something was
+    /// read before it — September's growth is from August's last reading.
     /// </summary>
+    /// <remarks>
+    /// This used to assert null, which was wrong and was hiding a real bug: the
+    /// growth was measured only from readings inside the span, so a span with
+    /// one reading always reported nothing. That is every daily row, since a day
+    /// holds exactly one reading — the Daily view could never show a download
+    /// figure at all.
+    /// </remarks>
     [Fact]
-    public void ASpanWithOneReadingHasNoDownloadFigure()
+    public void ASpanWithOneReadingMeasuresFromTheOneBeforeIt()
     {
         UsageRow september = UsagePeriod.Rows(Sample(), UsageSpan.Monthly)
             .Single(r => r.Label.StartsWith("September"));
 
-        Assert.Null(september.Downloads);
-        Assert.Equal("—", september.DownloadsText);
+        Assert.Equal(20, september.Downloads);
+    }
+
+    /// <summary>
+    /// The regression that matters, stated directly: daily downloads have to
+    /// work. Each day's figure is the growth since the previous reading.
+    /// </summary>
+    [Fact]
+    public void DailyDownloadsAreTheGrowthSinceThePreviousDay()
+    {
+        List<UsageRow> rows = UsagePeriod.Rows(Sample(), UsageSpan.Daily);
+
+        Assert.Equal(20, rows.Single(r => r.Label.Contains("1 Sep")).Downloads);
+        Assert.Equal(30, rows.Single(r => r.Label.Contains("31 Aug")).Downloads);
+    }
+
+    /// <summary>
+    /// The exception: the very first reading has nothing to be compared against,
+    /// so that day says it does not know rather than showing a zero — which
+    /// would read as "nobody downloaded it".
+    /// </summary>
+    [Fact]
+    public void TheFirstDayEverRecordedHasNoDownloadFigure()
+    {
+        UsageRow first = UsagePeriod.Rows(Sample(), UsageSpan.Daily)
+            .Single(r => r.Label.Contains("30 Aug"));
+
+        Assert.Null(first.Downloads);
+        Assert.Equal("—", first.DownloadsText);
+    }
+
+    /// <summary>Newest first, like the history page.</summary>
+    [Fact]
+    public void RowsComeBackNewestFirst()
+    {
+        List<UsageRow> rows = UsagePeriod.Rows(Sample(), UsageSpan.Daily);
+
+        Assert.Contains("1 Sep", rows[0].Label);
+        Assert.Contains("30 Aug", rows[^1].Label);
     }
 
     [Fact]
@@ -168,5 +212,53 @@ public class UsagePeriodTests
     public void ShowsAKeyItCannotParseRatherThanBlank()
     {
         Assert.Equal("2026-13-45", UsagePeriod.Label("2026-13-45"));
+    }
+
+    // ---- bounded history ----
+
+    /// <summary>
+    /// The file gains a row every day the app is used, forever, and is parsed
+    /// in full at every launch. Two years is the cap, matching the shared
+    /// counter so the two cannot disagree about how far back all-time goes.
+    /// </summary>
+    [Fact]
+    public void KeepsOnlyTheMostRecentDays()
+    {
+        var days = new List<UsageDay>();
+
+        for (int i = 1; i <= 40; i++)
+            days.Add(new UsageDay($"2026-01-{i:00}", 1, 60));
+
+        UsagePeriod.Trim(days, keep: 30);
+
+        Assert.Equal(30, days.Count);
+        Assert.Equal("2026-01-11", days[0].Date);
+        Assert.Equal("2026-01-40", days[^1].Date);
+    }
+
+    [Fact]
+    public void LeavesAShortHistoryAlone()
+    {
+        var days = new List<UsageDay> { new("2026-01-01", 1, 60) };
+
+        UsagePeriod.Trim(days);
+
+        Assert.Single(days);
+    }
+
+    /// <summary>Trimming keeps the newest, whatever order they arrived in.</summary>
+    [Fact]
+    public void DropsTheOldestEvenWhenTheListIsUnordered()
+    {
+        var days = new List<UsageDay>
+        {
+            new("2026-03-03", 1, 60),
+            new("2026-01-01", 1, 60),
+            new("2026-02-02", 1, 60),
+        };
+
+        UsagePeriod.Trim(days, keep: 2);
+
+        Assert.Equal(new[] { "2026-02-02", "2026-03-03" }, days.Select(d => d.Date));
     }
 }

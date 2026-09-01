@@ -62,6 +62,10 @@ public sealed class UsageStats
     {
         try
         {
+            // Bounded before writing, not after loading, so the file on disk can
+            // never be the thing that grows without limit.
+            UsagePeriod.Trim(Days);
+
             File.WriteAllText(StoreFile, JsonSerializer.Serialize(this));
         }
         catch
