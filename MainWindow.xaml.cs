@@ -5271,6 +5271,18 @@ public partial class MainWindow : Window
         // with nothing left on screen to stop it.
         _macros.Dispose();
 
+        // The badge is a window, and hiding one does not close it. Shutdown
+        // happens when the last window closes, so a badge left open would keep
+        // the process alive with nothing on screen — the app would look like it
+        // had closed and go on running.
+        //
+        // Closed rather than owned, deliberately. An Owner would let WPF close
+        // it automatically, but an owned window minimises with its owner — and
+        // the app being minimised is exactly when a macro is running and the
+        // badge is the thing telling you so.
+        _macroBadge?.Close();
+        _macroBadge = null;
+
         // A recording still running at this point would leave an unplayable
         // file, so it gets a chance to finalise before the process goes.
         // Blocking variant, not the async one: awaiting on the thread we are
