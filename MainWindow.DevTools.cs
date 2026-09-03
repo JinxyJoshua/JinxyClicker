@@ -3,11 +3,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace JinxyClicker;
 
@@ -119,6 +121,7 @@ public partial class MainWindow
         if (PageSettings?.Parent is not Panel pages) return;
 
         _devPage = new StackPanel { Visibility = Visibility.Collapsed };
+        _devPage.Children.Add(BuildTimingPanel());
         _devPage.Children.Add(BuildDevPanel());
         _devPage.Children.Add(BuildBreakdownPanel());
         _devPage.Children.Add(BuildBuildInfoPanel());
@@ -139,6 +142,11 @@ public partial class MainWindow
         nav.Click += (_, _) =>
         {
             ShowPage(nav, _devPage, "Dev Tools", "Numbers this build can see");
+
+            // Ticking only while the page is shown. A timer running behind
+            // every other page would be measuring for nobody.
+            RefreshTiming();
+            _timingTimer?.Start();
 
             // Refreshed on arrival rather than only at startup, so the figures
             // are current whenever the tab is actually looked at.
@@ -404,6 +412,123 @@ public partial class MainWindow
         border.AppendChild(row);
 
         return new DataTemplate { VisualTree = border };
+    }
+
+    private TextBlock? _timingHeadline;
+    private TextBlock? _timingDetail;
+    private TextBlock? _timingEnvironment;
+    private DispatcherTimer? _timingTimer;
+
+    /// <summary>
+    /// What the clicker is actually doing, refreshed while you watch.
+    /// </summary>
+    /// <remarks>
+    /// Built because "hit registration is inconsistent" could not be
+    /// investigated from inside the app at all. A cause was guessed at once
+    /// already and did not fix it; this replaces guessing with a reading.
+    ///
+    /// The numbers chosen are the ones that decide whether hits land. Average
+    /// rate is not among them: a loop clicking every 30 ms and one alternating
+    /// 5 and 55 have the same average and behave completely differently. Spread
+    /// and worst case are what matter, so those are what is shown, alongside
+    /// what Windows is granting the process at that moment — because the app
+    /// asking not to be throttled and Windows agreeing are different things.
+    /// </remarks>
+    private Border BuildTimingPanel()
+    {
+        _timingHeadline = new TextBlock
+        {
+            Text = "Not clicking",
+            FontSize = 22,
+            FontWeight = FontWeights.Black,
+            Foreground = (Brush)FindResource("TextBright")
+        };
+
+        _timingDetail = Note("Start the clicker and the figures fill in.");
+        _timingDetail.Margin = new Thickness(0, 8, 0, 0);
+
+        _timingEnvironment = Note("");
+        _timingEnvironment.Margin = new Thickness(0, 10, 0, 0);
+
+        var body = new StackPanel();
+
+        body.Children.Add(new TextBlock
+        {
+            Text = "LIVE TIMING",
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0xA7, 0x8B, 0xFA))
+        });
+
+        body.Children.Add(_timingHeadline);
+        body.Children.Add(_timingDetail);
+        body.Children.Add(_timingEnvironment);
+
+        // Only ticks while the page is on screen — see ShowPage. A second is
+        // slow enough to read and fast enough to catch a stall arriving.
+        _timingTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _timingTimer.Tick += (_, _) => RefreshTiming();
+
+        return new Border
+        {
+            Background = (Brush)FindResource("Panel"),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(0x4A, 0x3A, 0x76)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(2),
+            Padding = new Thickness(18),
+            Margin = new Thickness(0, 0, 0, 14),
+            Child = body
+        };
+    }
+
+    partial void LeavingPage(UIElement shown)
+    {
+        if (!ReferenceEquals(shown, _devPage)) _timingTimer?.Stop();
+    }
+
+    private void RefreshTiming()
+    {
+        if (_timingHeadline == null || _timingDetail == null || _timingEnvironment == null) return;
+
+        TimingStats stats = ClickDiagnostics.Current();
+
+        if (stats.Samples == 0)
+        {
+            _timingHeadline.Text = "Not clicking";
+            _timingDetail.Text = "Start the clicker and the figures fill in.";
+        }
+        else
+        {
+            double asked = _settings.Cps;
+
+            _timingHeadline.Text = $"{stats.DeliveredCps:0.0} CPS delivered   ·   {asked:0.0} asked";
+
+            _timingDetail.Text =
+                $"Typical gap {stats.MedianMs:0.0} ms   ·   "
+                + $"jitter ±{stats.JitterMs:0.0} ms   ·   "
+                + $"worst gap {stats.WorstMs:0} ms   ·   "
+                + $"{stats.Stalls} stall{(stats.Stalls == 1 ? "" : "s")} in the last {stats.Samples} clicks."
+                + (stats.Stalls > 0
+                    ? "  A stall is a gap far longer than the typical one — that is where hits go missing."
+                    : "");
+        }
+
+        double? timer = ProcessTiming.TimerResolutionMs();
+        bool? throttled = ProcessTiming.IsExecutionThrottled();
+
+        string timerText = timer == null ? "unknown" : $"{timer:0.00} ms";
+
+        string throttleText = throttled switch
+        {
+            true => "THROTTLED — Windows has this process on reduced speed",
+            false => "not throttled",
+            _ => "unknown"
+        };
+
+        _timingEnvironment.Text =
+            $"Timer resolution {timerText}   ·   CPU {throttleText}   ·   "
+            + $"process priority {Process.GetCurrentProcess().PriorityClass}."
+            + (timer > 2 ? "  A timer above ~1 ms means sleeps cannot land accurately." : "");
     }
 
     private Border BuildDevPanel()

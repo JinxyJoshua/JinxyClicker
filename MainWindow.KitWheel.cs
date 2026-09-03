@@ -98,6 +98,11 @@ public partial class MainWindow
     {
         if (_kitArtStarted) return;
 
+        // Switchable from the published config, for the case where the wiki
+        // changes shape and every fetch starts saving rubbish. Turning it off
+        // beats waiting for everyone to install a fix.
+        if (!RemoteConfig.Current.KitArtFetchEnabled) return;
+
         _kitArtStarted = true;
 
         await KitArtFetch.RunAsync(

@@ -68,16 +68,51 @@ public class ClickOutputTests
     public void IsContentWhenTheRateIsHonestAndUsable()
     {
         Assert.Equal(OutputState.Matching,
-            ClickOutput.Classify(running: true, setCps: 41.2, deliveredCps: 41.2));
+            ClickOutput.Classify(running: true, setCps: 11, deliveredCps: 11));
     }
 
-    /// <summary>The measured preset must not read as a warning.</summary>
+    /// <summary>
+    /// Forty-one clicks a second now reads as overdriven, and that is a
+    /// deliberate reversal.
+    /// </summary>
+    /// <remarks>
+    /// These two tests used to assert that 41.2 was fine, on the strength of a
+    /// measurement where a 41.2 profile landed 34 hits against 193's 33. That
+    /// measurement is real, but it compared two settings — it did not search
+    /// for the best one. All it established is that 41 beats 193, which is also
+    /// what a hit-registration ceiling predicts.
+    ///
+    /// The ceiling is around the mid teens, so 41 is on the wrong side of it
+    /// too — better than 193, still past the point where extra clicks become
+    /// extra hits. A tool that stays quiet about that leaves people flooding
+    /// the server and wondering why their hits come and go.
+    /// </remarks>
     [Fact]
-    public void TheMeasuredPresetReadsAsFine()
+    public void TheMeasuredBestRateReadsAsFine()
     {
-        OutputState state = ClickOutput.Classify(true, 41.2, 41.0);
+        OutputState state = ClickOutput.Classify(true, 33.3, 33.3);
 
+        Assert.Equal(OutputState.Matching, state);
         Assert.False(ClickOutput.IsWarning(state));
+    }
+
+    /// <summary>The range the game actually converts, and nothing above it.</summary>
+    [Theory]
+    [InlineData(11)]
+    [InlineData(33.3)]
+    [InlineData(35)]
+    public void TheRecommendedRangeReadsAsFine(double cps)
+    {
+        Assert.False(ClickOutput.IsWarning(ClickOutput.Classify(true, cps, cps)));
+    }
+
+    [Theory]
+    [InlineData(50)]
+    [InlineData(120)]
+    [InlineData(186.6)]
+    public void AnythingPastTheCeilingIsFlagged(double cps)
+    {
+        Assert.True(ClickOutput.IsWarning(ClickOutput.Classify(true, cps, cps)));
     }
 
     /// <summary>

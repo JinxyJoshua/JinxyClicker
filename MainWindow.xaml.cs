@@ -6,6 +6,7 @@ using System.Linq;
 using System.Globalization;
 using System.IO;
 using System.Net.NetworkInformation;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -187,7 +188,14 @@ public partial class MainWindow : Window
             // a window that is not shown yet has nothing to sit in front of, and
             // the check is a network call nobody should wait behind to see the
             // app open.
-            Loaded += async (_, _) => await UpdateCheck.RunAsync(this);
+            Loaded += async (_, _) =>
+            {
+                // Config first, so anything it turns off is off before the
+                // update prompt or any feature has had a chance to run.
+                await RemoteConfig.LoadAsync(CancellationToken.None);
+
+                await UpdateCheck.RunAsync(this);
+            };
 
             RefreshKitWheel();
             RefreshHotkeyKillButtons();
@@ -2050,6 +2058,9 @@ public partial class MainWindow : Window
         StatusDot.Fill = (System.Windows.Media.Brush)FindResource(dotBrushKey);
     }
 
+    /// <summary>How often the loop re-asks for the timing it was granted.</summary>
+    private const int ReassertSeconds = 30;
+
     private void ClickLoop(CancellationToken token)
     {
         // Tracked so a stop between the press and the release can still send the
@@ -2069,9 +2080,29 @@ public partial class MainWindow : Window
         // gaps stretching to 617ms. Opting out is what closes that gap.
         KeepTimerResolutionInBackground();
 
+        // Fewer blocking collections while clicking. The loop allocates nothing
+        // itself now, but the rest of the app still does, and a full collection
+        // pauses every thread including this one.
+        //
+        // Restored in the finally: leaving the whole process in a low-latency
+        // mode after clicking stops would trade memory for a latency nobody is
+        // waiting on any more.
+        GCLatencyMode previousGc = GCSettings.LatencyMode;
+
+        try { GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency; }
+        catch { /* Refused under some hosting configurations. Not fatal. */ }
+
+        // Cleared per run. Gaps carried over from a previous session, with an
+        // idle stretch in the middle, would show as an enormous stall that
+        // never happened while clicking.
+        ClickDiagnostics.Reset();
+
         // Takes the system timer from ~15.6 ms to ~1 ms for this process. Without
         // it the loop cannot exceed ~32 clicks per second whatever the slider says.
         bool raisedTimer = TimeBeginPeriod(TimerResolutionMs) == 0;
+
+        // When the process last re-asked Windows for what it was granted.
+        long lastReassert = Stopwatch.GetTimestamp();
 
         // Timestamp the current run of actual clicking started, or 0 when idle.
         // History counts only these runs, so being armed or open costs nothing.
@@ -2130,6 +2161,19 @@ public partial class MainWindow : Window
                 long maxLag = (long)(period * CatchUpPeriods * freq / 1000.0);
                 if (deadline < now - maxLag) deadline = now - maxLag;
 
+                // Asked for again every so often, because being granted
+                // something at launch is not the same as keeping it. Windows
+                // decides a process is a background task from how it has
+                // behaved over a session, and that judgement is made long after
+                // the app started — which is the shape of timing that is fine
+                // for hours and then is not. Two cheap calls a minute.
+                if (now - lastReassert > freq * ReassertSeconds)
+                {
+                    lastReassert = now;
+                    KeepTimerResolutionInBackground();
+                    TimeBeginPeriod(TimerResolutionMs);
+                }
+
                 // The press and its release are held together against the shake
                 // thread, which injects mouse movement on its own schedule. A
                 // move landing between them turns the click into a drag, and a
@@ -2157,6 +2201,11 @@ public partial class MainWindow : Window
                         SendButtonUp(held);
                         buttonDown = false;
                         Interlocked.Increment(ref _clickCount);
+
+                        // One timestamp into a fixed buffer. Recorded at the
+                        // release, so it measures what the game received rather
+                        // than what the loop intended to do.
+                        ClickDiagnostics.RecordClick();
                     }
                 }
 
@@ -2180,6 +2229,8 @@ public partial class MainWindow : Window
             // The one that was pressed, whatever is selected now.
             if (buttonDown) SendButtonUp(held);
             if (raisedTimer) TimeEndPeriod(TimerResolutionMs);
+
+            try { GCSettings.LatencyMode = previousGc; } catch { }
         }
     }
 
@@ -2575,40 +2626,53 @@ public partial class MainWindow : Window
     private static void SendButtonUp(ClickButton button) =>
         SendMouseEvent(ClickButtons.UpFlag(button));
 
+    /// <summary>
+    /// The size of one INPUT, worked out once.
+    /// </summary>
+    /// <remarks>
+    /// Marshal.SizeOf does real work each time it is asked, and it was being
+    /// asked twice per click, forever, for an answer that cannot change.
+    /// </remarks>
+    private static readonly int InputSize = Marshal.SizeOf<INPUT>();
+
+    /// <summary>
+    /// Sends one mouse event without allocating anything.
+    /// </summary>
+    /// <remarks>
+    /// This used to build a single-element INPUT array per call — two heap
+    /// allocations per click, sixty-six a second at the measured rate, millions
+    /// over an evening. None of them lived long, but every collection they
+    /// caused paused the click thread, and the pauses grew as more of them were
+    /// promoted. Timing that is perfect for an hour and worse later is exactly
+    /// the shape that produces.
+    ///
+    /// A local struct passed by reference lives on the stack and allocates
+    /// nothing, so a session an hour long costs the collector the same as a
+    /// session a minute long: nothing at all. Sending one event at a time is
+    /// what this app has always done, so nothing else has to change.
+    /// </remarks>
     private static void SendMouseEvent(uint flags)
     {
-        INPUT[] inputs =
+        var input = new INPUT
         {
-            new INPUT
-            {
-                type = INPUT_MOUSE,
-                U = new InputUnion
-                {
-                    mi = new MOUSEINPUT { dwFlags = flags }
-                }
-            }
+            type = INPUT_MOUSE,
+            U = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags } }
         };
 
-        SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        SendInput(1, ref input, InputSize);
     }
 
     // Relative move: MOUSEEVENTF_ABSOLUTE is deliberately absent, so dx/dy are
     // offsets from the current position rather than screen coordinates.
     private static void SendMouseMove(int dx, int dy)
     {
-        INPUT[] inputs =
+        var input = new INPUT
         {
-            new INPUT
-            {
-                type = INPUT_MOUSE,
-                U = new InputUnion
-                {
-                    mi = new MOUSEINPUT { dx = dx, dy = dy, dwFlags = MOUSEEVENTF_MOVE }
-                }
-            }
+            type = INPUT_MOUSE,
+            U = new InputUnion { mi = new MOUSEINPUT { dx = dx, dy = dy, dwFlags = MOUSEEVENTF_MOVE } }
         };
 
-        SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        SendInput(1, ref input, InputSize);
     }
 
     private void ToggleMode_Checked(object sender, RoutedEventArgs e) => SetClickMode(hold: false);
@@ -4207,6 +4271,9 @@ public partial class MainWindow : Window
         foreach (UIElement p in Pages) p.Visibility = Visibility.Collapsed;
         page.Visibility = Visibility.Visible;
 
+        // Anything a page runs while it is on screen stops when it is not.
+        LeavingPage(page);
+
         AnimatePageIn(page);
 
         // The status pill and start button belong to the clicker, not the shell.
@@ -4707,6 +4774,16 @@ public partial class MainWindow : Window
     /// no handler, and no strings that hint either exists.
     /// </remarks>
     partial void ShowDevToolsIfBuilt();
+
+    /// <summary>
+    /// Lets a page stop whatever it was running when another one is shown.
+    /// </summary>
+    /// <remarks>
+    /// Compiled away without DEVTOOLS, like the panel it exists for. The live
+    /// timing readout ticks once a second, and a timer left running behind
+    /// every other page would be measuring for nobody.
+    /// </remarks>
+    partial void LeavingPage(UIElement shown);
 
     /// <summary>Banks how long this session stayed open. Called on close.</summary>
     private void SaveUsage()
@@ -5418,6 +5495,17 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    /// <summary>
+    /// The single-event form, which takes the struct by reference.
+    /// </summary>
+    /// <remarks>
+    /// Kept alongside the array form rather than replacing it: this app only
+    /// ever sends one event at a time, and passing it by reference is what
+    /// removes the per-click allocation.
+    /// </remarks>
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, ref INPUT pInputs, int cbSize);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
