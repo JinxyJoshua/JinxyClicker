@@ -19,6 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../ClickDiagnostics.cs" />
+    <Compile Include="../ClickDiagnostics.Tests.cs" />
+    <Compile Include="../RemoteConfig.cs" />
+    <Compile Include="../RemoteConfig.Tests.cs" />
     <Compile Include="../ClickTiming.cs" />
     <Compile Include="../ClickTiming.Tests.cs" />
     <Compile Include="../KitArt.cs" />

@@ -51,7 +51,31 @@ public static class ClickOutput
     /// A boundary for the wording, not a limit. Nothing is prevented — the
     /// slider still goes where it goes, and the app only says what happens.
     /// </remarks>
-    public const double DiminishingReturnsCps = 50.0;
+    /// <summary>
+    /// Past this, more clicks stop becoming more hits.
+    /// </summary>
+    /// <remarks>
+    /// Set from this app's own measurements, not from advice found online.
+    ///
+    /// Two runs, both recorded here: a profile delivering 33.3 clicks a second
+    /// landed 34 hits, and one delivering about 193 landed 33. The slower one
+    /// won. A personal best of 34 was then repeated at that same 33.3.
+    ///
+    /// A brief detour set this to 15, on the strength of community posts
+    /// recommending 8 to 12 — those turned out to be about Minecraft's Bedwars,
+    /// a different game with a different server. Following them would have told
+    /// every user to abandon the only setting measured to work here. Kept as a
+    /// note because the mistake is easy to repeat: this game's numbers have to
+    /// come from this game.
+    ///
+    /// A little above 33.3 rather than exactly on it, so the configuration that
+    /// produced the best result does not sit on the wrong side of its own
+    /// warning.
+    /// </remarks>
+    public const double DiminishingReturnsCps = 36.0;
+
+    /// <summary>The delivered rate measured to produce the best result.</summary>
+    public const double MeasuredBestCps = 33.3;
 
     /// <summary>
     /// How far short delivery must fall before it is worth mentioning.
@@ -93,16 +117,16 @@ public static class ClickOutput
             + "Lowering the slider until these match costs you nothing and makes the rate honest.",
 
         OutputState.ClampedByHitFix =>
-            $"HitFix is holding this to {deliveredCps:0.0}, not the {setCps:0.0} you set — "
-            + "it floors every press and gap at 15ms so the game cannot miss them. "
-            + "That ceiling is the same whatever the slider says. Turn HitFix off to go faster, "
-            + "knowing the extra clicks are the ones a client reading input once a frame never saw.",
+            $"HitFix is holding this to {deliveredCps:0.0}, not the {setCps:0.0} you set — and that "
+            + $"is the rate measured to land the most hits. Every setting above about "
+            + $"{MeasuredBestCps:0} produces exactly this, so the slider above it changes nothing "
+            + "but the number on it.",
 
         OutputState.OverDriven =>
-            $"Landing every click, but above ~{DiminishingReturnsCps:0} /s the extra ones stop becoming extra hits. "
-            + "The Measured preset is the fastest rate that still counted.",
+            $"Every click is landing, but {setCps:0.0} is past the point where more clicks became "
+            + $"more hits. Measured here: {MeasuredBestCps:0} a second landed 34, about 193 landed 33.",
 
-        _ => "Matching the setting, inside the range the server keeps up with."
+        _ => "Matching the setting, inside the range the server turns into hits."
     };
 
     /// <summary>

@@ -1,0 +1,21 @@
+{
+  "_comment": "Live settings for JinxyClicker. Edit this file on GitHub and every copy of the app picks it up next time it opens - no release, nobody re-downloading. It can only change numbers and turn features off; it cannot change how the app works. Anything missing, misspelled or out of range falls back to the value the app shipped with, so a mistake here is harmless.",
+
+  "_hitFixMinDownMs": "How long a click is held down, at minimum. 1-100, ships as 15.",
+  "hitFixMinDownMs": 15,
+
+  "_hitFixMinUpMs": "The minimum gap between clicks. 1-100, ships as 15.",
+  "hitFixMinUpMs": 15,
+
+  "_macroEquipMs": "How long a weapon takes to appear before clicks count. 0-1000, ships as 60.",
+  "macroEquipMs": 60,
+
+  "_recorderEnabled": "Set false to switch the recorder off everywhere, if the encoder turns out to be broken.",
+  "recorderEnabled": true,
+
+  "_kitArtFetchEnabled": "Set false to stop fetching missing kit pictures from the wiki.",
+  "kitArtFetchEnabled": true,
+
+  "_notice": "A short line shown in the app - for saying a problem is known and a fix is coming. Empty means nothing is shown. Max 200 characters.",
+  "notice": ""
+}

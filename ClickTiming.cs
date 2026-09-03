@@ -50,9 +50,32 @@ public static class ClickTimings
     /// The earlier 25 → 20 → 17 → 25 wandering was all model, no measurement.
     /// This number has an implementation behind it.
     /// </remarks>
-    public const double HitFixMinDownMs = 15.0;
+    /// <summary>
+    /// The shipped values, and the ones used unless a config says otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Kept separate from the values actually read so the defaults survive as
+    /// facts: a remote config that goes missing, or arrives with nonsense in
+    /// it, falls back to exactly the numbers this build was tested with.
+    /// </remarks>
+    public const double DefaultHitFixMinDownMs = 15.0;
+    public const double DefaultHitFixMinUpMs = 15.0;
 
-    public const double HitFixMinUpMs = 15.0;
+    /// <summary>
+    /// What the timing actually uses.
+    /// </summary>
+    /// <remarks>
+    /// Properties rather than constants because these are exactly the kind of
+    /// number that turns out to be slightly wrong on hardware nobody could
+    /// test. Reading them through the config means a correction is a one-line
+    /// edit to a file rather than a release everyone has to install.
+    ///
+    /// Bounded at the point the config is read, never here — this only ever
+    /// sees a value the app already agreed to accept.
+    /// </remarks>
+    public static double HitFixMinDownMs => RemoteConfig.Current.HitFixMinDownMs;
+
+    public static double HitFixMinUpMs => RemoteConfig.Current.HitFixMinUpMs;
 
     /// <summary>
     /// Resolves the timing for a rate and duty cycle.
