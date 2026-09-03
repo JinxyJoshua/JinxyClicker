@@ -15,7 +15,7 @@
       installer's AppVersion and this — or the update prompt compares against
       a version nobody shipped.
     -->
-    <Version>1.4.2</Version>
+    <Version>1.4.3</Version>
 
     <!--
       The compiler records where it built, and that record ships. A release DLL
