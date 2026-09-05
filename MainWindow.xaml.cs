@@ -1426,6 +1426,7 @@ public partial class MainWindow : Window
         if (_running) return;
 
         _running = true;
+        ShowOverlay();
         RefreshStatus();
         UpdateEngineSettings();
         _clickCts = new CancellationTokenSource();
@@ -1529,6 +1530,7 @@ public partial class MainWindow : Window
         ApplyValueVisibility();
 
         StreamerModeCheck.IsChecked = s.StreamerMode;
+        OverlayCheck.IsChecked = s.ShowOverlay;
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -1660,6 +1662,7 @@ public partial class MainWindow : Window
             ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
             StreamerMode = StreamerModeCheck.IsChecked == true,
+            ShowOverlay = OverlayCheck.IsChecked == true,
             ReplayEnabled = ReplayEnabled.IsChecked == true,
             ReplaySeconds = ReplaySeconds,
             AccentColor = _accentHex,
@@ -2024,6 +2027,7 @@ public partial class MainWindow : Window
     private void StopClicking()
     {
         _running = false;
+        HideOverlay();
         _clickCts?.Cancel();
         _clickCts?.Dispose();
         _clickCts = null;
@@ -4797,6 +4801,65 @@ public partial class MainWindow : Window
         UsageReporter.ReportSession(seconds);
     }
 
+    // ---- the in-game overlay ----
+
+    private ClickOverlay? _overlay;
+    private DispatcherTimer? _overlayTimer;
+
+    /// <summary>
+    /// Puts the readout on screen for the duration of a run.
+    /// </summary>
+    /// <remarks>
+    /// Only while clicking. An overlay sitting over the game when nothing is
+    /// running would be decoration in the way of the thing it decorates.
+    ///
+    /// Four times a second: fast enough that the number moves with what is
+    /// happening, slow enough to read while playing. Nothing here reads the
+    /// game — the figures come from the app's own record of what it sent.
+    /// </remarks>
+    private void ShowOverlay()
+    {
+        if (OverlayCheck?.IsChecked != true) return;
+
+        _overlay ??= new ClickOverlay { StreamerMode = StreamerModeCheck.IsChecked == true };
+
+        _overlay.Update(ClickDiagnostics.Current());
+
+        _overlayTimer ??= CreateOverlayTimer();
+        _overlayTimer.Start();
+    }
+
+    private DispatcherTimer CreateOverlayTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+
+        timer.Tick += (_, _) => _overlay?.Update(ClickDiagnostics.Current());
+
+        return timer;
+    }
+
+    private void HideOverlay()
+    {
+        _overlayTimer?.Stop();
+        _overlay?.Hide();
+    }
+
+    private void Overlay_Changed(object sender, RoutedEventArgs e)
+    {
+        // Applied at once rather than at the next run, so the checkbox shows
+        // its effect while the clicker is already going.
+        if (OverlayCheck?.IsChecked == true)
+        {
+            if (_running) ShowOverlay();
+        }
+        else
+        {
+            HideOverlay();
+        }
+
+        SaveAppSettings();
+    }
+
     /// <summary>The on-screen badge, made only once something needs it.</summary>
     private MacroBadge? _macroBadge;
 
@@ -4807,6 +4870,7 @@ public partial class MainWindow : Window
         // Applied to a badge that already exists rather than only at creation,
         // so the change shows immediately instead of at the next macro.
         if (_macroBadge != null) _macroBadge.StreamerMode = on;
+        if (_overlay != null) _overlay.StreamerMode = on;
 
         SaveAppSettings();
     }
@@ -5359,6 +5423,12 @@ public partial class MainWindow : Window
         // badge is the thing telling you so.
         _macroBadge?.Close();
         _macroBadge = null;
+
+        // Same reason as the badge: hiding a window does not close it, and
+        // shutdown waits for the last one.
+        _overlayTimer?.Stop();
+        _overlay?.Close();
+        _overlay = null;
 
         // A recording still running at this point would leave an unplayable
         // file, so it gets a chance to finalise before the process goes.
