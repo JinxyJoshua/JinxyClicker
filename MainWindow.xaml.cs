@@ -3803,8 +3803,82 @@ public partial class MainWindow : Window
             (System.Windows.Media.Brush)FindResource(isError ? "Accent" : "TextMuted");
     }
 
-    private void NavTheme_Click(object sender, RoutedEventArgs e) =>
+    private void NavTheme_Click(object sender, RoutedEventArgs e)
+    {
         ShowPage(NavTheme, PageTheme, "Theme", "Appearance");
+
+        FillWallpaperGallery();
+    }
+
+    /// <summary>One built-in background, as the picker shows it.</summary>
+    private sealed record WallpaperTile(string Name, ImageSource Thumbnail);
+
+    private bool _wallpaperGalleryFilled;
+
+    /// <summary>
+    /// Draws the thumbnails, once, the first time this page is opened.
+    /// </summary>
+    /// <remarks>
+    /// The backgrounds are generated rather than stored, so a thumbnail costs a
+    /// render. Ten of them at launch would be work done for everybody to
+    /// benefit the few who visit this page, so it waits until somebody does —
+    /// and then never repeats, because the pictures cannot change.
+    ///
+    /// Rendered small rather than scaled down from full size: the same drawing
+    /// at 200 by 112 is a fraction of the cost and is all a 150-wide tile can
+    /// show.
+    /// </remarks>
+    private void FillWallpaperGallery()
+    {
+        if (_wallpaperGalleryFilled || WallpaperGalleryList == null) return;
+
+        _wallpaperGalleryFilled = true;
+
+        try
+        {
+            WallpaperGalleryList.ItemsSource = WallpaperGallery.All
+                .Select(d => new WallpaperTile(d.Name, WallpaperGallery.Render(d, 200, 112)))
+                .ToList();
+        }
+        catch
+        {
+            // A picker that cannot draw itself is not worth taking the page
+            // down for. Choose Image still works.
+            _wallpaperGalleryFilled = false;
+        }
+    }
+
+    /// <summary>
+    /// Applies one of the built-in backgrounds.
+    /// </summary>
+    /// <remarks>
+    /// Ends in exactly the same state as choosing a file: the picture is
+    /// written into the settings folder under the one stored name, and what is
+    /// saved is that name. Nothing downstream can tell the two apart, which is
+    /// why the preview and the dimming slider need no changes.
+    /// </remarks>
+    private void PickBuiltInWallpaper_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string name }) return;
+
+        WallpaperDesign? design = WallpaperGallery.Find(name);
+        if (design == null) return;
+
+        string? stored = WallpaperGallery.Install(design);
+
+        if (stored == null)
+        {
+            MessageBox.Show(this,
+                "That background could not be saved. The settings folder may be read-only.",
+                "Wallpaper", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _wallpaperFile = stored;
+        _settingsDirty = true;
+
+        ApplyWallpaper();
+    }
 
     // ---- theme ----
 
