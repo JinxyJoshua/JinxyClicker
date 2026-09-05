@@ -59,6 +59,17 @@ public sealed class AppSettings
     /// </remarks>
     public bool StreamerMode { get; set; }
 
+    /// <summary>
+    /// Whether the live readout is shown over the game while clicking.
+    /// </summary>
+    /// <remarks>
+    /// On by default. It only appears while the clicker is actually running,
+    /// so it costs nothing when it is not wanted, and the figures it carries
+    /// are invisible otherwise — the app is behind the game at exactly the
+    /// moment its own output matters.
+    /// </remarks>
+    public bool ShowOverlay { get; set; } = true;
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

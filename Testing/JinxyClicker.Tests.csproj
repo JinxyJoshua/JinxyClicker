@@ -19,6 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../OverlayReadout.cs" />
+    <Compile Include="../OverlayReadout.Tests.cs" />
     <Compile Include="../ClickDiagnostics.cs" />
     <Compile Include="../ClickDiagnostics.Tests.cs" />
     <Compile Include="../RemoteConfig.cs" />
