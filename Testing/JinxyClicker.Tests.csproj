@@ -55,6 +55,8 @@
     <Compile Include="../AppSettings.cs" />
     <Compile Include="../SettingsPath.cs" />
     <Compile Include="../Wallpaper.cs" />
+    <Compile Include="../WallpaperGallery.cs" />
+    <Compile Include="../WallpaperGallery.Tests.cs" />
     <Compile Include="../Wallpaper.Tests.cs" />
     <Compile Include="../KeyMacro.cs" />
     <Compile Include="../KeyMacro.Tests.cs" />
