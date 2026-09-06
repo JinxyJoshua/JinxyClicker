@@ -185,13 +185,27 @@ public partial class MainWindow
             .GetExecutingAssembly()
             .GetName().Version?.ToString() ?? "unknown";
 
+        // Three states, not two. CanUpdate only says an owner and a repo were
+        // named, and the dev repository is private — so with the token missing
+        // this read "Updates from oneforetheages/JinxyClicker-Dev" while every
+        // check quietly 404'd against a repository it could not authenticate
+        // to. A panel that reports auto-update as working when it cannot is
+        // worse than one that says nothing.
+        string updates =
+            !UpdateSource.Current.CanUpdate
+                ? "   ·   Auto-update off, so this build cannot replace itself with the public app. "
+                  + "Rebuild with run-dev.cmd."
+                : UpdateSource.Current.IsPrivate
+                    ? $"   ·   Updates from {UpdateSource.Current.Owner}/{UpdateSource.Current.Repo}."
+                    : $"   ·   Update source is {UpdateSource.Current.Owner}/{UpdateSource.Current.Repo}, "
+                      + "but dev-update.token is not beside the app — that repository is private, so every "
+                      + "check will fail silently. See its README.";
+
         var line = Note($"Version {version}   ·   DEV build — not for public release."
                         + (UsageReporter.Configured
                             ? "   ·   Usage counter connected."
                             : "   ·   No usage counter configured.")
-                        + (UpdateSource.Current.CanUpdate
-                            ? $"   ·   Updates from {UpdateSource.Current.Owner}/{UpdateSource.Current.Repo}."
-                            : "   ·   Auto-update off, so this build cannot replace itself with the public app. Rebuild with run-dev.cmd."));
+                        + updates);
 
         line.Margin = new Thickness(0, 8, 0, 0);
         body.Children.Add(line);
