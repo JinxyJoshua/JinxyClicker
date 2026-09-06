@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -151,13 +152,81 @@ public static class Updater
         string[] lines = notes
             .Replace("\r\n", "\n")
             .Split('\n')
-            .Select(l => l.Trim())
+            .Select(PlainText)
             .Where(l => l.Length > 0)
             .Take(maxLines)
             .ToArray();
 
         string joined = string.Join(Environment.NewLine, lines);
 
-        return joined.Length <= maxChars ? joined : joined[..maxChars].TrimEnd() + "…";
+        return joined.Length <= maxChars ? joined : Clip(joined, maxChars) + "…";
+    }
+
+    /// <summary>
+    /// One line of Markdown as the plain text a message box can show.
+    /// </summary>
+    /// <remarks>
+    /// Release notes are written for GitHub, which renders them. The update
+    /// prompt is a MessageBox, which does not — so the 1.4.6 prompt showed
+    /// people a literal "## Mouse buttons can be bound again" and
+    /// '**"Side buttons only"**'. Punctuation meant to disappear, left in.
+    ///
+    /// Deliberately small. Headings, emphasis, code, links, rules and bullets
+    /// are what these notes actually use; this is not a Markdown parser and
+    /// should not become one. Anything it does not recognise it leaves alone,
+    /// which is the right failure for text that is only being displayed.
+    /// </remarks>
+    private static string PlainText(string line)
+    {
+        string text = line.Trim();
+
+        // A rule carries nothing once it cannot be drawn.
+        if (RuleLine.IsMatch(text)) return "";
+
+        text = Heading.Replace(text, "");
+        text = Quote.Replace(text, "");
+
+        // Before emphasis, so a link's text keeps any emphasis inside it.
+        text = Link.Replace(text, "$1");
+
+        text = Bold.Replace(text, "$2");
+        text = Italic.Replace(text, "$2");
+        text = Code.Replace(text, "$1");
+
+        // Bullets keep their shape. A list read as running prose is worse than
+        // a list with a character in front of it.
+        text = Bullet.Replace(text, "• ");
+
+        return text.Trim();
+    }
+
+    private static readonly Regex RuleLine = new(@"^\s*([-*_])\s*(\1\s*){2,}$", RegexOptions.Compiled);
+    private static readonly Regex Heading = new(@"^#{1,6}\s*", RegexOptions.Compiled);
+    private static readonly Regex Quote = new(@"^>\s*", RegexOptions.Compiled);
+    private static readonly Regex Link = new(@"\[([^\]]*)\]\([^)]*\)", RegexOptions.Compiled);
+    private static readonly Regex Bold = new(@"(\*\*|__)(.+?)\1", RegexOptions.Compiled);
+    private static readonly Regex Italic = new(@"(?<![*_\w])([*_])(?!\s)(.+?)(?<!\s)\1(?![*_\w])", RegexOptions.Compiled);
+    private static readonly Regex Code = new(@"`([^`]*)`", RegexOptions.Compiled);
+    private static readonly Regex Bullet = new(@"^[-*+]\s+", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Cuts to a length without cutting through a word.
+    /// </summary>
+    /// <remarks>
+    /// The 1.4.6 prompt ended "and it is left unless…", stopping inside the
+    /// sentence and in the middle of nothing in particular. Backing up to the
+    /// last space costs a few characters and ends on a whole word.
+    /// </remarks>
+    private static string Clip(string text, int maxChars)
+    {
+        string cut = text[..maxChars];
+
+        int space = cut.LastIndexOfAny(new[] { ' ', '\n', '\r' });
+
+        // Only when a reasonable amount survives. A single very long word would
+        // otherwise back up to almost nothing.
+        if (space > maxChars / 2) cut = cut[..space];
+
+        return cut.TrimEnd();
     }
 }

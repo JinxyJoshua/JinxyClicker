@@ -227,6 +227,68 @@ public class UpdaterTests
             Updater.Summarise("one\n\n\ntwo"));
     }
 
+    // ---- markdown does not belong in a message box ----
+
+    /// <summary>
+    /// The prompt is a plain MessageBox, and release notes are Markdown. The
+    /// 1.4.6 prompt showed users a literal "## Mouse buttons can be bound again"
+    /// and '**"Side buttons only"**' — the punctuation an author writes for
+    /// GitHub, rendered nowhere.
+    /// </summary>
+    [Theory]
+    [InlineData("## Mouse buttons can be bound again", "Mouse buttons can be bound again")]
+    [InlineData("# Heading", "Heading")]
+    [InlineData("### Deep heading", "Deep heading")]
+    [InlineData("**bold**", "bold")]
+    [InlineData("*one*", "one")]
+    [InlineData("_stress_", "stress")]
+    [InlineData("`code`", "code")]
+    [InlineData("got **\"Side buttons only\"**, this is the fix.", "got \"Side buttons only\", this is the fix.")]
+    [InlineData("applied to *one* of them", "applied to one of them")]
+    public void StripsMarkdownTheDialogCannotRender(string notes, string expected)
+    {
+        Assert.Equal(expected, Updater.Summarise(notes));
+    }
+
+    [Fact]
+    public void TurnsALinkIntoItsText()
+    {
+        Assert.Equal("the release notes",
+            Updater.Summarise("[the release notes](https://example.com/x)"));
+    }
+
+    [Fact]
+    public void DropsARuleThatWouldReadAsThreeDashes()
+    {
+        Assert.Equal("before" + Environment.NewLine + "after", Updater.Summarise("before\n---\nafter"));
+    }
+
+    [Fact]
+    public void KeepsListsReadableRatherThanStrippingTheirShape()
+    {
+        Assert.Equal("• first" + Environment.NewLine + "• second", Updater.Summarise("- first\n- second"));
+    }
+
+    /// <summary>
+    /// The 1.4.6 prompt ended "and it is left unless…" — cut inside a word, so
+    /// the last thing the reader sees is a fragment.
+    /// </summary>
+    [Fact]
+    public void NeverCutsInsideAWord()
+    {
+        string notes = "The quick brown fox jumps over the lazy dog and keeps running for a while";
+
+        string summary = Updater.Summarise(notes, maxLines: 6, maxChars: 30);
+
+        Assert.EndsWith("…", summary);
+        Assert.DoesNotContain("  ", summary);
+
+        string body = summary.TrimEnd('…').TrimEnd();
+
+        Assert.True(notes.StartsWith(body), $"'{body}' is not a prefix of the notes");
+        Assert.True(notes[body.Length] == ' ', $"'{body}' stopped inside a word");
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

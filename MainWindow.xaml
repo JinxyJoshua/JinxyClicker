@@ -1480,7 +1480,7 @@
                                            Text="Every bound key is live. Turn them off while you edit."
                                            Style="{StaticResource CardHint}"/>
                             </StackPanel>
-                            <Button x:Name="MacrosHotkeyKill" DockPanel.Dock="Right" Content="DISABLE HOTKEYS"
+                            <Button x:Name="MacrosHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
                                     Click="HotkeyKill_Click" Height="40" MinWidth="170"
                                     Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
@@ -1593,7 +1593,7 @@
                                            Text="Every bound key is live. Turn them off while you edit."
                                            Style="{StaticResource CardHint}"/>
                             </StackPanel>
-                            <Button x:Name="SwitcherHotkeyKill" DockPanel.Dock="Right" Content="DISABLE HOTKEYS"
+                            <Button x:Name="SwitcherHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
                                     Click="HotkeyKill_Click" Height="40" MinWidth="170"
                                     Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>

@@ -717,7 +717,30 @@ public partial class MainWindow : Window
 
     private void SwitcherDisable_Click(object sender, RoutedEventArgs e)
     {
+        // Read before the flip, so "waking" means what it says.
+        bool wakingUp = _switcherDisabled;
+
         _switcherDisabled = !_switcherDisabled;
+
+        // Same rule the macros follow: a key released while switched off can
+        // have been claimed, and the one waking gives it up rather than sharing.
+        if (wakingUp && _hotkeySettings.SwitcherHotkey.IsValid)
+        {
+            HotkeyClaim? taken = HotkeyClaims.WouldCollideOnWaking(
+                HotkeyClaims.Except(Claims(), ActionName(RebindTarget.Switcher)),
+                _hotkeySettings.SwitcherHotkey.VirtualKey);
+
+            if (taken != null)
+            {
+                string lost = _hotkeySettings.SwitcherHotkey.Name;
+
+                _hotkeySettings.SwitcherHotkey = HotkeyBinding.Unbound;
+                _hotkeySettings.Save();
+                ApplyHotkeyToUi();
+
+                ShowMacroKeyLost("Switcher", lost, taken.Value.Name);
+            }
+        }
 
         // Stopped on the way out. Leaving it running while its own switch is
         // greyed out is the trap this button exists to avoid.
@@ -750,7 +773,7 @@ public partial class MainWindow : Window
 
         bool on = HotkeysEnabledToggle?.IsChecked != false;
 
-        string label = on ? "DISABLE HOTKEYS" : "HOTKEYS ARE OFF";
+        string label = on ? "DISABLE ALL" : "HOTKEYS ARE OFF";
         string note = on
             ? "Every bound key is live. Turn them off while you edit."
             : "All hotkeys are off. Nothing you press will trigger anything.";
@@ -1149,6 +1172,27 @@ public partial class MainWindow : Window
     /// Every other pair stays refused. Two actions on one key is normally a
     /// mistake, and firing both looks like the app malfunctioning.
     /// </remarks>
+    /// <summary>
+    /// Whether an action is switched on, and so entitled to hold its key.
+    /// </summary>
+    /// <remarks>
+    /// Only the switcher has an off switch of its own among the fixed actions.
+    /// The master hotkey switch is deliberately not counted: it turns every
+    /// action off at once and is a moment rather than a decision about any one
+    /// of them, so it must not hand their keys away.
+    /// </remarks>
+    private bool IsLive(RebindTarget target) =>
+        target != RebindTarget.Switcher || !_switcherDisabled;
+
+    /// <summary>Everything currently holding a hotkey, and whether it is on.</summary>
+    private IEnumerable<HotkeyClaim> Claims() =>
+        AllBindings()
+            .Where(b => b.Binding.IsValid)
+            .Select(b => new HotkeyClaim(ActionName(b.Target), b.Binding.VirtualKey, IsLive(b.Target)))
+            .Concat(_macroList
+                .Where(m => m.Hotkey.IsValid)
+                .Select(m => new HotkeyClaim(m.Name, m.Hotkey.VirtualKey, m.Enabled)));
+
     private static bool MayShareKey(RebindTarget a, RebindTarget b) =>
         (a == RebindTarget.Click && b == RebindTarget.Switcher)
         || (a == RebindTarget.Switcher && b == RebindTarget.Click);
@@ -1215,18 +1259,36 @@ public partial class MainWindow : Window
     {
         foreach ((RebindTarget other, HotkeyBinding binding) in AllBindings())
         {
-            if (other == target || MayShareKey(target, other)) continue;
+            if (other == target || MayShareKey(target, other) || !IsLive(other)) continue;
             if (binding.IsValid && binding.VirtualKey == virtualKey) return ActionName(other);
         }
 
         foreach (KeyMacro macro in _macroList)
         {
-            if (ReferenceEquals(macro, macroTarget)) continue;
+            if (ReferenceEquals(macro, macroTarget) || !macro.Enabled) continue;
             if (macro.Hotkey.IsValid && macro.Hotkey.VirtualKey == virtualKey) return macro.Name;
         }
 
         // The unsaved NEW MACRO pick is the only holder left it could be.
         return "A macro";
+    }
+
+    /// <summary>
+    /// Says that switching something on cost it its key.
+    /// </summary>
+    /// <remarks>
+    /// A binding that disappeared without a word reads as the app losing
+    /// settings, which is the complaint this whole rule was meant to remove
+    /// rather than move somewhere else.
+    /// </remarks>
+    private void ShowMacroKeyLost(string name, string key, string holder)
+    {
+        AppDialog.Show(
+            this,
+            "Hotkey taken",
+            $"{holder} took {key} while {name} was switched off, so {name} is back on with no key."
+            + "\n\n"
+            + $"Give {name} another key, or take {key} back from {holder}.");
     }
 
     private void ShowRebindRefused(RebindTarget target, string holder)
@@ -1377,8 +1439,8 @@ public partial class MainWindow : Window
             target != RebindTarget.Macro || !ReferenceEquals(m, macroTarget);
 
         bool clash =
-            AllBindings().Any(b => CollidesWithFixed(b.Target) && b.Binding.VirtualKey == binding.VirtualKey)
-            || _macroList.Any(m => m.Hotkey.IsValid && CollidesWithMacro(m) && m.Hotkey.VirtualKey == binding.VirtualKey)
+            AllBindings().Any(b => IsLive(b.Target) && CollidesWithFixed(b.Target) && b.Binding.VirtualKey == binding.VirtualKey)
+            || _macroList.Any(m => m.Enabled && m.Hotkey.IsValid && CollidesWithMacro(m) && m.Hotkey.VirtualKey == binding.VirtualKey)
             // The NEW MACRO form's pending pick counts too, unless it is the
             // slot being rebound now.
             || (!(target == RebindTarget.Macro && macroTarget == null)
@@ -4841,13 +4903,31 @@ public partial class MainWindow : Window
             int at = _macroList.IndexOf(macro);
             if (at < 0) return;
 
+            bool wakingUp = !macro.Enabled;
+
+            // Its key was released to everything else while it slept, so it may
+            // have been taken. Waking onto a key something else answers to
+            // would have one press fire two things, so the one waking gives the
+            // key up — the claim it would override was made while this macro
+            // was doing nothing.
+            HotkeyBinding hotkey = macro.Hotkey;
+            HotkeyClaim? taken = wakingUp
+                ? HotkeyClaims.WouldCollideOnWaking(
+                    HotkeyClaims.Except(Claims(), macro.Name), hotkey.VirtualKey)
+                : null;
+
+            if (taken != null) hotkey = HotkeyBinding.Unbound;
+
             _macroList[at] = new KeyMacro(
                 macro.Name, macro.Keys, macro.KeysText, macro.IntervalMs,
                 macro.HoldsMs, macro.ClicksWanted, macro.EquipMs,
-                macro.Hotkey, enabled: !macro.Enabled);
+                hotkey, enabled: wakingUp);
 
             MacroStore.Save(_macroList);
             BuildMacroCards();
+
+            if (taken != null)
+                ShowMacroKeyLost(macro.Name, macro.Hotkey.Name, taken.Value.Name);
         };
 
         var header = new DockPanel { LastChildFill = true };
