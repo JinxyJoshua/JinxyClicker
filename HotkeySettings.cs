@@ -19,7 +19,7 @@ public sealed record HotkeyBinding(int VirtualKey, string Name)
     public const int VkXButton2 = 0x06;
 
     public static HotkeyBinding FromKey(Key key) =>
-        new(KeyInterop.VirtualKeyFromKey(key), key.ToString());
+        new(KeyInterop.VirtualKeyFromKey(key), KeyNames.For(key));
 
     /// <summary>
     /// A mouse button as a binding, or null for one that must not be bound.
