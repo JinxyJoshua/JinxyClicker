@@ -116,16 +116,27 @@ public sealed class AppSettings
     /// </remarks>
     public bool SwitcherDisabled { get; set; }
 
-    /// <summary>The two hotbar slots the auto switcher swaps between.</summary>
-    public string SwitcherSlotA { get; set; } = "3";
+    /// <summary>
+    /// The two hotbar slots the auto switcher swaps between, and its timing.
+    /// </summary>
+    /// <remarks>
+    /// These are the numbers the app's author actually plays on rather than
+    /// round figures picked to look reasonable. The equip delay in particular
+    /// was tuned against the hit counter, and the first hold is deliberately
+    /// short because the engine raises it to whatever still lands a click —
+    /// 5 ms of equip plus two click periods, which at the measured rate is
+    /// 65 ms. A default nobody has played on is a worse starting point than one
+    /// somebody has.
+    /// </remarks>
+    public string SwitcherSlotA { get; set; } = "4";
     public string SwitcherSlotB { get; set; } = "1";
-    public int SwitcherIntervalMs { get; set; } = 150;
+    public int SwitcherIntervalMs { get; set; } = 21;
 
-    /// <summary>How long the second slot is held. Usually a tap.</summary>
-    public int SwitcherIntervalBMs { get; set; } = 900;
+    /// <summary>How long the second slot is held.</summary>
+    public int SwitcherIntervalBMs { get; set; } = 1300;
 
     /// <summary>How long the game takes to equip a weapon, in the user's judgement.</summary>
-    public int SwitcherEquipMs { get; set; } = 60;
+    public int SwitcherEquipMs { get; set; } = 5;
 
     /// <summary>Capture framerate for both the recorder and the replay buffer.</summary>
     public int RecordFps { get; set; } = 30;

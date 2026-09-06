@@ -229,6 +229,51 @@ public class SwitcherProfileTests
         Assert.False(SwitcherStore.FromSingle(settings, HotkeyBinding.Unbound).Enabled);
     }
 
+    // ---- the defaults a fresh install starts from ----
+
+    /// <summary>
+    /// These are the numbers the app's author plays on, not round figures
+    /// picked to look reasonable, and a fresh install should start from a
+    /// setup somebody has actually used.
+    /// </summary>
+    [Fact]
+    public void AFreshInstallStartsFromTheTunedSwitcher()
+    {
+        var fresh = new AppSettings();
+
+        Assert.Equal("4", fresh.SwitcherSlotA);
+        Assert.Equal("1", fresh.SwitcherSlotB);
+        Assert.Equal(21, fresh.SwitcherIntervalMs);
+        Assert.Equal(5, fresh.SwitcherEquipMs);
+        Assert.Equal(1300, fresh.SwitcherIntervalBMs);
+    }
+
+    /// <summary>
+    /// And that default has to be a switcher that will actually run, or a fresh
+    /// install would open on a card explaining what is wrong with itself.
+    /// </summary>
+    [Fact]
+    public void TheDefaultSwitcherIsUsable()
+    {
+        SwitcherProfile fresh = SwitcherStore.FromSingle(new AppSettings(), HotkeyBinding.Unbound);
+
+        Assert.Null(fresh.Problem());
+    }
+
+    /// <summary>
+    /// The short first hold is deliberate: the engine raises it to whatever
+    /// still lands a click, which is the equip delay plus two click periods.
+    /// It is not a value anyone has to get right by hand.
+    /// </summary>
+    [Fact]
+    public void TheDefaultFirstHoldIsRaisedToWhereAClickLands()
+    {
+        SwitcherProfile fresh = SwitcherStore.FromSingle(new AppSettings(), HotkeyBinding.Unbound);
+
+        // 5 ms of equip plus two periods at the rate HitFix actually delivers.
+        Assert.Equal(65, fresh.EffectiveFirstHoldMs(clickPeriodMs: 30));
+    }
+
     // ---- being switched off ----
 
     /// <summary>

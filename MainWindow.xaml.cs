@@ -51,7 +51,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, ClickSwitch, Macro }
+    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, ClickSwitch, Macro, SwitcherProfile }
     private RebindTarget _rebinding = RebindTarget.None;
 
     /// <summary>
@@ -513,6 +513,14 @@ public partial class MainWindow : Window
             // present this pass are dropped from macroWasDown so a rebind to
             // Unbound cannot rearm on a stale entry after re-binding to a key.
             KeyMacro[] macrosNow = _macroList.ToArray();
+
+            // Copied for the same reason the macros are: the list is the UI
+            // thread's, and this one only reads a snapshot of it.
+            (string Name, int VirtualKey)[] switchersNow = _switcherList
+                .Where(sw => sw.Enabled && sw.Hotkey.IsValid)
+                .Select(sw => (sw.Name, sw.Hotkey.VirtualKey))
+                .ToArray();
+
             var namesSeen = new HashSet<string>();
 
             foreach (KeyMacro m in macrosNow)
@@ -534,6 +542,25 @@ public partial class MainWindow : Window
                 }
 
                 macroWasDown[m.Name] = down;
+            }
+
+            // The switchers are polled the same way and by the same rules: a
+            // switched-off one is skipped rather than polled and ignored, so
+            // its key is free for anything else to answer.
+            foreach ((string name, int vk) in switchersNow)
+            {
+                namesSeen.Add(name);
+                bool down = IsKeyDown(vk);
+                macroWasDown.TryGetValue(name, out bool wasDown);
+
+                if (s.HotkeysArmed && wasArmed && down && !wasDown)
+                {
+                    string forDispatch = name;
+                    Dispatcher.InvokeAsync(
+                        () => OnSwitcherProfileHotkey(forDispatch), DispatcherPriority.Send);
+                }
+
+                macroWasDown[name] = down;
             }
 
             // Prune entries whose macro is gone or unbound, so re-adding a macro
@@ -715,6 +742,17 @@ public partial class MainWindow : Window
     /// <summary>Whether the auto switcher is allowed to run at all.</summary>
     private bool _switcherDisabled;
 
+    /// <summary>
+    /// The single switcher's settings, as they were read.
+    /// </summary>
+    /// <remarks>
+    /// The switchers live in their own file now. These are written back
+    /// unchanged so the one-time migration still has something to read if that
+    /// file is ever deleted, rather than an empty list looking like a fresh
+    /// install that never had a switcher.
+    /// </remarks>
+    private AppSettings _legacySwitcher = new();
+
     private void SwitcherDisable_Click(object sender, RoutedEventArgs e)
     {
         // Read before the flip, so "waking" means what it says.
@@ -744,11 +782,7 @@ public partial class MainWindow : Window
 
         // Stopped on the way out. Leaving it running while its own switch is
         // greyed out is the trap this button exists to avoid.
-        if (_switcherDisabled)
-        {
-            SwitcherEnabled.IsChecked = false;
-            _macros.Stop(SwitcherName);
-        }
+        if (_switcherDisabled) StopAllSwitchers();
 
         RefreshDisableAllSwitchers();
 
@@ -760,33 +794,6 @@ public partial class MainWindow : Window
     {
         HotkeysEnabledToggle.IsChecked = HotkeysEnabledToggle.IsChecked != true;
     }
-
-    private void RefreshDisableAllSwitchers()
-    {
-        if (SwitcherHotkeyKill == null || SwitcherHotkeyKillNote == null) return;
-
-        bool on = !_switcherDisabled;
-
-        SwitcherHotkeyKill.Content = on ? "DISABLE ALL" : "ENABLE ALL";
-
-        SwitcherHotkeyKillNote.Text = on
-            ? "Switch every auto switcher off at once, without losing what it is set to."
-            : "Every auto switcher is switched off. Their keys are free for anything else to use.";
-
-        if (on) SwitcherHotkeyKill.ClearValue(ForegroundProperty);
-        else SwitcherHotkeyKill.SetResourceReference(ForegroundProperty, "Accent");
-    }
-
-    /// <summary>
-    /// Switches every auto switcher off, or back on again.
-    /// </summary>
-    /// <remarks>
-    /// One switcher today, so this and the card's own Disable do the same
-    /// thing. It is the page-level control the macros page has, and it is the
-    /// one that keeps meaning what it says once switchers become a list.
-    /// </remarks>
-    private void DisableAllSwitchers_Click(object sender, RoutedEventArgs e) =>
-        SwitcherDisable_Click(sender, e);
 
     /// <summary>Whether any macro is currently switched on.</summary>
     private bool AnyMacroEnabled() => _macroList.Any(m => m.Enabled);
@@ -910,41 +917,18 @@ public partial class MainWindow : Window
         RefreshDisableAllMacros();
         RefreshDisableAllSwitchers();
 
-        // Everything running is stopped on the way out, before the switches
-        // are locked. Locking them while something still ran would leave it
-        // going with the only control for it greyed out.
+        // Everything running is stopped on the way out. Locking the switches
+        // while something still ran would leave it going with the only control
+        // for it greyed out.
         if (!on)
         {
             _macros.StopAll();
-
-            if (SwitcherEnabled != null) SwitcherEnabled.IsChecked = false;
-        }
-        else if (_switcherDisabled && SwitcherEnabled != null)
-        {
-            SwitcherEnabled.IsChecked = false;
+            StopAllSwitchers();
         }
 
-        // Two independent reasons to be off: the master switch, or this one's
-        // own. Either is enough, and the stamp says which.
-        bool switcherLive = on && !_switcherDisabled;
-
-        if (SwitcherEnabled != null) SwitcherEnabled.IsEnabled = switcherLive;
-
-        if (SwitcherDisableButton != null)
-            SwitcherDisableButton.Content = _switcherDisabled ? "Enable" : "Disable";
-
-        // The switcher is one card rather than a list, so it is stamped in
-        // place instead of rebuilt.
-        if (SwitcherDisabledStamp != null && SwitcherCardBody != null)
-        {
-            SwitcherDisabledStamp.Visibility =
-                switcherLive ? Visibility.Collapsed : Visibility.Visible;
-
-            SwitcherCardBody.Opacity = switcherLive ? 1.0 : 0.45;
-
-            if (SwitcherStampText != null)
-                SwitcherStampText.Text = _switcherDisabled ? "DISABLED" : "HOTKEYS OFF";
-        }
+        // The switcher cards carry this state, so they are rebuilt rather than
+        // left showing whatever was true when they were made.
+        BuildSwitcherCards();
 
         // Each macro card carries its own copy of this state, so they are
         // rebuilt rather than left showing whatever was true when they were made.
@@ -1132,9 +1116,17 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Stops every switcher. Nothing is started this way.</summary>
+    /// <remarks>
+    /// Called when the clicker stops or the master hotkey switch goes off, and
+    /// both of those only ever mean stop. Starting several switchers from one
+    /// place would be starting things nobody asked for.
+    /// </remarks>
     private void SetSwitcher(bool on)
     {
-        if (SwitcherEnabled != null) SwitcherEnabled.IsChecked = on;
+        if (!on) StopAllSwitchers();
+
+        BuildSwitcherCards();
     }
 
     private void BuildHotkey_Click(object sender, RoutedEventArgs e)
@@ -1212,6 +1204,7 @@ public partial class MainWindow : Window
         // and is stashed when the rebind begins. Fall back to HotkeyButton only
         // if the stash is empty, which should not happen in practice.
         RebindTarget.Macro => _rebindingMacroButton ?? HotkeyButton,
+        RebindTarget.SwitcherProfile => _rebindingMacroButton ?? HotkeyButton,
         _ => HotkeyButton
     };
 
@@ -1312,7 +1305,8 @@ public partial class MainWindow : Window
             .Select(b => new HotkeyClaim(ActionName(b.Target), b.Binding.VirtualKey, IsLive(b.Target)))
             .Concat(_macroList
                 .Where(m => m.Hotkey.IsValid)
-                .Select(m => new HotkeyClaim(m.Name, m.Hotkey.VirtualKey, m.Enabled)));
+                .Select(m => new HotkeyClaim(m.Name, m.Hotkey.VirtualKey, m.Enabled)))
+            .Concat(SwitcherClaims());
 
     private static bool MayShareKey(RebindTarget a, RebindTarget b) =>
         (a == RebindTarget.Click && b == RebindTarget.Switcher)
@@ -1327,6 +1321,7 @@ public partial class MainWindow : Window
         RebindTarget.Combo => "Combo",
         RebindTarget.Build => "Building",
         RebindTarget.Switcher => "Switcher",
+        RebindTarget.SwitcherProfile => "A switcher",
         RebindTarget.Master => "Master",
         RebindTarget.ClickSwitch => "Click+switch",
         _ => "A macro"
@@ -1388,6 +1383,15 @@ public partial class MainWindow : Window
         {
             if (ReferenceEquals(macro, macroTarget) || !macro.Enabled) continue;
             if (macro.Hotkey.IsValid && macro.Hotkey.VirtualKey == virtualKey) return macro.Name;
+        }
+
+        foreach (SwitcherProfile sw in _switcherList)
+        {
+            if (!sw.Enabled || !sw.Hotkey.IsValid) continue;
+            if (target == RebindTarget.SwitcherProfile
+                && string.Equals(sw.Name, _rebindingSwitcher, StringComparison.OrdinalIgnoreCase)) continue;
+
+            if (sw.Hotkey.VirtualKey == virtualKey) return sw.Name;
         }
 
         // The unsaved NEW MACRO pick is the only holder left it could be.
@@ -1462,6 +1466,7 @@ public partial class MainWindow : Window
         _rebinding = RebindTarget.None;
         _rebindingMacro = null;
         _rebindingMacroButton = null;
+        _rebindingSwitcher = null;
         ApplyHotkeyToUi();
 
         // Re-arms the poll thread, which BeginRebind disarmed.
@@ -1562,6 +1567,11 @@ public partial class MainWindow : Window
         bool clash =
             AllBindings().Any(b => IsLive(b.Target) && CollidesWithFixed(b.Target) && b.Binding.VirtualKey == binding.VirtualKey)
             || _macroList.Any(m => m.Enabled && m.Hotkey.IsValid && CollidesWithMacro(m) && m.Hotkey.VirtualKey == binding.VirtualKey)
+            || _switcherList.Any(sw =>
+                   sw.Enabled && sw.Hotkey.IsValid
+                   && !(target == RebindTarget.SwitcherProfile
+                        && string.Equals(sw.Name, _rebindingSwitcher, StringComparison.OrdinalIgnoreCase))
+                   && sw.Hotkey.VirtualKey == binding.VirtualKey)
             // The NEW MACRO form's pending pick counts too, unless it is the
             // slot being rebound now.
             || (!(target == RebindTarget.Macro && macroTarget == null)
@@ -1660,7 +1670,11 @@ public partial class MainWindow : Window
         // quietly rewrite the replay key.
         if (target == RebindTarget.None) return;
 
-        if (target == RebindTarget.Macro)
+        if (target == RebindTarget.SwitcherProfile)
+        {
+            ApplySwitcherBinding(_rebindingSwitcher, binding);
+        }
+        else if (target == RebindTarget.Macro)
         {
             AssignMacroHotkey(macroTarget, binding);
         }
@@ -1986,11 +2000,14 @@ public partial class MainWindow : Window
             HotkeysEnabled = HotkeysEnabledToggle.IsChecked == true,
             RobloxPriority = RobloxPriority.IsChecked == true,
             ClipFolder = ClipFolderBox.Text.Trim(),
-            SwitcherSlotA = SlotABox.Text.Trim(),
-            SwitcherSlotB = SlotBBox.Text.Trim(),
-            SwitcherIntervalMs = MacroStore.ParseInterval(SwitcherIntervalBox.Text) ?? 500,
-            SwitcherIntervalBMs = MacroStore.ParseInterval(SwitcherIntervalBBox.Text) ?? 40,
-            SwitcherEquipMs = MacroStore.ParseInterval(SwitcherEquipBox.Text) ?? KeyMacro.DefaultEquipMs,
+            // Written back as they were read. The switchers live in their own
+            // file now; these are kept only so the one-time migration still has
+            // something to read if that file is ever removed.
+            SwitcherSlotA = _legacySwitcher.SwitcherSlotA,
+            SwitcherSlotB = _legacySwitcher.SwitcherSlotB,
+            SwitcherIntervalMs = _legacySwitcher.SwitcherIntervalMs,
+            SwitcherIntervalBMs = _legacySwitcher.SwitcherIntervalBMs,
+            SwitcherEquipMs = _legacySwitcher.SwitcherEquipMs,
             SwitcherDisabled = _switcherDisabled,
             RecordFps = RecordFps,
             // RestoreBounds rather than Width/Height: while maximised those
@@ -4819,17 +4836,14 @@ public partial class MainWindow : Window
     {
         _macroTicker.Tick += (_, _) =>
         {
-            if (!_macros.IsRunning(SwitcherName))
+            if (!_switcherList.Any(IsSwitcherRunning))
             {
                 _macroTicker.Stop();
+                RefreshSwitcherCount();
                 return;
             }
 
-            long swaps = _macros.Sent - _switcherStartedAt;
-
-            SwitcherCountText.Text = swaps == 0
-                ? "Waiting — nothing sent yet. Switch to the game and it starts."
-                : $"{swaps:N0} presses sent.";
+            RefreshSwitcherCount();
         };
     }
 
@@ -5430,29 +5444,6 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Flips the switcher from its hotkey.
-    /// </summary>
-    /// <remarks>
-    /// Goes through the checkbox rather than starting the macro directly, so
-    /// the page and the engine cannot disagree about whether it is running —
-    /// the toggle is the single source of that answer.
-    /// </remarks>
-    private void OnSwitcherHotkey()
-    {
-        // A disabled switcher does not answer its key. Otherwise the button
-        // says Enable while the hotkey still starts it.
-        if (_switcherDisabled) return;
-
-        // Same guard the click keys carry. Bound to a letter or a digit, this
-        // otherwise fires while its own slot and interval boxes are being
-        // typed into — the fields sit on the page the key belongs to, so it is
-        // the likeliest place for it to happen.
-        if (IsActive && Keyboard.FocusedElement is TextBox) return;
-
-        SwitcherEnabled.IsChecked = SwitcherEnabled.IsChecked != true;
-    }
-
-    /// <summary>
     /// Turns every other hotkey off, and back on again.
     /// </summary>
     /// <remarks>
@@ -5476,74 +5467,29 @@ public partial class MainWindow : Window
     /// <summary>
     /// Rebuilds the switcher from its fields and starts or stops it.
     /// </summary>
+    /// <summary>
+    /// Re-applies every running switcher after something they depend on changed.
+    /// </summary>
     /// <remarks>
-    /// Always stopped first. The keys and the rate can change while it runs, and
-    /// a running thread holds the values it was started with — so the only way
-    /// to apply an edit is to replace the thread.
+    /// Always stopped first. A running thread holds the values it was started
+    /// with, so replacing the thread is the only way an edit takes effect — and
+    /// the first hold depends on the clicker's rate, which changes underneath
+    /// them.
     /// </remarks>
     private void RefreshSwitcher()
     {
-        if (SlotABox == null || SlotBBox == null || SwitcherIntervalBox == null) return;
+        if (SwitcherList == null) return;
 
-        _macros.Stop(SwitcherName);
-
-        (int[] Keys, string Text)? keys =
-            MacroStore.ParseKeys(SlotABox.Text.Trim() + "," + SlotBBox.Text.Trim());
-
-        int? holdA = MacroStore.ParseInterval(SwitcherIntervalBox.Text);
-        int? holdB = MacroStore.ParseInterval(SwitcherIntervalBBox.Text);
-
-        _switcherEquipMs = MacroStore.ParseInterval(SwitcherEquipBox.Text) ?? KeyMacro.DefaultEquipMs;
-
-        if (keys == null || keys.Value.Keys.Length != 2 || holdA == null || holdB == null)
+        foreach (SwitcherProfile profile in _switcherList.ToList())
         {
-            SwitcherStatusText.Text =
-                "Both slots need one letter or digit, and both hold times must be between "
-                + $"{KeyMacro.MinIntervalMs} and {KeyMacro.MaxIntervalMs} ms.";
+            if (!IsSwitcherRunning(profile)) continue;
 
-            return;
+            StopSwitcher(profile);
+
+            if (SwitcherLive(profile)) StartSwitcher(profile);
         }
 
-        int? interval = holdA;
-
-        _settingsDirty = true;
-
-        if (SwitcherEnabled.IsChecked != true)
-        {
-            SwitcherStatusText.Text = "Off.";
-            SwitcherCountText.Text = "";
-            _macroTicker.Stop();
-            return;
-        }
-
-        // Raised to whatever actually guarantees a shot, rather than trusting
-        // the number in the box. The click period comes from the clicker's own
-        // live settings, so changing CPS changes this without anyone noticing
-        // they had to.
-        double clickPeriod = _settings.Timing.PeriodMs;
-        int floor = KeyMacro.MinimumDwellMs(clickPeriod, _switcherEquipMs);
-
-        int firstHold = Math.Max(holdA.Value, floor);
-        bool raised = firstHold > holdA.Value;
-
-        _macros.Start(new KeyMacro(
-            SwitcherName, keys.Value.Keys, keys.Value.Text, firstHold,
-            new[] { firstHold, holdB.Value },
-            clicksWanted: SwitcherShots,
-            equipMs: _switcherEquipMs));
-
-        _switcherStartedAt = _macros.Sent;
-
-        SwitcherStatusText.Text =
-            $"On — {SlotABox.Text.Trim()} for {firstHold} ms, then {SlotBBox.Text.Trim()} for {holdB.Value} ms."
-            + (raised
-                ? $"  Raised from {holdA.Value} to {firstHold} ms: at {1000.0 / clickPeriod:0} clicks a second "
-                  + $"that is the shortest hold that still lands two clicks after the {_switcherEquipMs} ms equip. "
-                  + "Anything shorter draws the weapon and swaps away before it fires."
-                : "")
-            + "  Nothing is sent while this window is in front, so switch to the game.";
-
-        _macroTicker.Start();
+        RefreshSwitcherCount();
     }
 
     /// <remarks>
@@ -5554,16 +5500,11 @@ public partial class MainWindow : Window
     private void ApplySwitcherToUi(AppSettings s)
     {
         _switcherDisabled = s.SwitcherDisabled;
+        _legacySwitcher = s;
 
-        SlotABox.Text = s.SwitcherSlotA;
-        SlotBBox.Text = s.SwitcherSlotB;
-        SwitcherIntervalBox.Text = s.SwitcherIntervalMs.ToString(CultureInfo.CurrentCulture);
-        SwitcherIntervalBBox.Text = s.SwitcherIntervalBMs.ToString(CultureInfo.CurrentCulture);
-        SwitcherEquipBox.Text = s.SwitcherEquipMs.ToString(CultureInfo.CurrentCulture);
-
-        SwitcherEnabled.IsChecked = false;
-        SwitcherStatusText.Text = "Off.";
+        LoadSwitchers(s);
     }
+
     // ---- Windows tweaks ----
 
     private void RefreshTweaks()

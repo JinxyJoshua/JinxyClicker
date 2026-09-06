@@ -130,9 +130,9 @@ public static class SwitcherStore
         public string Name { get; set; } = "";
         public string SlotA { get; set; } = "";
         public string SlotB { get; set; } = "";
-        public int HoldFirstMs { get; set; } = 150;
-        public int HoldSecondMs { get; set; } = 900;
-        public int EquipMs { get; set; } = KeyMacro.DefaultEquipMs;
+        public int HoldFirstMs { get; set; } = 21;
+        public int HoldSecondMs { get; set; } = 1300;
+        public int EquipMs { get; set; } = 5;
         public int HotkeyVk { get; set; }
         public string HotkeyName { get; set; } = "";
 

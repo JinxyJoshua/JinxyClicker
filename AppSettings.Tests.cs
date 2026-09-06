@@ -86,6 +86,67 @@ public class AppSettingsDefaultsTests
         Assert.False(string.IsNullOrEmpty(AppSettings.AllDisplays));
     }
 
+    // ---- defaults are for new installs only ----
+
+    /// <summary>
+    /// The switcher defaults are the app author's own tuned setup, which is the
+    /// right starting point for somebody who has never opened the app and the
+    /// wrong thing to impose on somebody who has. A stored file wins.
+    /// </summary>
+    [Fact]
+    public void AnExistingSettingsFileKeepsItsOwnSwitcher()
+    {
+        const string theirs = """
+            {"SwitcherSlotA":"7","SwitcherSlotB":"9","SwitcherIntervalMs":300,
+             "SwitcherEquipMs":80,"SwitcherIntervalBMs":250}
+            """;
+
+        AppSettings loaded = JsonSerializer.Deserialize<AppSettings>(theirs)!;
+
+        Assert.Equal("7", loaded.SwitcherSlotA);
+        Assert.Equal("9", loaded.SwitcherSlotB);
+        Assert.Equal(300, loaded.SwitcherIntervalMs);
+        Assert.Equal(80, loaded.SwitcherEquipMs);
+        Assert.Equal(250, loaded.SwitcherIntervalBMs);
+    }
+
+    /// <summary>
+    /// And the switcher carried into the list comes from what they had, not
+    /// from the defaults — otherwise upgrading would silently retune the
+    /// switcher somebody had already set up.
+    /// </summary>
+    [Fact]
+    public void UpgradingCarriesTheirSwitcherRatherThanTheDefault()
+    {
+        const string theirs = """
+            {"SwitcherSlotA":"7","SwitcherSlotB":"9","SwitcherIntervalMs":300,
+             "SwitcherEquipMs":80,"SwitcherIntervalBMs":250}
+            """;
+
+        AppSettings loaded = JsonSerializer.Deserialize<AppSettings>(theirs)!;
+
+        SwitcherProfile carried = SwitcherStore.FromSingle(loaded, HotkeyBinding.Unbound);
+
+        Assert.Equal("7", carried.SlotA);
+        Assert.Equal(300, carried.HoldFirstMs);
+        Assert.Equal(80, carried.EquipMs);
+        Assert.Equal(250, carried.HoldSecondMs);
+    }
+
+    /// <summary>
+    /// Only somebody with no settings file at all gets the tuned defaults.
+    /// </summary>
+    [Fact]
+    public void SomebodyWhoHasNeverOpenedItGetsTheTunedSwitcher()
+    {
+        var fresh = new AppSettings();
+
+        Assert.Equal("4", fresh.SwitcherSlotA);
+        Assert.Equal(21, fresh.SwitcherIntervalMs);
+        Assert.Equal(5, fresh.SwitcherEquipMs);
+        Assert.Equal(1300, fresh.SwitcherIntervalBMs);
+    }
+
     /// <summary>Hiding overlays from capture is also a choice, not a default.</summary>
     [Fact]
     public void StreamerModeIsOffUntilItIsAskedFor()

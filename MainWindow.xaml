@@ -1611,95 +1611,99 @@
                         </DockPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                      <Grid>
-                        <!-- Stamped across when hotkeys are off, the same as a
-                             macro card. The switcher has one card rather than
-                             many, so the stamp goes over the card itself. -->
-                        <StackPanel x:Name="SwitcherCardBody">
-                            <DockPanel LastChildFill="False">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="AUTO SWITCHER" Style="{StaticResource CardLabel}"/>
-                                    <TextBlock Text="Swaps between two hotbar slots on a timer — sword and crossbow, or pickaxe and gumdrop."
-                                               Style="{StaticResource CardHint}"/>
-                                </StackPanel>
-                                <CheckBox x:Name="SwitcherEnabled" DockPanel.Dock="Right" Margin="0"
-                                          VerticalAlignment="Center"
-                                          Checked="Switcher_Changed" Unchecked="Switcher_Changed"/>
-                                <Button x:Name="SwitcherDisableButton" DockPanel.Dock="Right"
-                                        Content="Disable" Click="SwitcherDisable_Click"
-                                        Height="30" MinWidth="86" Padding="12,0"
-                                        Margin="0,0,12,0" FontSize="11"
-                                        VerticalAlignment="Center"/>
-                            </DockPanel>
+                    <!-- One card per saved switcher, built in code: how many
+                         there are is not known until the app runs, the same as
+                         the macro list. -->
+                    <WrapPanel x:Name="SwitcherList" Margin="0,0,0,4"/>
 
-                            <Grid Margin="0,16,0,0">
+                    <TextBlock x:Name="SwitcherEmptyText" Visibility="Collapsed"
+                               Text="No switchers saved yet. Fill in the boxes below and press Save."
+                               Foreground="{StaticResource TextMuted}" FontSize="11"
+                               Margin="0,0,0,14"/>
+
+                    <TextBlock x:Name="SwitcherCountText" Text=""
+                               Foreground="{StaticResource Accent}" FontSize="11"
+                               FontWeight="Bold" Margin="0,0,0,14"/>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="NEW SWITCHER" Style="{StaticResource CardLabel}"/>
+                            <TextBlock Text="Swaps between two hotbar slots on a timer &#8212; sword and crossbow, or pickaxe and gumdrop. Name it and you can keep as many as you like, and run several at once."
+                                       Style="{StaticResource CardHint}" Margin="0,0,0,14"/>
+
+                            <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="110"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="110"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="64"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="64"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Grid.Column="0">
-                                    <TextBox x:Name="SlotABox" Style="{StaticResource FieldBox}" MaxLength="1"
-                                             TextChanged="SwitcherField_Changed"/>
-                                    <TextBlock Text="FIRST SLOT" Foreground="{StaticResource TextMuted}"
+                                    <TextBox x:Name="NewSwitcherName" Style="{StaticResource FieldBox}"/>
+                                    <TextBlock Text="NAME" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBox x:Name="SlotBBox" Style="{StaticResource FieldBox}" MaxLength="1"
-                                             TextChanged="SwitcherField_Changed"/>
-                                    <TextBlock Text="SECOND SLOT" Foreground="{StaticResource TextMuted}"
+                                    <TextBox x:Name="NewSwitcherSlotA" Style="{StaticResource FieldBox}" MaxLength="1" Text="4"/>
+                                    <TextBlock Text="SLOT 1" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="4">
-                                    <TextBox x:Name="SwitcherIntervalBox" Style="{StaticResource NumericFieldBox}"
-                                             TextChanged="SwitcherField_Changed"/>
-                                    <TextBlock Text="HOLD FIRST (MS)" Foreground="{StaticResource TextMuted}"
+                                    <TextBox x:Name="NewSwitcherSlotB" Style="{StaticResource FieldBox}" MaxLength="1" Text="1"/>
+                                    <TextBlock Text="SLOT 2" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="6">
-                                    <TextBox x:Name="SwitcherEquipBox" Style="{StaticResource NumericFieldBox}"
-                                             TextChanged="SwitcherField_Changed"/>
-                                    <TextBlock Text="EQUIP DELAY (MS)" Foreground="{StaticResource TextMuted}"
+                                    <TextBox x:Name="NewSwitcherHoldA" Style="{StaticResource NumericFieldBox}" Text="21"/>
+                                    <TextBlock Text="HOLD 1 (MS)" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="8">
-                                    <TextBox x:Name="SwitcherIntervalBBox" Style="{StaticResource NumericFieldBox}"
-                                             TextChanged="SwitcherField_Changed"/>
-                                    <TextBlock Text="HOLD SECOND (MS)" Foreground="{StaticResource TextMuted}"
+                                    <TextBox x:Name="NewSwitcherEquip" Style="{StaticResource NumericFieldBox}" Text="5"/>
+                                    <TextBlock Text="EQUIP (MS)" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
                                 </StackPanel>
+                                <StackPanel Grid.Column="10">
+                                    <TextBox x:Name="NewSwitcherHoldB" Style="{StaticResource NumericFieldBox}" Text="1300"/>
+                                    <TextBlock Text="HOLD 2 (MS)" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="12">
+                                    <DockPanel>
+                                        <Button x:Name="ClearNewSwitcherKey" DockPanel.Dock="Right"
+                                                Style="{StaticResource ClearBindingButton}"
+                                                Visibility="Collapsed"
+                                                Click="ClearNewSwitcherKey_Click"/>
+                                        <Button x:Name="NewSwitcherHotkeyButton" Content="Not set"
+                                                Click="NewSwitcherHotkey_Click"
+                                                Height="34" MinWidth="92" Padding="10,0" FontWeight="Bold"/>
+                                    </DockPanel>
+                                    <TextBlock Text="HOTKEY" Foreground="{StaticResource TextMuted}"
+                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="14" Content="+  Save" Click="SaveSwitcher_Click"
+                                        Height="34" MinWidth="92" Padding="14,0" FontWeight="Bold"
+                                        VerticalAlignment="Top"
+                                        Background="{StaticResource Accent}" Foreground="White"/>
                             </Grid>
 
-                            <TextBlock x:Name="SwitcherStatusText" Text=""
+                            <TextBlock x:Name="NewSwitcherStatus" Text=""
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,14,0,0"/>
-                            <TextBlock x:Name="SwitcherCountText" Text=""
-                                       Foreground="{StaticResource Accent}" FontSize="11"
-                                       FontWeight="Bold" Margin="0,6,0,0"/>
+                                       TextWrapping="Wrap" Margin="0,12,0,0"/>
                         </StackPanel>
-
-                        <!-- Never takes a click: the fields stay editable with
-                             hotkeys off, which is when people edit them. -->
-                        <Border x:Name="SwitcherDisabledStamp" Visibility="Collapsed"
-                                Background="#30E02B2B" BorderBrush="#E02B2B"
-                                BorderThickness="2" CornerRadius="6"
-                                VerticalAlignment="Center" Padding="0,10,0,10"
-                                IsHitTestVisible="False">
-                            <TextBlock x:Name="SwitcherStampText" Text="DISABLED"
-                                       FontSize="26" FontWeight="Black"
-                                       Foreground="#FF6B6B" TextAlignment="Center"
-                                       HorizontalAlignment="Center"/>
-                        </Border>
-                      </Grid>
                     </Border>
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
