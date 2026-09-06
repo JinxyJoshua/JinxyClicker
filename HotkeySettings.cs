@@ -18,12 +18,48 @@ public sealed record HotkeyBinding(int VirtualKey, string Name)
     public static HotkeyBinding FromKey(Key key) =>
         new(KeyInterop.VirtualKeyFromKey(key), key.ToString());
 
-    /// <summary>Null for buttons that must not be bound — left in particular,
-    /// which is the button this app is busy synthesising.</summary>
+    /// <summary>
+    /// A mouse button as a binding, or null for one that must not be bound.
+    /// </summary>
+    /// <remarks>
+    /// Only the side pair. Left, right and middle are all refused, and the
+    /// reason is the same for all three: the clicker sends one of them. Which
+    /// one is a setting on the clicker page, and GetAsyncKeyState cannot tell a
+    /// synthesised press from a real one, so any of the three could end up
+    /// firing the action it was bound to for as long as the clicker ran.
+    ///
+    /// Right and middle were briefly allowed here on the reasoning that the app
+    /// only ever sends left. That was read off the MOUSEEVENTF constants in
+    /// MainWindow, which are the left pair — the right and middle flags live in
+    /// ClickButtons, and the BUTTON selector chooses between all three. The
+    /// numbering below still follows the usual convention, so the names line up
+    /// with what people call them: 1 left, 2 right, 3 middle, 4 and 5 the side
+    /// pair.
+    /// </remarks>
     public static HotkeyBinding? FromMouse(MouseButton button) => button switch
     {
         MouseButton.XButton1 => new HotkeyBinding(VkXButton1, "Mouse 4"),
         MouseButton.XButton2 => new HotkeyBinding(VkXButton2, "Mouse 5"),
+        _ => null
+    };
+
+    /// <summary>
+    /// The side buttons as bindings, found by virtual key rather than by a WPF
+    /// mouse event.
+    /// </summary>
+    /// <remarks>
+    /// The rebind is captured a second way, from the hotkey poll thread, and
+    /// this is what that thread has to work with — it sees virtual keys, not
+    /// buttons.
+    ///
+    /// Only the side pair. Left, right and middle are all reachable through the
+    /// window's own mouse event, and polling for them would capture the very
+    /// left click that armed the rebind.
+    /// </remarks>
+    public static HotkeyBinding? FromSideButtonKey(int virtualKey) => virtualKey switch
+    {
+        VkXButton1 => new HotkeyBinding(VkXButton1, "Mouse 4"),
+        VkXButton2 => new HotkeyBinding(VkXButton2, "Mouse 5"),
         _ => null
     };
 

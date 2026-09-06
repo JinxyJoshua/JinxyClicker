@@ -373,6 +373,12 @@ public partial class MainWindow : Window
         bool wasArmed = false;
         bool wasRebindIdle = false;
 
+        // Edge state for capturing the side buttons while a rebind is armed.
+        // Tracked on every pass, armed or not, so a button already held when the
+        // rebind begins is not read as a fresh press.
+        bool sideOneWasDown = false;
+        bool sideTwoWasDown = false;
+
         // Per-macro edge state, keyed by name because the KeyMacro reference
         // changes whenever a macro is rebound (KeyMacro is immutable — see
         // AssignMacroHotkey). Names are unique — the store's Upsert enforces it.
@@ -410,6 +416,32 @@ public partial class MainWindow : Window
 
             masterWasDown = masterDown;
             wasRebindIdle = s.RebindIdle;
+
+            // The side buttons are captured here as well as from the window's
+            // own mouse event, because this is the mechanism that will have to
+            // fire them afterwards. Binding through the same thing that polls
+            // means anything bindable is guaranteed to work — and a press the
+            // window never receives is still caught, as long as Windows tracks
+            // the button as a key at all.
+            //
+            // Usually the window's event wins the race and gets here first, at
+            // which point there is no rebind left to capture and this does
+            // nothing. That is the ordinary case, not a fallback failing.
+            bool sideOneDown = IsKeyDown(HotkeyBinding.VkXButton1);
+            bool sideTwoDown = IsKeyDown(HotkeyBinding.VkXButton2);
+
+            if (!s.RebindIdle)
+            {
+                if (sideOneDown && !sideOneWasDown)
+                    Dispatcher.InvokeAsync(
+                        () => CaptureSideButtonRebind(HotkeyBinding.VkXButton1), DispatcherPriority.Send);
+                else if (sideTwoDown && !sideTwoWasDown)
+                    Dispatcher.InvokeAsync(
+                        () => CaptureSideButtonRebind(HotkeyBinding.VkXButton2), DispatcherPriority.Send);
+            }
+
+            sideOneWasDown = sideOneDown;
+            sideTwoWasDown = sideTwoDown;
 
             bool clickDown = IsKeyDown(s.HotkeyVk);
             bool recordDown = IsKeyDown(s.RecordHotkeyVk);
@@ -1156,12 +1188,20 @@ public partial class MainWindow : Window
 
     private void ShowRebindRefused(RebindTarget target, string holder)
     {
-        Button button = RebindButtonFor(target);
-
         // Trimmed so a long macro name cannot stretch the button across the row.
         string name = holder.Length > 14 ? holder[..13].TrimEnd() + "…" : holder;
 
-        button.Content = name + " has it";
+        ShowRebindNotice(target, name + " has it");
+    }
+
+    /// <summary>
+    /// Puts a short message on a rebind button, then takes it away again.
+    /// </summary>
+    private void ShowRebindNotice(RebindTarget target, string message)
+    {
+        Button button = RebindButtonFor(target);
+
+        button.Content = message;
         button.Foreground = (Brush)FindResource("Accent");
 
         // Restarted rather than stacked, so trying three keys in a row leaves
@@ -1175,7 +1215,17 @@ public partial class MainWindow : Window
             _rebindNoticeTimer = null;
 
             button.ClearValue(Control.ForegroundProperty);
-            ApplyHotkeyToUi();
+
+            // Whether this button is still the one capturing, asked at the
+            // moment the answer is needed rather than assumed when the notice
+            // went up. In between, the rebind can have finished, been
+            // cancelled, or moved to a different action - and a flag decided up
+            // front got the last of those wrong, leaving this button reading
+            // "Select A Hotkey" while a different one was actually listening.
+            if (_rebinding != RebindTarget.None && ReferenceEquals(RebindButtonFor(_rebinding), button))
+                button.Content = "Select A Hotkey";
+            else
+                ApplyHotkeyToUi();
         };
 
         _rebindNoticeTimer.Start();
@@ -1219,12 +1269,49 @@ public partial class MainWindow : Window
     {
         if (_rebinding == RebindTarget.None) return;
 
-        // Only the side buttons are bindable. Left in particular is the button
-        // this app synthesises, and binding it would be self-triggering.
         HotkeyBinding? binding = HotkeyBinding.FromMouse(e.ChangedButton);
+
+        if (binding != null)
+        {
+            e.Handled = true;
+            CaptureRebind(binding);
+            return;
+        }
+
+        // Left is how the window is operated: clicking the armed button cancels
+        // the rebind, clicking another one moves it. A left click here is not an
+        // attempt to bind anything, so it passes through in silence.
+        //
+        // An earlier version swallowed it and put "Left can't be bound" on the
+        // button, which broke both of those: a rebind could no longer be moved
+        // to another action, and the notice landed on the button being left
+        // behind.
+        if (e.ChangedButton == MouseButton.Left) return;
+
+        // Right and middle are attempts to bind, and both are refused for the
+        // same reason left is - the clicker sends one of the three, and which
+        // one is a setting. Swallowed, unlike left, because nothing in this
+        // window is operated with them and a context menu here would be noise.
+        e.Handled = true;
+        ShowRebindNotice(_rebinding, "Side buttons only");
+    }
+
+    /// <summary>
+    /// Binds a side button seen by the poll thread rather than by the window.
+    /// </summary>
+    /// <remarks>
+    /// Guarded on the rebind still being open, because the window's mouse event
+    /// almost always arrives first and closes it. Without the guard the poll
+    /// would then bind the same button a second time, to whatever the next
+    /// rebind happened to be — or to nothing, over the top of a fresh prompt.
+    /// </remarks>
+    private void CaptureSideButtonRebind(int virtualKey)
+    {
+        if (_rebinding == RebindTarget.None) return;
+
+        HotkeyBinding? binding = HotkeyBinding.FromSideButtonKey(virtualKey);
         if (binding == null) return;
 
-        e.Handled = true;
         CaptureRebind(binding);
     }
 
@@ -1536,9 +1623,13 @@ public partial class MainWindow : Window
         // button would leave the radio group and the stored length disagreeing.
         if (!SelectReplayLength(s.ReplaySeconds)) SelectReplayLength(30);
 
-        // A monitor that has been unplugged since matches nothing, so the whole
-        // desktop is the fallback rather than a crop that no longer exists.
-        if (!SelectDisplay(s.RecordDisplay)) SelectDisplay(null);
+        // Three cases, and they are genuinely different. An explicit "all
+        // displays" is honoured. Anything else is matched by device name, and a
+        // monitor unplugged since is no match. Null is a settings file that
+        // predates the choice existing, or one that never made it — and both
+        // resolve to the primary monitor rather than to the whole desktop.
+        if (s.RecordDisplay == AppSettings.AllDisplays) SelectDisplay(null);
+        else if (!SelectDisplay(s.RecordDisplay)) SelectDefaultDisplay();
 
         ClipFolderBox.Text = string.IsNullOrWhiteSpace(s.ClipFolder) ? DefaultClipFolder : s.ClipFolder;
 
@@ -1670,7 +1761,7 @@ public partial class MainWindow : Window
             LightTheme = ThemeLight.IsChecked == true,
             WallpaperFile = _wallpaperFile,
             WallpaperDimming = (int)WallpaperDimmingSlider.Value,
-            RecordDisplay = _captureDisplay?.DeviceName,
+            RecordDisplay = _captureDisplay?.DeviceName ?? AppSettings.AllDisplays,
             HotkeysEnabled = HotkeysEnabledToggle.IsChecked == true,
             RobloxPriority = RobloxPriority.IsChecked == true,
             ClipFolder = ClipFolderBox.Text.Trim(),
@@ -3551,6 +3642,24 @@ public partial class MainWindow : Window
         RestartReplayIfRunning();
     }
 
+    /// <summary>
+    /// Selects the monitor to capture when nothing has been chosen.
+    /// </summary>
+    /// <remarks>
+    /// The primary one, not every display. Capturing the whole virtual desktop
+    /// costs the pixels of every monitor attached and puts the game in a
+    /// fraction of the frame; on this machine that measured 6.27s of CPU for
+    /// eight seconds of a 3840x1080 clip, against 2.47s for 1920x1080 of the
+    /// one screen the game was on. Only falls through to the whole desktop when
+    /// the enumeration found no monitors at all.
+    /// </remarks>
+    private void SelectDefaultDisplay()
+    {
+        DisplayInfo? primary = _displays.FirstOrDefault(d => d.IsPrimary) ?? _displays.FirstOrDefault();
+
+        if (primary == null || !SelectDisplay(primary.DeviceName)) SelectDisplay(null);
+    }
+
     /// <summary>Checks the button for this monitor. False when none matches.</summary>
     /// <remarks>
     /// A stored monitor that has since been unplugged matches nothing, which the
@@ -4626,7 +4735,7 @@ public partial class MainWindow : Window
             // is the more urgent thing to say about this button — but a macro
             // that is live still needs to say how to take its key away.
             ToolTip = live
-                ? "Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                ? "Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                 : "This macro will not fire"
         };
 

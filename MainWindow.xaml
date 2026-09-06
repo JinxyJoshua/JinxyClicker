@@ -1013,7 +1013,7 @@
                                             Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                     <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1032,7 +1032,7 @@
                                     <Button x:Name="ComboHotkeyButton" Content="Not set"
                                             Click="ComboHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1051,7 +1051,7 @@
                                     <Button x:Name="ClickSwitchHotkeyButton" Content="Not set"
                                             Click="ClickSwitchHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1070,7 +1070,7 @@
                                     <Button x:Name="BuildHotkeyButton" Content="Not set"
                                             Click="BuildHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1559,7 +1559,7 @@
                                                 Click="ClearNewMacroHotkey_Click"/>
                                         <Button x:Name="NewMacroHotkeyButton" Content="Not set"
                                                 Click="NewMacroHotkey_Click"
-                                                ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                                ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                                 Height="34" Padding="12,0"/>
                                     </DockPanel>
                                     <TextBlock Text="TOGGLE HOTKEY (OPTIONAL)" Foreground="{StaticResource TextMuted}"
@@ -1703,7 +1703,7 @@
                                 <Button x:Name="SwitcherHotkeyButton" Content="Not set"
                                         Click="SwitcherHotkey_Click"
                                         DockPanel.Dock="Right" VerticalAlignment="Center"
-                                        ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                        ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                         FontSize="17" FontWeight="Bold"
                                         Height="42" MinWidth="96" Padding="16,0" Margin="0"/>
                             </DockPanel>
@@ -2493,7 +2493,7 @@
                                         Click="Record_Click" Height="36" Width="164" Margin="0,0,10,0"/>
                                 <Button x:Name="RecordHotkeyButton" Content="Not set"
                                         Click="RecordHotkey_Click"
-                                        ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                        ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                         Height="36" Padding="16,0" MinWidth="64" Margin="0,0,10,0"/>
                                 <Button x:Name="ClearRecordKey" Tag="Record" Style="{StaticResource ClearBindingButton}"
                                         Click="ClearBinding_Click"/>
@@ -2539,7 +2539,7 @@
                                         Click="SaveReplay_Click" Height="36" Width="120" Margin="0,0,10,0"/>
                                 <Button x:Name="ReplayHotkeyButton" Content="F8"
                                         Click="ReplayHotkey_Click"
-                                        ToolTip="Click, then press a key or mouse side button. Delete unbinds it, Escape leaves it alone."
+                                        ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
                                         Height="36" Padding="16,0" MinWidth="64" Margin="0"/>
                                 <Button x:Name="ClearReplayKey" Tag="Replay" Style="{StaticResource ClearBindingButton}"
                                         Click="ClearBinding_Click"/>
@@ -2826,7 +2826,7 @@
                                             HorizontalAlignment="Left">
                                     <TextBlock Text="STREAMER MODE" Foreground="{StaticResource TextSoft}"
                                                FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Hides the &quot;macro on&quot; badge from OBS, Discord screen share and other capture software. It stays visible on your own monitor, so you can still see when a macro is holding a key."
+                                    <TextBlock Text="Hides every overlay this app draws over the game &#8212; the &quot;macro on&quot; badge and the CPS readout &#8212; from OBS, Discord screen share and other capture software. They stay visible on your own monitor, so you can still read them while you play. Recording notices are hidden from capture whether this is on or not."
                                                Foreground="{StaticResource TextMuted}" FontSize="11"
                                                TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 </StackPanel>
@@ -2922,6 +2922,25 @@
                             <TextBlock Text="Applies to both recordings and the replay buffer. 60 is smoother for gameplay and roughly doubles the file size."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <!--
+                                The same setting behaves differently on different
+                                PCs, so this measures rather than assumes. Placed
+                                above the buttons because it sets them.
+                            -->
+                            <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                <TextBlock x:Name="AutoFpsStatus"
+                                           Text="Not measured. Run this with the game open — an idle PC measures faster than a busy one, and busy is when you record."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11"
+                                           TextWrapping="Wrap" VerticalAlignment="Center"
+                                           MaxWidth="440"/>
+                                <Button x:Name="AutoFpsButton" Content="AUTO"
+                                        Click="AutoFpsButton_Click"
+                                        DockPanel.Dock="Right" VerticalAlignment="Center"
+                                        ToolTip="Captures for a few seconds at each rate and picks the fastest one this PC actually holds without taking the CPU the game needs. Nothing is saved. Best run with the game already open, because that is the load a recording really happens under."
+                                        FontSize="14" FontWeight="Bold"
+                                        Height="38" MinWidth="104" Padding="16,0" Margin="12,0,0,0"/>
+                            </DockPanel>
 
                             <!-- No IsChecked here: it raises Checked during XAML
                                  parsing, which applied a framerate before the

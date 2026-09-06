@@ -41,7 +41,60 @@ public static class CaptureBackend
     /// either: the encoder is compiled in regardless of what hardware is
     /// present, so it is confirmed by actually encoding a frame.
     /// </remarks>
-    public static string EncoderArgs(string ffmpeg)
+    /// <summary>
+    /// Bits per pixel per frame, which is what a bitrate has to be derived from.
+    /// </summary>
+    /// <remarks>
+    /// The bitrate was a flat 8 Mbit for every recording. That is roughly right
+    /// for 1080p30 and wrong everywhere else in the same direction: at 1080p60
+    /// it is half the bits per frame, and on a 1440p or 4K machine the same 8
+    /// Mbit is spread across two to four times the pixels. A real clip measured
+    /// here came out at 7.8 Mbit for 1080p60 of fast motion, which is where
+    /// "you can barely see what is going on" comes from — and why it looked
+    /// worse on some machines than others while nothing about the setting
+    /// changed.
+    ///
+    /// 0.09 is a middle figure for h264 at this kind of motion. Hardware
+    /// encoders are less efficient than x264 at the same bitrate, so being
+    /// generous costs disk and buys clarity, which is the right way round for a
+    /// clip somebody is going to upload.
+    /// </remarks>
+    public const double BitsPerPixelPerFrame = 0.09;
+
+    /// <summary>Never go below this, however small the capture.</summary>
+    public const int MinimumMbit = 6;
+
+    /// <summary>Or above it, however large. 4K60 would otherwise ask for 45.</summary>
+    public const int MaximumMbit = 40;
+
+    /// <summary>The bitrate for a capture of this size and rate, in megabits.</summary>
+    public static int BitrateMbit(int width, int height, int fps)
+    {
+        if (width <= 0 || height <= 0 || fps <= 0) return MinimumMbit;
+
+        double megabits = (double)width * height * fps * BitsPerPixelPerFrame / 1_000_000.0;
+
+        return (int)Math.Round(Math.Clamp(megabits, MinimumMbit, MaximumMbit));
+    }
+
+    /// <summary>The bitrate for a capture of one monitor, or of the whole desktop.</summary>
+    public static int BitrateMbit(DisplayInfo? display, int fps)
+    {
+        if (display != null) return BitrateMbit(display.EvenWidth, display.EvenHeight, fps);
+
+        (int width, int height) = Displays.VirtualDesktopSize();
+
+        return BitrateMbit(width, height, fps);
+    }
+
+    public static string EncoderArgs(string ffmpeg, DisplayInfo? display, int fps)
+    {
+        int mbit = BitrateMbit(display, fps);
+
+        return EncoderArgs(ffmpeg).Replace("{BITRATE}", mbit.ToString());
+    }
+
+    private static string EncoderArgs(string ffmpeg)
     {
         if (_encoderArgs != null) return _encoderArgs;
 
@@ -59,9 +112,9 @@ public static class CaptureBackend
         {
             _encoderName = candidate;
             // Bitrate rather than CRF: hardware encoders either ignore CRF or
-            // interpret it differently between vendors, and 8 Mbit is ample for
-            // a desktop capture at 1080p.
-            _encoderArgs = $"-c:v {candidate} -b:v 8M -pix_fmt yuv420p";
+            // interpret it differently between vendors. The figure is filled in
+            // per capture, because it depends on how many pixels at what rate.
+            _encoderArgs = $"-c:v {candidate} -b:v {{BITRATE}}M -pix_fmt yuv420p";
         }
         else
         {
@@ -106,6 +159,44 @@ public static class CaptureBackend
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Pacing for the output stream, applied to every capture.
+    /// </summary>
+    /// <remarks>
+    /// Screen capture is inherently variable: a frame arrives when the desktop
+    /// changes, and the grabber falls behind under load. Written straight out,
+    /// that produces a variable frame rate file — a real capture here asked for
+    /// 30 and recorded 28.12, with 16 of its 208 frames irregularly spaced.
+    ///
+    /// Players handle that badly, and the way they handle it badly is exactly
+    /// what people describe as the clip being laggy or stuttering while the
+    /// recording itself looked fine. Constant frame rate makes ffmpeg duplicate
+    /// or drop to hold the requested rate, so the file plays at the speed it
+    /// claims. The same capture with this set measured 0 irregular frames of
+    /// 239, at a flat 30.
+    /// </remarks>
+    public const string PacingArgs = "-fps_mode cfr";
+
+    /// <summary>
+    /// Drops a capture process below the game in the scheduler's priorities.
+    /// </summary>
+    /// <remarks>
+    /// Encoding is steady, heavy work that runs for as long as the game does,
+    /// and at normal priority it competes with the game on equal terms for
+    /// exactly the frames the game needs. Below normal, Windows hands the
+    /// contested time to the game and gives the encoder the rest.
+    ///
+    /// It does not cost frames in the capture: measured over eight seconds the
+    /// process still delivered every frame at the requested rate, with none of
+    /// them irregularly spaced. Best-effort — a refusal here is not worth
+    /// failing a recording over.
+    /// </remarks>
+    public static void YieldToTheGame(Process process)
+    {
+        try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }
+        catch { /* Already gone, or refused by policy. The recording is fine. */ }
     }
 
     /// <summary>

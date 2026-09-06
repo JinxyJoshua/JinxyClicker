@@ -94,7 +94,7 @@ public sealed class ScreenRecorder : IDisposable
         // chosen per machine — see CaptureBackend for what that saves.
         string arguments =
             $"-y {CaptureBackend.InputArgs(display, framesPerSecond)} " +
-            $"{CaptureBackend.EncoderArgs(ffmpeg)} " +
+            $"{CaptureBackend.EncoderArgs(ffmpeg, display, framesPerSecond)} {CaptureBackend.PacingArgs} " +
             $"-movflags +faststart \"{path}\"";
 
         var info = new ProcessStartInfo(ffmpeg, arguments)
@@ -108,6 +108,8 @@ public sealed class ScreenRecorder : IDisposable
 
         _process = Process.Start(info)
             ?? throw new InvalidOperationException("ffmpeg would not start.");
+
+        CaptureBackend.YieldToTheGame(_process);
 
         // ffmpeg writes continuously to stderr. Left undrained the pipe fills
         // and the process blocks partway through the recording.

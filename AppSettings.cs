@@ -132,7 +132,26 @@ public sealed class AppSettings
     /// <summary>Device name of the monitor to capture, or null for all of them.
     /// Stored by name rather than index so unplugging a screen cannot silently
     /// repoint the recording at a different one.</summary>
+    /// <summary>
+    /// The monitor to capture: a device name, <see cref="AllDisplays"/>, or null
+    /// for a setting nobody has chosen yet.
+    /// </summary>
+    /// <remarks>
+    /// Null used to mean "the whole desktop", which made the whole desktop the
+    /// default. On two monitors that captures both — a 3840x1080 frame with the
+    /// game in half of it, at double the pixels to encode. It is the reason
+    /// clips were expensive to record and hard to see anything in.
+    ///
+    /// So null now means unset and resolves to the primary monitor, and an
+    /// explicit choice of every display is stored as <see cref="AllDisplays"/>.
+    /// Files written before this carry null and are read as unset, which moves
+    /// existing users onto the primary monitor — the point of the fix, and one
+    /// button away from the old behaviour if they wanted it.
+    /// </remarks>
     public string? RecordDisplay { get; set; }
+
+    /// <summary>Stored in <see cref="RecordDisplay"/> for a deliberate "all displays".</summary>
+    public const string AllDisplays = "all";
 
     /// <summary>
     /// Null when nothing has been stored yet, so a first run uses the designed

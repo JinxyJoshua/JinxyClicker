@@ -63,7 +63,7 @@ public sealed class ReplayBuffer : IDisposable
         // the recorder's — this is the one that would sit on two cores all game.
         string arguments =
             $"-y {CaptureBackend.InputArgs(display, framesPerSecond)} " +
-            $"{CaptureBackend.EncoderArgs(ffmpeg)} -g {framesPerSecond} " +
+            $"{CaptureBackend.EncoderArgs(ffmpeg, display, framesPerSecond)} {CaptureBackend.PacingArgs} -g {framesPerSecond} " +
             $"-f segment -segment_time {SegmentSeconds} -segment_format mpegts " +
             $"-segment_wrap {CapacitySeconds / SegmentSeconds + 1} -reset_timestamps 1 \"{pattern}\"";
 
@@ -77,6 +77,10 @@ public sealed class ReplayBuffer : IDisposable
         };
 
         _process = Process.Start(info) ?? throw new InvalidOperationException("ffmpeg would not start.");
+
+        // This one runs for the whole session, so it is the one that would sit
+        // on the game's CPU all game.
+        CaptureBackend.YieldToTheGame(_process);
 
         // Undrained pipes fill and stall the process partway through.
         _process.ErrorDataReceived += (_, _) => { };
