@@ -144,6 +144,31 @@ public static class SwitcherStore
     /// <summary>Nothing. The list starts empty and is filled by migration or by hand.</summary>
     public static List<SwitcherProfile> Defaults() => new();
 
+    /// <summary>Whether anything has been saved here yet.</summary>
+    public static bool Exists() => File.Exists(FILE);
+
+    /// <summary>
+    /// The single switcher, as the first entry of the list that replaces it.
+    /// </summary>
+    /// <remarks>
+    /// Everyone upgrading has a switcher configured on the old card, and losing
+    /// it to a new feature would be the app taking something away in exchange
+    /// for the thing it added. Runs once, when no list has been saved yet.
+    ///
+    /// Its hotkey comes across too, so the key that started the switcher still
+    /// starts it — under a name now, but the same key.
+    /// </remarks>
+    public static SwitcherProfile FromSingle(AppSettings settings, HotkeyBinding hotkey) =>
+        new(
+            "Switcher",
+            settings.SwitcherSlotA,
+            settings.SwitcherSlotB,
+            settings.SwitcherIntervalMs,
+            settings.SwitcherIntervalBMs,
+            settings.SwitcherEquipMs,
+            hotkey,
+            Enabled: !settings.SwitcherDisabled);
+
     public static List<SwitcherProfile> Load()
     {
         try

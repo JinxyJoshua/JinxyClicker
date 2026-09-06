@@ -182,6 +182,53 @@ public class SwitcherProfileTests
         Assert.Equal("Switcher", SwitcherStore.UnusedName(new List<SwitcherProfile>()));
     }
 
+    // ---- carrying the old single switcher across ----
+
+    /// <summary>
+    /// Everyone upgrading has a switcher on the old card. Losing it to the
+    /// feature that replaced it would be the app taking something away in
+    /// exchange for what it added.
+    /// </summary>
+    [Fact]
+    public void TheOldSingleSwitcherBecomesTheFirstEntry()
+    {
+        var settings = new AppSettings
+        {
+            SwitcherSlotA = "3",
+            SwitcherSlotB = "1",
+            SwitcherIntervalMs = 21,
+            SwitcherIntervalBMs = 1300,
+            SwitcherEquipMs = 5
+        };
+
+        SwitcherProfile carried = SwitcherStore.FromSingle(settings, HotkeyBinding.Unbound);
+
+        Assert.Equal("3", carried.SlotA);
+        Assert.Equal("1", carried.SlotB);
+        Assert.Equal(21, carried.HoldFirstMs);
+        Assert.Equal(1300, carried.HoldSecondMs);
+        Assert.Equal(5, carried.EquipMs);
+        Assert.False(string.IsNullOrWhiteSpace(carried.Name));
+    }
+
+    /// <summary>The key that started it still starts it.</summary>
+    [Fact]
+    public void TheOldSwitcherKeepsItsHotkey()
+    {
+        HotkeyBinding key = HotkeyBinding.FromKey(System.Windows.Input.Key.G);
+
+        Assert.Equal(key, SwitcherStore.FromSingle(new AppSettings(), key).Hotkey);
+    }
+
+    /// <summary>And a switcher that was disabled comes across disabled.</summary>
+    [Fact]
+    public void TheOldSwitcherKeepsBeingSwitchedOff()
+    {
+        var settings = new AppSettings { SwitcherDisabled = true };
+
+        Assert.False(SwitcherStore.FromSingle(settings, HotkeyBinding.Unbound).Enabled);
+    }
+
     // ---- being switched off ----
 
     /// <summary>
