@@ -28,48 +28,99 @@ public class HotkeyBindingMouseTests
         Assert.True(binding.IsValid);
     }
 
+    // ---- what the clicker is sending decides what can be bound ----
+
     /// <summary>
-    /// All three, not just left.
+    /// Reported on 1.4.5: "when i try to put m2 it says 'side buttons only'".
+    /// In this game's vocabulary m2 is the second side button, and a mouse that
+    /// sends it as a right click had it refused — by a rule that only ever
+    /// needed to protect against the button the clicker is itself sending.
     /// </summary>
-    /// <remarks>
-    /// The clicker sends one of left, right and middle, and which one is a
-    /// setting on the clicker page. GetAsyncKeyState cannot tell a synthesised
-    /// press from a real one, so binding any of the three risks an action that
-    /// fires itself for as long as the clicker runs.
-    ///
-    /// Right and middle were briefly allowed, on the belief that the app only
-    /// ever sends left. It does not — ClickButtons has the flags for all three
-    /// and the BUTTON selector chooses between them. This is that regression.
-    /// </remarks>
     [Theory]
-    [InlineData(MouseButton.Left)]
-    [InlineData(MouseButton.Right)]
-    [InlineData(MouseButton.Middle)]
-    public void TheButtonsTheClickerCanSendAreRefused(MouseButton button)
+    [InlineData(MouseButton.Right, ClickButton.Left)]
+    [InlineData(MouseButton.Right, ClickButton.Middle)]
+    [InlineData(MouseButton.Middle, ClickButton.Left)]
+    [InlineData(MouseButton.Middle, ClickButton.Right)]
+    public void AButtonTheClickerIsNotSendingCanBeBound(MouseButton pressed, ClickButton sending)
     {
-        Assert.Null(HotkeyBinding.FromMouse(button));
+        Assert.NotNull(HotkeyBinding.FromMouse(pressed, sending));
     }
 
     /// <summary>
-    /// Every button the clicker can be set to send must be one that cannot be
-    /// bound. Written against the ClickButton enum rather than a list, so
-    /// teaching the clicker a fourth button fails here instead of shipping a
-    /// binding that fires itself.
+    /// The one real hazard, and the whole reason for a rule here.
+    /// GetAsyncKeyState cannot tell the clicker's own synthesised press from a
+    /// real one, so a hotkey on the button being sent re-triggers itself for as
+    /// long as the clicker runs.
+    /// </summary>
+    [Theory]
+    [InlineData(MouseButton.Right, ClickButton.Right)]
+    [InlineData(MouseButton.Middle, ClickButton.Middle)]
+    public void TheButtonTheClickerIsSendingCannotBeBound(MouseButton pressed, ClickButton sending)
+    {
+        Assert.Null(HotkeyBinding.FromMouse(pressed, sending));
+    }
+
+    /// <summary>
+    /// Left is refused whatever the clicker is sending, and not for the same
+    /// reason. It is how the window is operated — the rebind is armed with it —
+    /// so there is no press of it that could mean "bind this".
+    /// </summary>
+    [Theory]
+    [InlineData(ClickButton.Left)]
+    [InlineData(ClickButton.Right)]
+    [InlineData(ClickButton.Middle)]
+    public void LeftIsNeverBindable(ClickButton sending)
+    {
+        Assert.Null(HotkeyBinding.FromMouse(MouseButton.Left, sending));
+    }
+
+    /// <summary>The side buttons are never what the clicker sends, so they always bind.</summary>
+    [Theory]
+    [InlineData(MouseButton.XButton1, ClickButton.Left)]
+    [InlineData(MouseButton.XButton1, ClickButton.Right)]
+    [InlineData(MouseButton.XButton2, ClickButton.Middle)]
+    public void TheSideButtonsAlwaysBind(MouseButton pressed, ClickButton sending)
+    {
+        Assert.NotNull(HotkeyBinding.FromMouse(pressed, sending));
+    }
+
+    /// <summary>
+    /// Whatever the clicker is set to send must be unbindable, and this is
+    /// written against the ClickButton enum rather than a list so that teaching
+    /// the engine a fourth button fails here instead of shipping a hotkey that
+    /// fires itself.
     /// </summary>
     [Fact]
-    public void NoButtonTheClickerCanSendIsBindable()
+    public void WhicheverButtonTheClickerSendsIsUnbindable()
     {
-        foreach (ClickButton sendable in System.Enum.GetValues<ClickButton>())
+        foreach (ClickButton sending in System.Enum.GetValues<ClickButton>())
         {
-            MouseButton asMouse = sendable switch
+            MouseButton asMouse = sending switch
             {
                 ClickButton.Right => MouseButton.Right,
                 ClickButton.Middle => MouseButton.Middle,
                 _ => MouseButton.Left
             };
 
-            Assert.Null(HotkeyBinding.FromMouse(asMouse));
+            Assert.Null(HotkeyBinding.FromMouse(asMouse, sending));
         }
+    }
+
+    /// <summary>
+    /// The virtual key a binding carries has to be the same one the engine's own
+    /// presses show up as, or the comparison guarding against self-triggering
+    /// would be comparing two different things and never match.
+    /// </summary>
+    [Theory]
+    [InlineData(ClickButton.Right, MouseButton.Right)]
+    [InlineData(ClickButton.Middle, MouseButton.Middle)]
+    public void TheEnginesButtonAndTheBoundButtonAgreeOnTheirKey(ClickButton sending, MouseButton pressed)
+    {
+        // Bindable while the engine sends something else, so there is a binding
+        // to read the key from.
+        HotkeyBinding binding = HotkeyBinding.FromMouse(pressed, ClickButton.Left)!;
+
+        Assert.Equal(HotkeyBinding.VirtualKeyOf(sending), binding.VirtualKey);
     }
 
     [Fact]

@@ -1013,7 +1013,7 @@
                                             Click="ClearBinding_Click" DockPanel.Dock="Right"/>
                                     <Button x:Name="HotkeyButton" Content="F6" Click="Hotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                            ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1032,7 +1032,7 @@
                                     <Button x:Name="ComboHotkeyButton" Content="Not set"
                                             Click="ComboHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                            ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1051,7 +1051,7 @@
                                     <Button x:Name="ClickSwitchHotkeyButton" Content="Not set"
                                             Click="ClickSwitchHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                            ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1070,7 +1070,7 @@
                                     <Button x:Name="BuildHotkeyButton" Content="Not set"
                                             Click="BuildHotkey_Click"
                                             DockPanel.Dock="Right" VerticalAlignment="Center"
-                                            ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                            ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                             FontSize="17" FontWeight="Bold"
                                             Height="42" MinWidth="96"
                                             Padding="16,0" Margin="0"/>
@@ -1559,7 +1559,7 @@
                                                 Click="ClearNewMacroHotkey_Click"/>
                                         <Button x:Name="NewMacroHotkeyButton" Content="Not set"
                                                 Click="NewMacroHotkey_Click"
-                                                ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                                ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                                 Height="34" Padding="12,0"/>
                                     </DockPanel>
                                     <TextBlock Text="TOGGLE HOTKEY (OPTIONAL)" Foreground="{StaticResource TextMuted}"
@@ -1703,7 +1703,7 @@
                                 <Button x:Name="SwitcherHotkeyButton" Content="Not set"
                                         Click="SwitcherHotkey_Click"
                                         DockPanel.Dock="Right" VerticalAlignment="Center"
-                                        ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                        ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                         FontSize="17" FontWeight="Bold"
                                         Height="42" MinWidth="96" Padding="16,0" Margin="0"/>
                             </DockPanel>
@@ -2493,7 +2493,7 @@
                                         Click="Record_Click" Height="36" Width="164" Margin="0,0,10,0"/>
                                 <Button x:Name="RecordHotkeyButton" Content="Not set"
                                         Click="RecordHotkey_Click"
-                                        ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                        ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                         Height="36" Padding="16,0" MinWidth="64" Margin="0,0,10,0"/>
                                 <Button x:Name="ClearRecordKey" Tag="Record" Style="{StaticResource ClearBindingButton}"
                                         Click="ClearBinding_Click"/>
@@ -2539,7 +2539,7 @@
                                         Click="SaveReplay_Click" Height="36" Width="120" Margin="0,0,10,0"/>
                                 <Button x:Name="ReplayHotkeyButton" Content="F8"
                                         Click="ReplayHotkey_Click"
-                                        ToolTip="Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                                        ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                                         Height="36" Padding="16,0" MinWidth="64" Margin="0"/>
                                 <Button x:Name="ClearReplayKey" Tag="Replay" Style="{StaticResource ClearBindingButton}"
                                         Click="ClearBinding_Click"/>

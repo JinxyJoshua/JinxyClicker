@@ -890,11 +890,54 @@ public partial class MainWindow : Window
 
         _clickButton = ClickButtons.Parse(tag);
 
+        // The other half of the rule that decides what may be bound. Binding is
+        // checked against the button being sent at the time, so changing what is
+        // sent afterwards would otherwise walk straight into the case that check
+        // exists to prevent.
+        DropHotkeysOnTheClickedButton();
+
         // Published to the click loop rather than read by it, the same as every
         // other setting — the loop takes one snapshot per cycle.
         UpdateEngineSettings();
 
         _settingsDirty = true;
+    }
+
+    /// <summary>
+    /// Unbinds any hotkey sitting on the button the clicker now sends.
+    /// </summary>
+    /// <remarks>
+    /// The hotkey gives way rather than the choice being refused: the button
+    /// selector is what the user just asked for, and refusing it would be
+    /// answering a different question. The hotkey is the thing that has become
+    /// impossible — GetAsyncKeyState cannot tell the clicker's own press from a
+    /// real one, so it would fire itself for as long as the clicker ran.
+    ///
+    /// The affected button flashes so this is not a setting quietly lost.
+    /// </remarks>
+    private void DropHotkeysOnTheClickedButton()
+    {
+        int clash = HotkeyBinding.VirtualKeyOf(_clickButton);
+
+        RebindTarget? flash = null;
+
+        foreach ((RebindTarget target, HotkeyBinding binding) in AllBindings())
+        {
+            if (binding.VirtualKey != clash) continue;
+
+            ApplyBinding(target, null, HotkeyBinding.Unbound);
+            flash = target;
+        }
+
+        // ToList because assigning a macro's hotkey replaces it in the list —
+        // KeyMacro is immutable, so this would be mutating what it walks.
+        foreach (KeyMacro macro in _macroList.ToList())
+        {
+            if (macro.Hotkey.VirtualKey == clash)
+                ApplyBinding(RebindTarget.Macro, macro, HotkeyBinding.Unbound);
+        }
+
+        if (flash != null) ShowRebindNotice(flash.Value, "Unbound");
     }
 
     /// <summary>
@@ -1269,7 +1312,7 @@ public partial class MainWindow : Window
     {
         if (_rebinding == RebindTarget.None) return;
 
-        HotkeyBinding? binding = HotkeyBinding.FromMouse(e.ChangedButton);
+        HotkeyBinding? binding = HotkeyBinding.FromMouse(e.ChangedButton, _clickButton);
 
         if (binding != null)
         {
@@ -1281,19 +1324,14 @@ public partial class MainWindow : Window
         // Left is how the window is operated: clicking the armed button cancels
         // the rebind, clicking another one moves it. A left click here is not an
         // attempt to bind anything, so it passes through in silence.
-        //
-        // An earlier version swallowed it and put "Left can't be bound" on the
-        // button, which broke both of those: a rebind could no longer be moved
-        // to another action, and the notice landed on the button being left
-        // behind.
         if (e.ChangedButton == MouseButton.Left) return;
 
-        // Right and middle are attempts to bind, and both are refused for the
-        // same reason left is - the clicker sends one of the three, and which
-        // one is a setting. Swallowed, unlike left, because nothing in this
-        // window is operated with them and a context menu here would be noise.
+        // Which leaves one case: the button the clicker is set to send. Named
+        // rather than described, because "Side buttons only" was read as "your
+        // side button is not a side button" by someone whose mouse sends its
+        // side button as a right click.
         e.Handled = true;
-        ShowRebindNotice(_rebinding, "Side buttons only");
+        ShowRebindNotice(_rebinding, $"Clicker sends {ClickButtons.Label(_clickButton)}");
     }
 
     /// <summary>
@@ -4735,7 +4773,7 @@ public partial class MainWindow : Window
             // is the more urgent thing to say about this button — but a macro
             // that is live still needs to say how to take its key away.
             ToolTip = live
-                ? "Click, then press a key or a mouse side button. Left, right and wheel cannot be bound - the clicker sends one of them. Delete unbinds it, Escape leaves it alone. If a side button does nothing here, your mouse software has remapped it - set it back to Mouse 4 / Mouse 5 there."
+                ? "Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
                 : "This macro will not fire"
         };
 

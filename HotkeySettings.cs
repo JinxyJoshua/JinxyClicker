@@ -12,6 +12,9 @@ namespace JinxyClicker;
 /// </summary>
 public sealed record HotkeyBinding(int VirtualKey, string Name)
 {
+    public const int VkLButton  = 0x01;
+    public const int VkRButton  = 0x02;
+    public const int VkMButton  = 0x04;
     public const int VkXButton1 = 0x05;
     public const int VkXButton2 = 0x06;
 
@@ -21,26 +24,52 @@ public sealed record HotkeyBinding(int VirtualKey, string Name)
     /// <summary>
     /// A mouse button as a binding, or null for one that must not be bound.
     /// </summary>
+    /// <param name="clickerSends">
+    /// The button the click engine is currently set to press. It is the only
+    /// thing that makes right or middle unsafe, so it has to be asked about
+    /// rather than assumed.
+    /// </param>
     /// <remarks>
-    /// Only the side pair. Left, right and middle are all refused, and the
-    /// reason is the same for all three: the clicker sends one of them. Which
-    /// one is a setting on the clicker page, and GetAsyncKeyState cannot tell a
-    /// synthesised press from a real one, so any of the three could end up
-    /// firing the action it was bound to for as long as the clicker ran.
+    /// There is exactly one hazard here: GetAsyncKeyState cannot tell the
+    /// clicker's own synthesised press from a real one, so a hotkey bound to
+    /// the button the clicker is sending re-triggers itself for as long as the
+    /// clicker runs.
     ///
-    /// Right and middle were briefly allowed here on the reasoning that the app
-    /// only ever sends left. That was read off the MOUSEEVENTF constants in
-    /// MainWindow, which are the left pair — the right and middle flags live in
-    /// ClickButtons, and the BUTTON selector chooses between all three. The
-    /// numbering below still follows the usual convention, so the names line up
-    /// with what people call them: 1 left, 2 right, 3 middle, 4 and 5 the side
-    /// pair.
+    /// That is a reason to refuse ONE button, not three. Refusing all of them
+    /// was a correction that overshot: the engine sends left, right or middle,
+    /// but only ever one at a time, and it is left unless somebody changed it.
+    /// The cost of the wider rule was reported straight back — "when i try to
+    /// put m2 it says 'side buttons only'" — from someone whose side button
+    /// arrives as a right click, which a great many gaming mice do, and who was
+    /// being told to use the side button they were already pressing.
+    ///
+    /// Left is still refused whatever the engine is sending, for a different
+    /// reason: it is how this window is operated. The rebind is armed with a
+    /// left click, so no left press can mean "bind this".
+    ///
+    /// Numbering follows what people call them: 1 left, 2 right, 3 middle,
+    /// 4 and 5 the side pair.
     /// </remarks>
-    public static HotkeyBinding? FromMouse(MouseButton button) => button switch
+    public static HotkeyBinding? FromMouse(MouseButton button, ClickButton clickerSends = ClickButton.Left)
     {
-        MouseButton.XButton1 => new HotkeyBinding(VkXButton1, "Mouse 4"),
-        MouseButton.XButton2 => new HotkeyBinding(VkXButton2, "Mouse 5"),
-        _ => null
+        HotkeyBinding? binding = button switch
+        {
+            MouseButton.Right => new HotkeyBinding(VkRButton, "Mouse 2"),
+            MouseButton.Middle => new HotkeyBinding(VkMButton, "Mouse 3"),
+            MouseButton.XButton1 => new HotkeyBinding(VkXButton1, "Mouse 4"),
+            MouseButton.XButton2 => new HotkeyBinding(VkXButton2, "Mouse 5"),
+            _ => null
+        };
+
+        return binding != null && binding.VirtualKey == VirtualKeyOf(clickerSends) ? null : binding;
+    }
+
+    /// <summary>The virtual key the click engine's own presses show up as.</summary>
+    public static int VirtualKeyOf(ClickButton button) => button switch
+    {
+        ClickButton.Right => VkRButton,
+        ClickButton.Middle => VkMButton,
+        _ => VkLButton
     };
 
     /// <summary>
