@@ -92,6 +92,39 @@ public sealed record HotkeyBinding(int VirtualKey, string Name)
         _ => null
     };
 
+    /// <summary>
+    /// The name to show for a stored virtual key.
+    /// </summary>
+    /// <remarks>
+    /// Bindings carry their name as well as their key, so a file written before
+    /// the names were made readable keeps the old one — a macro bound long ago
+    /// still read "Oem3" on its card while a fresh binding of the same key read
+    /// "`". Deriving the name from the key on load makes the two agree without
+    /// a migration step or a lost binding.
+    /// </remarks>
+    public static string Describe(int virtualKey)
+    {
+        HotkeyBinding? mouse = FromSideButtonKey(virtualKey);
+        if (mouse != null) return mouse.Name;
+
+        if (virtualKey == VkRButton) return "Mouse 2";
+        if (virtualKey == VkMButton) return "Mouse 3";
+
+        try
+        {
+            Key key = KeyInterop.KeyFromVirtualKey(virtualKey);
+
+            if (key != Key.None) return KeyNames.For(key);
+        }
+        catch
+        {
+            // A stored key Windows no longer maps. The number is a worse name
+            // than a legend and a better one than nothing.
+        }
+
+        return virtualKey.ToString();
+    }
+
     /// <summary>No key. Polls as never-pressed, and reads as "Not set" on its button.</summary>
     public static readonly HotkeyBinding Unbound = new(0, "Not set");
 
@@ -208,11 +241,9 @@ public class HotkeySettings
             && vkElement.TryGetInt32(out int vk)
             && vk != 0)
         {
-            string name = data.TryGetProperty(nameProperty, out JsonElement nameElement)
-                ? nameElement.GetString() ?? vk.ToString()
-                : vk.ToString();
-
-            return new HotkeyBinding(vk, name);
+            // The stored name is deliberately ignored. It is only a label, and
+            // an old file's label can be the internal one this no longer shows.
+            return new HotkeyBinding(vk, HotkeyBinding.Describe(vk));
         }
 
         if (data.TryGetProperty(legacyProperty, out JsonElement legacy)

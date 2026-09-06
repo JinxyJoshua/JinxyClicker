@@ -89,6 +89,29 @@ public class KeyNamesTests
     }
 
     /// <summary>
+    /// A binding restored from a file keeps its key but not its stored label,
+    /// so a macro bound before the names were readable stops reading "Oem3".
+    /// </summary>
+    [Theory]
+    [InlineData(0xC0, "`")]
+    [InlineData(0x5A, "Z")]
+    [InlineData(0x75, "F6")]
+    [InlineData(0x05, "Mouse 4")]
+    [InlineData(0x06, "Mouse 5")]
+    [InlineData(0x02, "Mouse 2")]
+    [InlineData(0x04, "Mouse 3")]
+    public void AStoredKeyIsNamedFromTheKey(int virtualKey, string expected)
+    {
+        Assert.Equal(expected, HotkeyBinding.Describe(virtualKey));
+    }
+
+    [Fact]
+    public void AKeyWindowsCannotMapStillGetsSomething()
+    {
+        Assert.False(string.IsNullOrWhiteSpace(HotkeyBinding.Describe(0xFE)));
+    }
+
+    /// <summary>
     /// A binding made now has to match one restored from a settings file
     /// written before, or a rebind would look like it had not taken.
     /// </summary>

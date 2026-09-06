@@ -698,7 +698,11 @@ public static class MacroStore
                 .Where(m => !IsLegacySwitcher(m.Name))
                 .Select(m => new KeyMacro(
                     m.Name, m.Keys, m.KeysText, m.IntervalMs,
-                    hotkey: m.HotkeyVk > 0 ? new HotkeyBinding(m.HotkeyVk, m.HotkeyName) : HotkeyBinding.Unbound,
+                    // Named from the key rather than the file - a macro bound before
+                    // the names were made readable still carried "Oem3".
+                    hotkey: m.HotkeyVk > 0
+                        ? new HotkeyBinding(m.HotkeyVk, HotkeyBinding.Describe(m.HotkeyVk))
+                        : HotkeyBinding.Unbound,
                     enabled: !m.Disabled))
                 .ToList();
         }

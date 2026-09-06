@@ -1475,13 +1475,19 @@
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="HOTKEYS" Style="{StaticResource CardLabel}"/>
+                                <TextBlock Text="MACROS" Style="{StaticResource CardLabel}"/>
                                 <TextBlock x:Name="MacrosHotkeyKillNote"
-                                           Text="Every bound key is live. Turn them off while you edit."
+                                           Text="Switch every macro off at once, without losing what they are set to."
                                            Style="{StaticResource CardHint}"/>
                             </StackPanel>
-                            <Button x:Name="MacrosHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
+                            <Button x:Name="MacrosHotkeysOffButton" DockPanel.Dock="Right"
+                                    Content="TURN HOTKEYS ON" Visibility="Collapsed"
                                     Click="HotkeyKill_Click" Height="40" MinWidth="170"
+                                    Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"
+                                    Margin="0,0,10,0"
+                                    ToolTip="Every hotkey in the app is switched off, from the Settings page. This turns them back on."/>
+                            <Button x:Name="MacrosHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
+                                    Click="DisableAllMacros_Click" Height="40" MinWidth="170"
                                     Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
                     </Border>
@@ -1588,13 +1594,19 @@
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="HOTKEYS" Style="{StaticResource CardLabel}"/>
+                                <TextBlock Text="SWITCHERS" Style="{StaticResource CardLabel}"/>
                                 <TextBlock x:Name="SwitcherHotkeyKillNote"
-                                           Text="Every bound key is live. Turn them off while you edit."
+                                           Text="Switch every auto switcher off at once, without losing what it is set to."
                                            Style="{StaticResource CardHint}"/>
                             </StackPanel>
-                            <Button x:Name="SwitcherHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
+                            <Button x:Name="SwitcherHotkeysOffButton" DockPanel.Dock="Right"
+                                    Content="TURN HOTKEYS ON" Visibility="Collapsed"
                                     Click="HotkeyKill_Click" Height="40" MinWidth="170"
+                                    Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"
+                                    Margin="0,0,10,0"
+                                    ToolTip="Every hotkey in the app is switched off, from the Settings page. This turns them back on."/>
+                            <Button x:Name="SwitcherHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
+                                    Click="DisableAllSwitchers_Click" Height="40" MinWidth="170"
                                     Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
                     </Border>

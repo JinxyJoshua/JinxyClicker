@@ -750,6 +750,8 @@ public partial class MainWindow : Window
             _macros.Stop(SwitcherName);
         }
 
+        RefreshDisableAllSwitchers();
+
         _settingsDirty = true;
         RefreshHotkeyKillButtons();
     }
@@ -757,6 +759,115 @@ public partial class MainWindow : Window
     private void HotkeyKill_Click(object sender, RoutedEventArgs e)
     {
         HotkeysEnabledToggle.IsChecked = HotkeysEnabledToggle.IsChecked != true;
+    }
+
+    private void RefreshDisableAllSwitchers()
+    {
+        if (SwitcherHotkeyKill == null || SwitcherHotkeyKillNote == null) return;
+
+        bool on = !_switcherDisabled;
+
+        SwitcherHotkeyKill.Content = on ? "DISABLE ALL" : "ENABLE ALL";
+
+        SwitcherHotkeyKillNote.Text = on
+            ? "Switch every auto switcher off at once, without losing what it is set to."
+            : "Every auto switcher is switched off. Their keys are free for anything else to use.";
+
+        if (on) SwitcherHotkeyKill.ClearValue(ForegroundProperty);
+        else SwitcherHotkeyKill.SetResourceReference(ForegroundProperty, "Accent");
+    }
+
+    /// <summary>
+    /// Switches every auto switcher off, or back on again.
+    /// </summary>
+    /// <remarks>
+    /// One switcher today, so this and the card's own Disable do the same
+    /// thing. It is the page-level control the macros page has, and it is the
+    /// one that keeps meaning what it says once switchers become a list.
+    /// </remarks>
+    private void DisableAllSwitchers_Click(object sender, RoutedEventArgs e) =>
+        SwitcherDisable_Click(sender, e);
+
+    /// <summary>Whether any macro is currently switched on.</summary>
+    private bool AnyMacroEnabled() => _macroList.Any(m => m.Enabled);
+
+    private void RefreshDisableAllMacros()
+    {
+        if (MacrosHotkeyKill == null || MacrosHotkeyKillNote == null) return;
+
+        bool any = AnyMacroEnabled();
+
+        MacrosHotkeyKill.Content = any ? "DISABLE ALL" : "ENABLE ALL";
+        MacrosHotkeyKill.IsEnabled = _macroList.Count > 0;
+
+        MacrosHotkeyKillNote.Text = _macroList.Count == 0
+            ? "No macros yet. Add one below."
+            : any
+                ? "Switch every macro off at once, without losing what they are set to."
+                : "Every macro is switched off. Their keys are free for anything else to use.";
+
+        if (any) MacrosHotkeyKill.ClearValue(ForegroundProperty);
+        else MacrosHotkeyKill.SetResourceReference(ForegroundProperty, "Accent");
+    }
+
+    /// <summary>
+    /// Switches every macro off, or back on again.
+    /// </summary>
+    /// <remarks>
+    /// Off rather than deleted, and off rather than unbound: what each macro is
+    /// set to survives, which is the whole difference between this and clearing
+    /// the list.
+    ///
+    /// Switching them all back on runs the same rule a single macro does. A key
+    /// released while switched off can have been taken in the meantime, and the
+    /// one waking gives it up rather than sharing it — reported once for all of
+    /// them rather than a dialog per macro.
+    /// </remarks>
+    private void DisableAllMacros_Click(object sender, RoutedEventArgs e)
+    {
+        if (_macroList.Count == 0) return;
+
+        bool turningOff = AnyMacroEnabled();
+        var lost = new List<string>();
+
+        for (int i = 0; i < _macroList.Count; i++)
+        {
+            KeyMacro macro = _macroList[i];
+
+            if (macro.Enabled == !turningOff) continue;
+
+            HotkeyBinding hotkey = macro.Hotkey;
+
+            if (!turningOff && hotkey.IsValid)
+            {
+                HotkeyClaim? taken = HotkeyClaims.WouldCollideOnWaking(
+                    HotkeyClaims.Except(Claims(), macro.Name), hotkey.VirtualKey);
+
+                if (taken != null)
+                {
+                    lost.Add($"{macro.Name} lost {hotkey.Name} to {taken.Value.Name}");
+                    hotkey = HotkeyBinding.Unbound;
+                }
+            }
+
+            _macroList[i] = new KeyMacro(
+                macro.Name, macro.Keys, macro.KeysText, macro.IntervalMs,
+                macro.HoldsMs, macro.ClicksWanted, macro.EquipMs,
+                hotkey, enabled: !turningOff);
+        }
+
+        if (turningOff) _macros.StopAll();
+
+        MacroStore.Save(_macroList);
+        BuildMacroCards();
+
+        if (lost.Count > 0)
+        {
+            AppDialog.Show(this, "Hotkeys taken",
+                "These were claimed while their macros were switched off:\n\n"
+                + string.Join("\n", lost)
+                + "\n\nGive them new keys, or take the old ones back.");
+        }
     }
 
     /// <summary>
@@ -778,16 +889,26 @@ public partial class MainWindow : Window
             ? "Every bound key is live. Turn them off while you edit."
             : "All hotkeys are off. Nothing you press will trigger anything.";
 
-        foreach (Button button in new[] { MacrosHotkeyKill, SwitcherHotkeyKill })
-        {
-            button.Content = label;
+        // Neither page carries the hotkey master switch any more. "Disable all"
+        // on a page of macros read as "disable every hotkey in the app", which
+        // is a far bigger thing than the page it sat on. The master switch is
+        // still in Settings, where its scope matches where it is.
+        _ = label;
+        _ = note;
 
-            if (on) button.ClearValue(ForegroundProperty);
-            else button.SetResourceReference(ForegroundProperty, "Accent");
-        }
+        // Turning every hotkey off is an app-wide act and lives in Settings.
+        // But the cards stamp themselves HOTKEYS OFF when it happens, and a
+        // warning on a page with nothing on it that can answer the warning is
+        // a dead end - which is exactly what taking the old button away made.
+        // So the way back appears here, and only while there is something to
+        // go back from.
+        Visibility offer = on ? Visibility.Collapsed : Visibility.Visible;
 
-        MacrosHotkeyKillNote.Text = note;
-        SwitcherHotkeyKillNote.Text = note;
+        if (MacrosHotkeysOffButton != null) MacrosHotkeysOffButton.Visibility = offer;
+        if (SwitcherHotkeysOffButton != null) SwitcherHotkeysOffButton.Visibility = offer;
+
+        RefreshDisableAllMacros();
+        RefreshDisableAllSwitchers();
 
         // Everything running is stopped on the way out, before the switches
         // are locked. Locking them while something still ran would leave it
@@ -4756,6 +4877,11 @@ public partial class MainWindow : Window
         foreach (KeyMacro macro in _macroList) MacroList.Items.Add(MacroCard(macro));
 
         RefreshMacroRunning();
+
+        // The DISABLE ALL button reads the list, so it has to be refreshed
+        // wherever the list is rebuilt - adding, deleting, or switching one
+        // macro all change whether "all" means off or on.
+        RefreshDisableAllMacros();
     }
 
     /// <summary>
