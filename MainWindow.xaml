@@ -2841,12 +2841,14 @@
                                             HorizontalAlignment="Left">
                                     <TextBlock Text="LIVE READOUT OVER THE GAME" Foreground="{StaticResource TextSoft}"
                                                FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Shows the clicks per second actually being sent, and how even they are, in the corner of the screen while the clicker runs. It reports what this app sends — it does not read the game, so there is no hit count."
+                                    <TextBlock Text="Off unless you turn it on. Shows the clicks per second actually being sent, and how even they are, in the corner of the screen while the clicker runs. It reports what this app sends — it does not read the game, so there is no hit count."
                                                Foreground="{StaticResource TextMuted}" FontSize="11"
                                                TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 </StackPanel>
+                                <!-- Unchecked here as well as in AppSettings: the
+                                     markup value is what a fresh run starts from. -->
                                 <CheckBox x:Name="OverlayCheck" DockPanel.Dock="Right"
-                                          VerticalAlignment="Center" IsChecked="True"
+                                          VerticalAlignment="Center"
                                           Checked="Overlay_Changed"
                                           Unchecked="Overlay_Changed"/>
                             </DockPanel>

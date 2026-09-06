@@ -53,6 +53,7 @@
     <Compile Include="../ClickPreset.cs" />
     <Compile Include="../ClickPreset.Tests.cs" />
     <Compile Include="../AppSettings.cs" />
+    <Compile Include="../AppSettings.Tests.cs" />
     <Compile Include="../SettingsPath.cs" />
     <Compile Include="../Wallpaper.cs" />
     <Compile Include="../WallpaperGallery.cs" />

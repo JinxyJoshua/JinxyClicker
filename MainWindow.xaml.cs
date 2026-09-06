@@ -1617,7 +1617,7 @@ public partial class MainWindow : Window
         ApplyValueVisibility();
 
         StreamerModeCheck.IsChecked = s.StreamerMode;
-        OverlayCheck.IsChecked = s.ShowOverlay;
+        OverlayCheck.IsChecked = s.OverlayOn;
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -1753,7 +1753,7 @@ public partial class MainWindow : Window
             ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
             StreamerMode = StreamerModeCheck.IsChecked == true,
-            ShowOverlay = OverlayCheck.IsChecked == true,
+            OverlayOn = OverlayCheck.IsChecked == true,
             ReplayEnabled = ReplayEnabled.IsChecked == true,
             ReplaySeconds = ReplaySeconds,
             AccentColor = _accentHex,

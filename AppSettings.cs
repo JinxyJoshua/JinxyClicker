@@ -63,12 +63,20 @@ public sealed class AppSettings
     /// Whether the live readout is shown over the game while clicking.
     /// </summary>
     /// <remarks>
-    /// On by default. It only appears while the clicker is actually running,
-    /// so it costs nothing when it is not wanted, and the figures it carries
-    /// are invisible otherwise — the app is behind the game at exactly the
-    /// moment its own output matters.
+    /// Off until it is asked for. It shipped on, which meant it appeared over
+    /// everyone's game the first time they clicked without anyone having chosen
+    /// it — and something drawn on top of a game people are trying to play has
+    /// to be opted into rather than opted out of.
+    ///
+    /// Deliberately a different name from the "ShowOverlay" this replaces.
+    /// Settings are stored as the whole object by property name, so every file
+    /// written before this carries ShowOverlay: true — not because anybody
+    /// turned it on, but because that was the default. Reading the old name
+    /// would leave it on for exactly the people it is being turned off for. The
+    /// old key is ignored, so everyone starts from off and whoever wants it
+    /// turns it on once.
     /// </remarks>
-    public bool ShowOverlay { get; set; } = true;
+    public bool OverlayOn { get; set; }
 
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
