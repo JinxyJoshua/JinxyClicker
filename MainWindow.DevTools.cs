@@ -74,7 +74,7 @@ public partial class MainWindow
     /// To have dev builds update themselves, make a private repository holding
     /// only the dev installer and name it here.
     /// </remarks>
-    private const string DevUpdateOwner = "oneforetheages";
+    private const string DevUpdateOwner = "JinxyJoshua";
     private const string DevUpdateRepo = "JinxyClicker-Dev";
 
     /// <summary>
