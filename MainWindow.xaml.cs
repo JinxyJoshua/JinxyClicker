@@ -2485,6 +2485,12 @@ public partial class MainWindow : Window
         // History counts only these runs, so being armed or open costs nothing.
         long activeSince = 0;
 
+        // When the last anti-ghost press went out. Starts far enough back that
+        // the first click of a run is a long one: somebody who taps the hotkey
+        // to fire a bow gets a shot, rather than a second of nothing first.
+        long lastLongPress = Stopwatch.GetTimestamp()
+            - (long)(AntiGhost.EveryMs * Stopwatch.Frequency / 1000.0);
+
         try
         {
             long freq = Stopwatch.Frequency;
@@ -2522,6 +2528,27 @@ public partial class MainWindow : Window
                 ClickTiming timing = s.Timing;
                 double period = timing.PeriodMs;
                 double downMs = timing.DownMs;
+
+                // One press a second is held long enough to draw a weapon that
+                // needs drawing. Above ~45 CPS every press is otherwise a flat
+                // 15ms, which is under what a crossbow needs, and a shot fired
+                // on one simply never happens.
+                //
+                // Not a floor on every press: at the rate measured to land the
+                // most hits the whole cycle is 30ms, so a 100ms press on all of
+                // them would cap a sword at 8.7/s. Once a second costs about a
+                // click in twelve and a bow cannot use more than that anyway.
+                //
+                // Build mode is left alone. Its 1% tap exists to place blocks,
+                // and stretching one press in sixty into a 100ms hold would put
+                // a block somewhere nobody asked for.
+                if (!s.BuildMode
+                    && AntiGhost.IsDue((Stopwatch.GetTimestamp() - lastLongPress) * 1000.0 / freq))
+                {
+                    downMs = AntiGhost.PressFor(downMs, due: true);
+                    period = AntiGhost.PeriodFor(period, downMs);
+                    lastLongPress = Stopwatch.GetTimestamp();
+                }
 
                 // Windows stalls this loop for hundreds of milliseconds at a
                 // time — measured at up to 1.4s with a low-level hook, and a
