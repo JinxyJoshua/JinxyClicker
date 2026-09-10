@@ -77,37 +77,57 @@ public partial class MainWindow
     private const string DevUpdateOwner = "JinxyJoshua";
     private const string DevUpdateRepo = "JinxyClicker-Dev";
 
+    /// <summary>The file the update token is read from, if it exists.</summary>
+    public const string DevUpdateTokenFile = "dev-update.token";
+
     /// <summary>
-    /// The token, read from a file rather than compiled in.
+    /// The token, read from the settings folder rather than compiled in or
+    /// shipped.
     /// </summary>
     /// <remarks>
-    /// This repository is public. A token written into this file would be
-    /// published the moment it was committed — GitHub's own scanning would very
-    /// likely revoke it within minutes, and the mistake is easy to make and
-    /// hard to undo. So it lives in dev-update.token beside the executable,
-    /// which is gitignored and packaged only into the DEV installer.
+    /// The source repository is public, so a token written into this file would
+    /// be published the moment it was committed — GitHub's own scanning would
+    /// very likely revoke it within minutes.
     ///
-    /// It is still readable by anyone holding a dev build, and that is fine:
-    /// the token is exactly as private as the people you hand dev builds to. It
-    /// keeps the dev installer from being found by anyone else, and it must be
-    /// fine-grained, read-only, and scoped to that one repository so the worst
-    /// case is the dev installer leaking — which is what happens if a dev build
-    /// leaks anyway.
+    /// It used to live beside the executable and be packaged into the DEV
+    /// installer. That worked, but it made the token a shipped credential: it
+    /// travelled inside every dev build handed to anyone, and was therefore
+    /// exactly as private as the least careful person holding one.
+    ///
+    /// It now comes from the settings folder instead, which nothing packages.
+    /// Placed there once by hand it survives every reinstall and every update,
+    /// and no installer ever carries it — so handing somebody a dev build gives
+    /// them the app and no credential at all. The old location is still read,
+    /// so an existing install keeps working until its token is moved.
+    ///
+    /// Whoever issues it should make it fine-grained, read-only, and scoped to
+    /// the dev repository alone, so the worst case is that the dev installer
+    /// becomes reachable — which is what happens if a dev build leaks anyway.
     /// </remarks>
     private static string ReadDevUpdateToken()
     {
-        try
+        // Settings folder first: the location that is never packaged wins over
+        // one that might still hold a stale token from an older installer.
+        foreach (string path in new[]
         {
-            string path = System.IO.Path.Combine(AppContext.BaseDirectory, "dev-update.token");
+            SettingsPath.For(DevUpdateTokenFile),
+            System.IO.Path.Combine(AppContext.BaseDirectory, DevUpdateTokenFile)
+        })
+        {
+            try
+            {
+                if (!System.IO.File.Exists(path)) continue;
 
-            return System.IO.File.Exists(path)
-                ? System.IO.File.ReadAllText(path).Trim()
-                : "";
+                string token = System.IO.File.ReadAllText(path).Trim();
+                if (token.Length > 0) return token;
+            }
+            catch
+            {
+                // Unreadable is the same as absent: no auto-update, no crash.
+            }
         }
-        catch
-        {
-            return "";
-        }
+
+        return "";
     }
 
     partial void ShowDevToolsIfBuilt()
@@ -198,8 +218,9 @@ public partial class MainWindow
                 : UpdateSource.Current.IsPrivate
                     ? $"   ·   Updates from {UpdateSource.Current.Owner}/{UpdateSource.Current.Repo}."
                     : $"   ·   Update source is {UpdateSource.Current.Owner}/{UpdateSource.Current.Repo}, "
-                      + "but dev-update.token is not beside the app — that repository is private, so every "
-                      + "check will fail silently. See its README.";
+                      + $"but no token was found at {SettingsPath.For(DevUpdateTokenFile)} — that "
+                      + "repository is private, so every check would fail silently. Put a fine-grained "
+                      + "read-only token in that file to turn auto-update on.";
 
         var line = Note($"Version {version}   ·   DEV build — not for public release."
                         + (UsageReporter.Configured

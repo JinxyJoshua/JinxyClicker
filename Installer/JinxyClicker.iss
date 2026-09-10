@@ -71,12 +71,10 @@ Source: "{#FfmpegDir}\ffmpeg.exe"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion
 Source: "{#FfmpegDir}\LICENSE"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 
-; The dev build's update token, packaged only into the DEV installer and never
-; committed. skipifsourcedoesntexist so a DEV installer still builds before one
-; exists - the build simply will not auto-update, which is the safe default.
-#ifdef DEV
-Source: "..\dev-update.token"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-#endif
+; The dev update token is deliberately NOT packaged. It used to be, which made
+; it a credential that travelled inside every dev build handed to anyone. It now
+; lives in the settings folder, placed there once by hand, so no installer ever
+; carries it and a leaked dev build leaks only the app.
 
 [Icons]
 ; WorkingDir is load-bearing, not decoration. The settings files resolve against
