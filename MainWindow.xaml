@@ -1331,6 +1331,21 @@
                                 <CheckBox x:Name="HitFix" HorizontalAlignment="Right" IsChecked="True"
                                           Checked="EngineSetting_Changed" Unchecked="EngineSetting_Changed"/>
                             </Grid>
+
+                            <!-- The four corners always stop the clicker and have no
+                                 toggle. Only this wider zone is optional, because it
+                                 is the one that fires by accident. -->
+                            <Grid Margin="0,7">
+                                <StackPanel>
+                                    <TextBlock Text="Stop At Taskbar" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Also stops when the pointer reaches the taskbar or the top of a screen. Throwing the mouse into a corner always stops it, with or without this"
+                                               Foreground="{StaticResource TextMuted}" FontSize="11"
+                                               TextWrapping="Wrap" Margin="0,0,40,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="StopAtTaskbar" HorizontalAlignment="Right"
+                                          VerticalAlignment="Top" Margin="0,1,0,0"
+                                          Checked="EngineSetting_Changed" Unchecked="EngineSetting_Changed"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
 

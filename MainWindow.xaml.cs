@@ -394,7 +394,7 @@ public partial class MainWindow : Window
             //
             // Edge-triggered like the hotkeys are: parking in a corner would
             // otherwise post a stop every 8 ms for as long as the mouse sat there.
-            bool inCorner = PointerInCorner();
+            bool inCorner = PointerInStopZone(s.StopAtTaskbar);
             if (inCorner && !wasInCorner && _running)
                 Dispatcher.InvokeAsync(StopClicking, DispatcherPriority.Send);
 
@@ -605,36 +605,72 @@ public partial class MainWindow : Window
         BuildMacroCards();
     }
 
-    /// <summary>How close to a corner counts as being in it.</summary>
-    private const int CornerStopMargin = 2;
-
     /// <summary>
-    /// True while the pointer is sitting in a corner of the desktop.
+    /// True while the pointer is somewhere that stops a running clicker.
     /// </summary>
+    /// <param name="includeTaskbar">
+    /// Whether the taskbar and the top of the screen count as well as the four
+    /// corners. Off unless asked for: those are crossed in ordinary play.
+    /// </param>
     /// <remarks>
-    /// Corners rather than edges. With two monitors side by side an edge gets
-    /// crossed constantly in normal play, and the top edge is where menus and
-    /// title bars live — a failsafe that fires by accident mid-game is worse
-    /// than no failsafe at all. A corner takes deliberately throwing the mouse
-    /// into it, which is exactly the gesture wanted.
+    /// Only the reading of the mouse and the screens lives here. The arithmetic
+    /// is in <see cref="StopZones"/>, which is testable without a real mouse —
+    /// this was reported broken and the geometry could not be checked at all.
     ///
     /// Measured with GetSystemMetrics rather than SystemParameters because this
     /// runs on the poll thread, and the WPF statics are not its to touch.
     /// </remarks>
-    private static bool PointerInCorner()
+    private static bool PointerInStopZone(bool includeTaskbar)
     {
         if (!GetCursorPos(out POINT p)) return false;
 
         int left = GetSystemMetrics(SM_XVIRTUALSCREEN);
         int top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-        int right = left + GetSystemMetrics(SM_CXVIRTUALSCREEN) - 1;
-        int bottom = top + GetSystemMetrics(SM_CYVIRTUALSCREEN) - 1;
 
-        bool nearLeftOrRight = p.X - left <= CornerStopMargin || right - p.X <= CornerStopMargin;
-        bool nearTopOrBottom = p.Y - top <= CornerStopMargin || bottom - p.Y <= CornerStopMargin;
+        var desktop = new ScreenRect(
+            left,
+            top,
+            left + GetSystemMetrics(SM_CXVIRTUALSCREEN) - 1,
+            top + GetSystemMetrics(SM_CYVIRTUALSCREEN) - 1);
 
-        // Both, not either — either one of them is an edge.
-        return nearLeftOrRight && nearTopOrBottom;
+        if (StopZones.InCorner(desktop, p.X, p.Y)) return true;
+
+        if (!includeTaskbar) return false;
+
+        return MonitorUnder(p, out ScreenRect monitor, out ScreenRect work)
+            && StopZones.OnTaskbarOrTop(monitor, work, p.X, p.Y);
+    }
+
+    /// <summary>
+    /// The screen the pointer is on, and the part of it the taskbar leaves.
+    /// </summary>
+    /// <remarks>
+    /// Per-monitor rather than one work area for the desktop, because on a
+    /// two-monitor setup Windows draws a taskbar on each and a single rectangle
+    /// could only ever describe one of them.
+    /// </remarks>
+    private static bool MonitorUnder(POINT p, out ScreenRect monitor, out ScreenRect work)
+    {
+        monitor = default;
+        work = default;
+
+        IntPtr handle = MonitorFromPoint(p, MONITOR_DEFAULTTONULL);
+        if (handle == IntPtr.Zero) return false;
+
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfo(handle, ref info)) return false;
+
+        // Win32 rectangles stop one short on the right and bottom; ScreenRect
+        // includes its edges, so both far sides come back a pixel.
+        monitor = new ScreenRect(
+            info.rcMonitor.Left, info.rcMonitor.Top,
+            info.rcMonitor.Right - 1, info.rcMonitor.Bottom - 1);
+
+        work = new ScreenRect(
+            info.rcWork.Left, info.rcWork.Top,
+            info.rcWork.Right - 1, info.rcWork.Bottom - 1);
+
+        return true;
     }
 
     private void OnClickHotkey(bool pressed)
@@ -1785,7 +1821,8 @@ public partial class MainWindow : Window
         int ComboHotkeyVk, int BuildHotkeyVk, int SwitcherHotkeyVk,
         int MasterHotkeyVk, int ClickSwitchHotkeyVk,
         bool HotkeysArmed, bool RebindIdle, bool BuildMode,
-        ClickButton Button = ClickButton.Left)
+        ClickButton Button = ClickButton.Left,
+        bool StopAtTaskbar = false)
     {
         /// <summary>
         /// The timing actually sent, which is the fixed building rate whenever
@@ -1796,6 +1833,7 @@ public partial class MainWindow : Window
         /// floors the press at 15ms, which against a 28.6ms cycle would drag the
         /// duty cycle from 1% to over 50% and turn a tap into a held button —
         /// the opposite of what placing blocks needs.
+        ///
         /// </remarks>
         public ClickTiming Timing => BuildMode
             ? ClickTimings.Resolve(BuildCps, BuildDuty, hitFix: false)
@@ -1843,6 +1881,9 @@ public partial class MainWindow : Window
         UltraAccuracy.IsChecked = s.UltraAccuracy;
         PingSync.IsChecked = s.PingSync;
         HitFix.IsChecked = s.HitFix;
+
+        StopAtTaskbar.IsChecked = s.StopAtTaskbar;
+
         HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
         RobloxPriority.IsChecked = s.RobloxPriority;
 
@@ -1984,6 +2025,7 @@ public partial class MainWindow : Window
             UltraAccuracy = UltraAccuracy.IsChecked == true,
             PingSync = PingSync.IsChecked == true,
             HitFix = HitFix.IsChecked == true,
+            StopAtTaskbar = StopAtTaskbar.IsChecked == true,
             HoldMode = _holdMode,
             ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
@@ -2063,7 +2105,8 @@ public partial class MainWindow : Window
             // while a rebind is capturing the very key being pressed.
             _rebinding == RebindTarget.None,
             _buildMode,
-            _clickButton);
+            _clickButton,
+            StopAtTaskbar?.IsChecked == true);
 
         UpdateHitFixClamp();
     }
@@ -2096,6 +2139,7 @@ public partial class MainWindow : Window
             + "not what the sliders say. Lower them until this matches.";
         HitFixClampText.Visibility = Visibility.Visible;
     }
+
 
     private void EngineSetting_Changed(object sender, RoutedEventArgs e)
     {
@@ -5859,6 +5903,25 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    /// <summary>Return nothing rather than the nearest screen for a point off every monitor.</summary>
+    private const uint MONITOR_DEFAULTTONULL = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

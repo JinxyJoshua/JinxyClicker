@@ -37,6 +37,16 @@ public sealed class AppSettings
     public bool UltraAccuracy { get; set; }
     public bool PingSync { get; set; }
     public bool HitFix { get; set; } = true;
+
+    /// <summary>Whether the taskbar and the top of the screen also stop the clicker.</summary>
+    /// <remarks>
+    /// Off by default, and deliberately separate from the corners, which are
+    /// always on. This zone is crossed in ordinary play — the top edge is where
+    /// tabs, menus and title bars live — so it fires by accident in a way a
+    /// corner does not, and that has to be opted into.
+    /// </remarks>
+    public bool StopAtTaskbar { get; set; }
+
     public bool HoldMode { get; set; }
 
     /// <summary>Which button is clicked: Left, Right or Middle.</summary>
