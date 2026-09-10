@@ -290,6 +290,67 @@ public class SwitcherProfileTests
         Assert.False(HotkeyClaims.IsTaken(claims, off.Hotkey.VirtualKey));
     }
 
+    // ---- what one key starts ----
+
+    /// <summary>
+    /// The reported bug: the combined hotkey stopped every switcher and started
+    /// none, so pressing it ran the clicker with the rotation standing still.
+    /// </summary>
+    [Fact]
+    public void TheCombinedKeyStartsSomething()
+    {
+        var list = new List<SwitcherProfile> { Profile("Sword + bow") };
+
+        Assert.NotEmpty(SwitcherStore.Startable(list));
+    }
+
+    /// <summary>
+    /// Every switcher, not the first one. The key stops all of them, so it has
+    /// to start all of them or it means two different things depending on which
+    /// way it is pressed — and running several at once is why this is a list.
+    /// </summary>
+    [Fact]
+    public void ItStartsEveryEnabledSwitcher()
+    {
+        var list = new List<SwitcherProfile> { Profile("Sword + bow"), Profile("Pick + gumdrop") };
+
+        Assert.Equal(2, SwitcherStore.Startable(list).Count());
+    }
+
+    /// <summary>Switching one off is how it is kept off that key.</summary>
+    [Fact]
+    public void ASwitchedOffOneIsLeftAlone()
+    {
+        var list = new List<SwitcherProfile>
+        {
+            Profile("Sword + bow"),
+            Profile("Pick + gumdrop", enabled: false)
+        };
+
+        Assert.Equal("Sword + bow", Assert.Single(SwitcherStore.Startable(list)).Name);
+    }
+
+    /// <summary>
+    /// A half-finished switcher is skipped rather than refusing the key. Its
+    /// card already says what is wrong with it, and one broken profile must not
+    /// stop the others running.
+    /// </summary>
+    [Fact]
+    public void AnUnusableOneDoesNotBreakTheKey()
+    {
+        var list = new List<SwitcherProfile> { Profile("Broken", a: ""), Profile("Sword + bow") };
+
+        Assert.Equal("Sword + bow", Assert.Single(SwitcherStore.Startable(list)).Name);
+    }
+
+    [Fact]
+    public void NothingEnabledStartsNothing()
+    {
+        var list = new List<SwitcherProfile> { Profile("Sword + bow", enabled: false) };
+
+        Assert.Empty(SwitcherStore.Startable(list));
+    }
+
     [Fact]
     public void AnEnabledSwitcherHoldsItsKey()
     {

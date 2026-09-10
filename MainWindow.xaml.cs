@@ -1152,15 +1152,33 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Stops every switcher. Nothing is started this way.</summary>
+    /// <summary>Starts or stops every switcher at once.</summary>
     /// <remarks>
-    /// Called when the clicker stops or the master hotkey switch goes off, and
-    /// both of those only ever mean stop. Starting several switchers from one
-    /// place would be starting things nobody asked for.
+    /// Both directions, which it did not always do. This stopped every switcher
+    /// and started none, while the hotkey calling it was labelled "Starts and
+    /// stops both together" — so the combined key ran the clicker on its own and
+    /// the rotation never moved. A regression from when one switcher became a
+    /// list: the stop path was carried across and the start path was not.
+    ///
+    /// Symmetry is the rule here. A key that stops everything has to start
+    /// everything, or it means two different things depending on which way it
+    /// is pressed. Anything that should not answer it is switched off on its
+    /// own card.
     /// </remarks>
     private void SetSwitcher(bool on)
     {
-        if (!on) StopAllSwitchers();
+        if (!on)
+        {
+            StopAllSwitchers();
+        }
+        else if (HotkeysEnabledToggle?.IsChecked != false)
+        {
+            // ToList first: starting a switcher rebuilds nothing yet, but the
+            // list is rebuilt on every edit and iterating it while the engine
+            // calls back would be reading it as it changed.
+            foreach (SwitcherProfile profile in SwitcherStore.Startable(_switcherList).ToList())
+                StartSwitcher(profile);
+        }
 
         BuildSwitcherCards();
     }

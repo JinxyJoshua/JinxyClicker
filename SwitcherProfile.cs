@@ -234,6 +234,27 @@ public static class SwitcherStore
         else switchers.Add(profile);
     }
 
+    /// <summary>
+    /// The switchers one key should start: everything switched on that is
+    /// complete enough to run.
+    /// </summary>
+    /// <remarks>
+    /// The combined hotkey stops every switcher, so it has to start every
+    /// switcher, or the key does not mean the same thing in both directions —
+    /// which is exactly the bug this fixes. It used to stop both and start
+    /// none, while its own label read "Starts and stops both together".
+    ///
+    /// Several at once is the point rather than an accident: this list exists
+    /// because one switcher was not enough. Anything not wanted on that key is
+    /// switched off on its own card, which is what the off switch is for.
+    ///
+    /// Unusable ones are skipped in silence. A profile with an empty slot
+    /// already explains itself on its card, and refusing to start the others
+    /// because one is half-finished would make a broken switcher break the key.
+    /// </remarks>
+    public static IEnumerable<SwitcherProfile> Startable(IEnumerable<SwitcherProfile> switchers) =>
+        switchers.Where(s => s.Enabled && s.IsUsable);
+
     /// <summary>A name not already taken, for a new switcher.</summary>
     public static string UnusedName(IEnumerable<SwitcherProfile> switchers, string wanted = "Switcher")
     {
