@@ -370,6 +370,7 @@ public partial class MainWindow : Window
         bool clickSwitchWasDown = false;
         bool masterWasDown = false;
         bool wasInCorner = false;
+        bool wasRunning = false;
         bool wasArmed = false;
         bool wasRebindIdle = false;
 
@@ -395,10 +396,13 @@ public partial class MainWindow : Window
             // Edge-triggered like the hotkeys are: parking in a corner would
             // otherwise post a stop every 8 ms for as long as the mouse sat there.
             bool inCorner = PointerInStopZone(s.StopAtTaskbar);
-            if (inCorner && !wasInCorner && _running)
+            bool runningNow = _running;
+
+            if (StopZones.ShouldStop(inCorner, wasInCorner, runningNow, wasRunning))
                 Dispatcher.InvokeAsync(StopClicking, DispatcherPriority.Send);
 
             wasInCorner = inCorner;
+            wasRunning = runningNow;
 
             // Outside the armed check, like the corner escape hatch above and
             // for the same reason. This key is what switches the others off, so

@@ -48,6 +48,28 @@ public static class StopZones
     public const int EdgeMarginPx = 2;
 
     /// <summary>
+    /// Whether this sample should stop a running clicker.
+    /// </summary>
+    /// <param name="inZone">Whether the pointer is in a stop zone now.</param>
+    /// <param name="wasInZone">Whether it was on the previous sample.</param>
+    /// <param name="running">Whether the clicker is running now.</param>
+    /// <param name="wasRunning">Whether it was on the previous sample.</param>
+    /// <remarks>
+    /// Edge-triggered, because parking in a corner would otherwise post a stop
+    /// every poll for as long as the mouse sat there.
+    ///
+    /// Starting counts as an edge too, and that is the part that was missing.
+    /// Entering the zone was the only trigger, so a clicker started while the
+    /// pointer was ALREADY on the taskbar or in a corner never stopped — the
+    /// zone had been entered before there was anything to stop, and the next
+    /// sample looked identical to the last. Leaving and coming back was the
+    /// only way out of it, which is not what somebody reaching for the failsafe
+    /// is going to try.
+    /// </remarks>
+    public static bool ShouldStop(bool inZone, bool wasInZone, bool running, bool wasRunning) =>
+        running && inZone && (!wasInZone || !wasRunning);
+
+    /// <summary>
     /// Whether the pointer is in a corner of the whole desktop.
     /// </summary>
     /// <param name="desktop">The virtual desktop, spanning every monitor.</param>

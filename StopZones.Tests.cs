@@ -203,6 +203,47 @@ public class StopZonesTests
         Assert.True(StopZones.OnTaskbarOrTop(Left, LeftWork, 0, 1079));
     }
 
+    // ---- when a sample should actually stop it ----
+
+    /// <summary>
+    /// The hole this closes: a clicker started while the pointer was already on
+    /// the taskbar or in a corner never stopped. Entering was the only trigger,
+    /// and the zone had been entered before there was anything to stop.
+    /// </summary>
+    [Fact]
+    public void StartingInsideAZoneStopsIt()
+    {
+        Assert.True(StopZones.ShouldStop(inZone: true, wasInZone: true, running: true, wasRunning: false));
+    }
+
+    [Fact]
+    public void EnteringAZoneWhileRunningStopsIt()
+    {
+        Assert.True(StopZones.ShouldStop(inZone: true, wasInZone: false, running: true, wasRunning: true));
+    }
+
+    /// <summary>
+    /// Parking there does not post a stop every poll for as long as the mouse
+    /// sits in it.
+    /// </summary>
+    [Fact]
+    public void SittingInAZoneDoesNotRepeat()
+    {
+        Assert.False(StopZones.ShouldStop(inZone: true, wasInZone: true, running: true, wasRunning: true));
+    }
+
+    [Fact]
+    public void NothingHappensWhileItIsNotRunning()
+    {
+        Assert.False(StopZones.ShouldStop(inZone: true, wasInZone: false, running: false, wasRunning: false));
+    }
+
+    [Fact]
+    public void BeingOutsideEveryZoneStopsNothing()
+    {
+        Assert.False(StopZones.ShouldStop(inZone: false, wasInZone: true, running: true, wasRunning: true));
+    }
+
     // ---- the rectangle itself ----
 
     [Fact]
