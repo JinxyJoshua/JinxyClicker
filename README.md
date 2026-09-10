@@ -84,3 +84,15 @@ The replay buffer uses a temporary folder and is bounded in size.
 
 `ARCHITECTURE.md` covers the internals — the click engine's timing, the polled
 hotkey thread, and the Win32 surface the app depends on.
+
+## Licence
+
+**Copyright © 2026 JinxyJoshua. All rights reserved.** See [LICENSE](LICENSE).
+
+This source is published so it can be read and audited. It is **not** open
+source, and no licence to reuse it is granted by its being visible here.
+
+You may read it, and download and run official builds. You may not copy it,
+adapt it, translate it into another language, or redistribute this software
+under any name — including in a free or open-source project — without written
+permission.
