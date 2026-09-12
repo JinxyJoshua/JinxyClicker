@@ -27,8 +27,6 @@
     <Compile Include="../RemoteConfig.Tests.cs" />
     <Compile Include="../ClickTiming.cs" />
     <Compile Include="../ClickTiming.Tests.cs" />
-    <Compile Include="../AntiGhost.cs" />
-    <Compile Include="../AntiGhost.Tests.cs" />
     <Compile Include="../StopZones.cs" />
     <Compile Include="../StopZones.Tests.cs" />
     <Compile Include="../KitArt.cs" />
