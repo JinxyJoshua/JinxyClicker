@@ -5420,6 +5420,49 @@ public partial class MainWindow : Window
         BuildMacroCards();
     }
 
+    /// <summary>
+    /// The fishing bot, made once. Presses through the same input lock the
+    /// clicker uses, so a held fish-shot cannot land in the middle of a click.
+    /// </summary>
+    private FishingBot? _fisher;
+
+    private FishingBot Fisher => _fisher ??= BuildFisher();
+
+    private FishingBot BuildFisher()
+    {
+        var bot = new FishingBot(
+            press: () => { lock (_inputGate) SendButtonDown(ClickButton.Left); },
+            release: () => { lock (_inputGate) SendButtonUp(ClickButton.Left); });
+
+        bot.BarSeenChanged += seen => Dispatcher.InvokeAsync(() =>
+        {
+            if (FisherStatusText != null)
+                FisherStatusText.Text = seen ? "On — bar found, playing it" : "On — waiting for a bar";
+        });
+
+        return bot;
+    }
+
+    private void FisherToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (FisherToggle?.IsChecked == true)
+        {
+            Fisher.HoldPushesRight = FisherInvert?.IsChecked != true;
+            Fisher.Start();
+            if (FisherStatusText != null) FisherStatusText.Text = "On — waiting for a bar";
+        }
+        else
+        {
+            _fisher?.Stop();
+            if (FisherStatusText != null) FisherStatusText.Text = "Off";
+        }
+    }
+
+    private void FisherInvert_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_fisher != null) _fisher.HoldPushesRight = FisherInvert?.IsChecked != true;
+    }
+
     private void SaveMacro_Click(object sender, RoutedEventArgs e)
     {
         MacroErrorText.Visibility = Visibility.Collapsed;
