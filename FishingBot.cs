@@ -133,25 +133,27 @@ public sealed class FishingBot
     }
 
     /// <summary>
-    /// Finds the bar in the grabbed band: the widest green zone, and the thin
-    /// green needle that is taller than it.
+    /// Finds the bar in the grabbed band: the widest green zone, and the green
+    /// needle beside it.
     /// </summary>
     /// <remarks>
-    /// The zone is a wide horizontal run of green; the needle is a thin vertical
-    /// marker of the same green that stands a little taller than the zone, so it
-    /// shows above the zone's top edge whether it is inside the zone or beside
-    /// it. The first build looked for the needle as a gap inside the green and so
-    /// could not see it at all once it left the zone — which is when steering it
-    /// back matters most.
+    /// The needle is a separate block of the same green as the zone. It is not
+    /// reliably taller or thinner than the zone — a recording of the bot failing
+    /// had it shorter and beside the zone, where an earlier "look above the zone"
+    /// pass could not see it at all, so the needle read as the zone centre and
+    /// the bot never acted.
     ///
-    /// So the zone is found on the row with the widest green, and the needle is
-    /// counted a few rows above that as the column green across the most of them.
+    /// So the green is gathered by column over the band around the bar, and the
+    /// zone and the needle fall out as two runs of green columns: the widest is
+    /// the zone, the nearest other one is the needle. This finds it whether it
+    /// sits left or right of the zone and whatever its height, which is what a
+    /// controller steering it back into the zone needs.
     /// </remarks>
     private static FishingReading FindBar(byte[] bgra, int width, int height, int stride)
     {
         var mask = new bool[width];
 
-        // Pass one: the zone. The row with the widest green run.
+        // Pass one: the zone's row, the row with the widest green run.
         (int Left, int Right)? zone = null;
         int zoneRow = -1;
 
@@ -170,30 +172,80 @@ public sealed class FishingBot
 
         if (zone == null) return FishingReading.None;
 
-        // Pass two: the needle. In the twelve rows above the zone, the only green
-        // is the needle sticking up; the column green in the most of them is its
-        // centre. Falls back to the zone centre if the needle is not above it.
-        int top = Math.Max(0, zoneRow - 14);
-        var votes = new int[width];
+        // Pass two: green by column, but only in the band of rows around the bar,
+        // so grass from the world elsewhere on screen cannot be mistaken for the
+        // needle.
+        int top = Math.Max(0, zoneRow - BarHalfHeight);
+        int bottom = Math.Min(height, zoneRow + BarHalfHeight);
+        var colHeight = new int[width];
 
-        for (int y = top; y < zoneRow - 2; y++)
+        for (int y = top; y < bottom; y++)
         {
-            FillGreenMask(bgra, y, width, stride, mask);
-            for (int x = 0; x < width; x++) if (mask[x]) votes[x]++;
+            int rowStart = y * stride;
+            for (int x = 0; x < width; x++)
+            {
+                int i = rowStart + x * 4;
+                if (IsZoneGreen(bgra[i + 2], bgra[i + 1], bgra[i])) colHeight[x]++;
+            }
         }
 
-        int needleX = zone.Value.Left + (zone.Value.Right - zone.Value.Left) / 2;
-        int bestVotes = 0, sum = 0, count = 0;
-
-        for (int x = 0; x < width; x++)
-        {
-            if (votes[x] > bestVotes) { bestVotes = votes[x]; sum = x; count = 1; }
-            else if (votes[x] == bestVotes && bestVotes > 0) { sum += x; count++; }
-        }
-
-        if (bestVotes >= 3 && count > 0) needleX = sum / count;
-
+        int needleX = FindNeedle(colHeight, zone.Value.Left, zone.Value.Right);
         return new FishingReading(true, zone.Value.Left, zone.Value.Right, needleX);
+    }
+
+    /// <summary>How far above and below the zone row the bar reaches.</summary>
+    private const int BarHalfHeight = 25;
+
+    /// <summary>A column is part of the bar if this many of its rows are green.</summary>
+    private const int MinColumnHeight = 4;
+
+    /// <summary>The needle can be at most this far from the zone. Beyond is not the bar.</summary>
+    private const int MaxNeedleDistancePx = 700;
+
+    /// <summary>
+    /// The needle's x: the centre of the largest green-column run that is not the
+    /// zone and sits within reach of it. The zone centre when there is none,
+    /// which reads as the needle being inside the zone — on target.
+    /// </summary>
+    private static int FindNeedle(int[] colHeight, int zoneLeft, int zoneRight)
+    {
+        int zoneCenter = (zoneLeft + zoneRight) / 2;
+
+        int bestCenter = zoneCenter;
+        long bestMass = 0;
+
+        int runStart = -1;
+        long runMass = 0;
+
+        for (int x = 0; x <= colHeight.Length; x++)
+        {
+            bool on = x < colHeight.Length && colHeight[x] >= MinColumnHeight;
+
+            if (on)
+            {
+                if (runStart < 0) { runStart = x; runMass = 0; }
+                runMass += colHeight[x];
+            }
+            else if (runStart >= 0)
+            {
+                int runEnd = x - 1;
+                int center = (runStart + runEnd) / 2;
+
+                bool isZone = runEnd >= zoneLeft && runStart <= zoneRight;
+                bool inReach = Math.Min(Math.Abs(runStart - zoneRight), Math.Abs(zoneLeft - runEnd))
+                               <= MaxNeedleDistancePx;
+
+                if (!isZone && inReach && runMass > bestMass)
+                {
+                    bestMass = runMass;
+                    bestCenter = center;
+                }
+
+                runStart = -1;
+            }
+        }
+
+        return bestCenter;
     }
 
     /// <summary>Fills the mask with which pixels of one row are zone-green.</summary>
