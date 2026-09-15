@@ -120,7 +120,7 @@ public sealed class FishingBot
         byte[]? bgra = GrabBand(0, bandTop, screenW, bandHeight, out int stride);
         if (bgra == null) return FishAction.Idle;
 
-        FishingReading reading = FindBar(bgra, screenW, bandHeight, stride, out int needleX);
+        FishingReading reading = FindBar(bgra, screenW, bandHeight, stride);
 
         bool barSeen = reading.BarPresent;
         if (barSeen != _lastBarSeen)
@@ -129,69 +129,82 @@ public sealed class FishingBot
             BarSeenChanged?.Invoke(barSeen);
         }
 
-        return FishingBar.Decide(reading, needleX, DeadzonePx, HoldPushesRight);
+        return FishingBar.Decide(reading, DeadzonePx, HoldPushesRight);
     }
 
     /// <summary>
-    /// Finds the bar in the grabbed band: the row with the most zone-green that
-    /// is split by the needle's gap.
+    /// Finds the bar in the grabbed band: the widest green zone, and the thin
+    /// green needle that is taller than it.
     /// </summary>
     /// <remarks>
-    /// Every few rows rather than every one — the bar is tens of pixels tall, so
-    /// sampling a fraction of the rows finds it for a fraction of the work.
+    /// The zone is a wide horizontal run of green; the needle is a thin vertical
+    /// marker of the same green that stands a little taller than the zone, so it
+    /// shows above the zone's top edge whether it is inside the zone or beside
+    /// it. The first build looked for the needle as a gap inside the green and so
+    /// could not see it at all once it left the zone — which is when steering it
+    /// back matters most.
+    ///
+    /// So the zone is found on the row with the widest green, and the needle is
+    /// counted a few rows above that as the column green across the most of them.
     /// </remarks>
-    private static FishingReading FindBar(
-        byte[] bgra, int width, int height, int stride, out int needleX)
+    private static FishingReading FindBar(byte[] bgra, int width, int height, int stride)
     {
-        needleX = 0;
-
         var mask = new bool[width];
-        FishingReading best = FishingReading.None;
-        int bestNeedle = 0;
-        int bestSpan = 0;
 
-        for (int y = 0; y < height; y += 3)
+        // Pass one: the zone. The row with the widest green run.
+        (int Left, int Right)? zone = null;
+        int zoneRow = -1;
+
+        for (int y = 0; y < height; y += 2)
         {
-            int rowStart = y * stride;
-            for (int x = 0; x < width; x++)
+            FillGreenMask(bgra, y, width, stride, mask);
+            var z = FishingBar.FindZone(mask);
+            if (z == null) continue;
+
+            if (zone == null || z.Value.Right - z.Value.Left > zone.Value.Right - zone.Value.Left)
             {
-                int i = rowStart + x * 4;
-                mask[x] = IsZoneGreen(bgra[i + 2], bgra[i + 1], bgra[i]); // R,G,B
+                zone = z;
+                zoneRow = y;
             }
-
-            FishingReading r = FishingBar.Read(mask);
-            if (!r.BarPresent) continue;
-
-            int span = r.ZoneRight - r.ZoneLeft;
-            if (span <= bestSpan) continue;
-
-            best = r;
-            bestSpan = span;
-            bestNeedle = NeedleGap(mask, r.ZoneLeft, r.ZoneRight);
         }
 
-        needleX = bestNeedle > 0 ? bestNeedle : (best.ZoneLeft + best.ZoneRight) / 2;
-        return best;
+        if (zone == null) return FishingReading.None;
+
+        // Pass two: the needle. In the twelve rows above the zone, the only green
+        // is the needle sticking up; the column green in the most of them is its
+        // centre. Falls back to the zone centre if the needle is not above it.
+        int top = Math.Max(0, zoneRow - 14);
+        var votes = new int[width];
+
+        for (int y = top; y < zoneRow - 2; y++)
+        {
+            FillGreenMask(bgra, y, width, stride, mask);
+            for (int x = 0; x < width; x++) if (mask[x]) votes[x]++;
+        }
+
+        int needleX = zone.Value.Left + (zone.Value.Right - zone.Value.Left) / 2;
+        int bestVotes = 0, sum = 0, count = 0;
+
+        for (int x = 0; x < width; x++)
+        {
+            if (votes[x] > bestVotes) { bestVotes = votes[x]; sum = x; count = 1; }
+            else if (votes[x] == bestVotes && bestVotes > 0) { sum += x; count++; }
+        }
+
+        if (bestVotes >= 3 && count > 0) needleX = sum / count;
+
+        return new FishingReading(true, zone.Value.Left, zone.Value.Right, needleX);
     }
 
-    /// <summary>
-    /// The needle's screen x: the middle of the grey gap the needle cuts in the
-    /// green. Zero when the zone has no gap yet (needle at an edge).
-    /// </summary>
-    private static int NeedleGap(bool[] mask, int left, int right)
+    /// <summary>Fills the mask with which pixels of one row are zone-green.</summary>
+    private static void FillGreenMask(byte[] bgra, int y, int width, int stride, bool[] mask)
     {
-        int gapStart = -1;
-        for (int x = left; x <= right; x++)
+        int rowStart = y * stride;
+        for (int x = 0; x < width; x++)
         {
-            if (!mask[x] && gapStart < 0) gapStart = x;
-            else if (mask[x] && gapStart >= 0)
-            {
-                // The needle is a thin column; a wide gap is not it.
-                if (x - gapStart <= 40) return (gapStart + x) / 2;
-                gapStart = -1;
-            }
+            int i = rowStart + x * 4;
+            mask[x] = IsZoneGreen(bgra[i + 2], bgra[i + 1], bgra[i]); // R, G, B
         }
-        return 0;
     }
 
     /// <summary>
