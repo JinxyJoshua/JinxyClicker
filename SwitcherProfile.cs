@@ -27,8 +27,22 @@ public sealed record SwitcherProfile(
     int HoldSecondMs,
     int EquipMs,
     HotkeyBinding Hotkey,
-    bool Enabled = true)
+    bool Enabled = true,
+    int DrawMs = 0)
 {
+    /// <summary>
+    /// A hand draw, for a crossbow that ghosts on a fast tap.
+    /// </summary>
+    /// <remarks>
+    /// The number a fresh sword-and-crossbow switcher starts from. A crossbow
+    /// fired by the clicker's 15 ms taps during the dip does not draw and the
+    /// shot ghosts; holding the button this long draws it, and 80 ms is a hand
+    /// press — the length that was measured to fire by hand. Zero means the old
+    /// behaviour, the clicker's taps, for a swap between two weapons that both
+    /// fire on a tap.
+    /// </remarks>
+    public const int DefaultDrawMs = 80;
+
     /// <summary>How many clicks a swap waits for before moving on.</summary>
     /// <remarks>
     /// Two, matching the single switcher this replaces. Kept as a name rather
@@ -92,13 +106,16 @@ public sealed record SwitcherProfile(
         (int[] Keys, string Text) keys =
             MacroStore.ParseKeys(SlotA.Trim() + "," + SlotB.Trim())!.Value;
 
-        int firstHold = Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
+        int firstHold = EffectiveFirstHoldMs(clickPeriodMs);
 
         return new KeyMacro(
             EngineName, keys.Keys, keys.Text, firstHold,
             new[] { firstHold, HoldSecondMs },
-            clicksWanted: Shots,
-            equipMs: EquipMs);
+            // A drawn crossbow fires itself with the draw-press, so it does not
+            // also wait for the clicker's taps; a tap-fired swap still does.
+            clicksWanted: DrawMs > 0 ? 0 : Shots,
+            equipMs: EquipMs,
+            drawMs: DrawMs);
     }
 
     /// <summary>
@@ -106,11 +123,22 @@ public sealed record SwitcherProfile(
     /// typed. Shown on the card so the raise is visible rather than surprising.
     /// </summary>
     public int EffectiveFirstHoldMs(double clickPeriodMs) =>
-        Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
+        DrawMs > 0
+            ? Math.Max(HoldFirstMs,
+                Math.Clamp(EquipMs + DrawMs + DrawTailMs, KeyMacro.MinIntervalMs, KeyMacro.MaxIntervalMs))
+            : Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
+
+    /// <summary>Milliseconds left after the draw releases before the swap away.</summary>
+    /// <remarks>
+    /// The button has to come up and the shot register before the sword is
+    /// selected, or the swap eats the shot the draw just set up.
+    /// </remarks>
+    private const int DrawTailMs = 15;
 
     /// <summary>A one-line description for the card.</summary>
     public string Summary() =>
-        $"{SlotA.Trim()} ↔ {SlotB.Trim()}   ·   {HoldFirstMs} ms then {HoldSecondMs} ms";
+        $"{SlotA.Trim()} ↔ {SlotB.Trim()}   ·   {HoldFirstMs} ms then {HoldSecondMs} ms"
+        + (DrawMs > 0 ? $"   ·   {DrawMs} ms draw" : "");
 }
 
 /// <summary>
@@ -133,6 +161,9 @@ public static class SwitcherStore
         public int HoldFirstMs { get; set; } = 21;
         public int HoldSecondMs { get; set; } = 1300;
         public int EquipMs { get; set; } = 5;
+        // Absent from files written before this shipped, reading zero, which is
+        // the old tap-fired behaviour — no migration needed.
+        public int DrawMs { get; set; }
         public int HotkeyVk { get; set; }
         public string HotkeyName { get; set; } = "";
 
@@ -185,7 +216,8 @@ public static class SwitcherStore
                     s.HotkeyVk == 0
                         ? HotkeyBinding.Unbound
                         : new HotkeyBinding(s.HotkeyVk, HotkeyBinding.Describe(s.HotkeyVk)),
-                    Enabled: !s.Disabled))
+                    Enabled: !s.Disabled,
+                    DrawMs: s.DrawMs))
                 .ToList();
         }
         catch
@@ -207,6 +239,7 @@ public static class SwitcherStore
                     HoldFirstMs = s.HoldFirstMs,
                     HoldSecondMs = s.HoldSecondMs,
                     EquipMs = s.EquipMs,
+                    DrawMs = s.DrawMs,
                     HotkeyVk = s.Hotkey.VirtualKey,
                     HotkeyName = s.Hotkey.Name,
                     Disabled = !s.Enabled

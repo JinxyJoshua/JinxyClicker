@@ -359,7 +359,12 @@ public partial class MainWindow
             MacroStore.ParseInterval(NewSwitcherHoldA.Text) ?? 0,
             MacroStore.ParseInterval(NewSwitcherHoldB.Text) ?? 0,
             MacroStore.ParseInterval(NewSwitcherEquip.Text) ?? KeyMacro.DefaultEquipMs,
-            _pendingNewSwitcherHotkey);
+            _pendingNewSwitcherHotkey,
+            // Zero unless a draw was typed, which leaves a plain two-weapon swap
+            // exactly as it was.
+            DrawMs: int.TryParse(NewSwitcherDraw.Text?.Trim(), out int draw)
+                ? Math.Clamp(draw, 0, KeyMacro.MaxIntervalMs)
+                : 0);
 
         string? problem = profile.Problem();
 

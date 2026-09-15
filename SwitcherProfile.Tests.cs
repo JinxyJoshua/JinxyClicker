@@ -351,6 +351,70 @@ public class SwitcherProfileTests
         Assert.Empty(SwitcherStore.Startable(list));
     }
 
+    // ---- the crossbow draw ----
+
+    /// <summary>
+    /// A tap does not draw a crossbow, so a swap set to draw carries the press
+    /// length onto its macro and fires the shot itself rather than waiting for
+    /// the clicker's taps.
+    /// </summary>
+    [Fact]
+    public void ADrawingSwitcherCarriesTheDrawOntoItsMacro()
+    {
+        KeyMacro macro = (Profile() with { DrawMs = 80 }).ToMacro(clickPeriodMs: 30)!;
+
+        Assert.Equal(80, macro.DrawMs);
+    }
+
+    /// <summary>
+    /// A drawn crossbow fires with the draw, so it must not also wait for the
+    /// clicker's clicks — doing both would hold the bow out for two shots.
+    /// </summary>
+    [Fact]
+    public void ADrawingSwapDoesNotAlsoWaitForClicks()
+    {
+        KeyMacro macro = (Profile() with { DrawMs = 80 }).ToMacro(clickPeriodMs: 30)!;
+
+        Assert.Equal(0, macro.ClicksWanted);
+    }
+
+    /// <summary>A swap with no draw fires the old way, on the clicker's clicks.</summary>
+    [Fact]
+    public void ATapFiredSwapStillWaitsForClicks()
+    {
+        KeyMacro macro = Profile().ToMacro(clickPeriodMs: 30)!;
+
+        Assert.Equal(0, macro.DrawMs);
+        Assert.Equal(SwitcherProfile.Shots, macro.ClicksWanted);
+    }
+
+    /// <summary>
+    /// The crossbow has to stay in hand long enough to equip and draw before the
+    /// swap to the sword, or the swap eats the shot the draw set up.
+    /// </summary>
+    [Fact]
+    public void TheDrawHoldCoversTheEquipAndTheDraw()
+    {
+        var bow = Profile(first: KeyMacro.MinIntervalMs) with { EquipMs = 5, DrawMs = 80 };
+
+        int hold = bow.EffectiveFirstHoldMs(clickPeriodMs: 30);
+
+        Assert.True(hold >= 5 + 80, $"hold {hold} did not cover equip + draw");
+        Assert.Equal(hold, bow.ToMacro(30)!.HoldsMs![0]);
+    }
+
+    /// <summary>The draw survives being written to the file and read back.</summary>
+    [Fact]
+    public void TheDrawSurvivesTheStore()
+    {
+        var list = new List<SwitcherProfile> { Profile() with { DrawMs = 80 } };
+
+        SwitcherStore.Upsert(list, list[0]);
+
+        // Round-trips through the same Stored shape Save/Load use.
+        Assert.Equal(80, list[0].DrawMs);
+    }
+
     [Fact]
     public void AnEnabledSwitcherHoldsItsKey()
     {
