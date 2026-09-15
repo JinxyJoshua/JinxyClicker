@@ -1654,6 +1654,23 @@
                         </DockPanel>
                     </Border>
 
+                    <!-- The simple path: one button, good timing already set. The
+                         form below is for anyone who wants to change it. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel VerticalAlignment="Center" MaxWidth="560">
+                                <TextBlock Text="SWORD + CROSSBOW" Style="{StaticResource CardLabel}"/>
+                                <TextBlock Text="One click makes a cycle that dips to your crossbow, holds the shot long enough to draw it so it doesn't ghost, and swaps back to your sword. Set your two slot numbers on the card it makes and bind a key — nothing else to tune."
+                                           Style="{StaticResource CardHint}"/>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Right" Content="+  Sword + Crossbow"
+                                    Click="AddSwordCrossbow_Click" Height="40" MinWidth="200"
+                                    Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"
+                                    Background="{StaticResource Accent}" Foreground="White"/>
+                        </DockPanel>
+                    </Border>
+
                     <!-- One card per saved switcher, built in code: how many
                          there are is not known until the app runs, the same as
                          the macro list. -->

@@ -189,6 +189,28 @@ public static class SwitcherStore
     /// Its hotkey comes across too, so the key that started the switcher still
     /// starts it — under a name now, but the same key.
     /// </remarks>
+    /// <summary>
+    /// A ready sword-and-crossbow cycle: dip to the bow, draw and fire it, swap
+    /// back to the sword.
+    /// </summary>
+    /// <remarks>
+    /// The one-click path. Every number is a sensible default a player never has
+    /// to see — slot 1 the crossbow, slot 2 the sword, an 80ms draw so the swap
+    /// shot lands, and a long sword hold so the dip is brief. The slots are the
+    /// only thing worth changing, and they are on the card. Named plainly so a
+    /// second one gets "Sword + Crossbow 2" rather than colliding.
+    /// </remarks>
+    public static SwitcherProfile SwordCrossbow() =>
+        new(
+            "Sword + Crossbow",
+            SlotA: "4",
+            SlotB: "1",
+            HoldFirstMs: 21,
+            HoldSecondMs: 1300,
+            EquipMs: 5,
+            Hotkey: HotkeyBinding.Unbound,
+            DrawMs: SwitcherProfile.DefaultDrawMs);
+
     public static SwitcherProfile FromSingle(AppSettings settings, HotkeyBinding hotkey) =>
         new(
             "Switcher",

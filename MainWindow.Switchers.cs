@@ -346,6 +346,26 @@ public partial class MainWindow
         SaveSwitchers();
     }
 
+    /// <summary>
+    /// Drops a ready sword-and-crossbow cycle onto the list.
+    /// </summary>
+    /// <remarks>
+    /// Given its own name if one is already there, so pressing it twice makes a
+    /// second rather than overwriting the first. It lands unbound and, like any
+    /// new switcher, ready to have its slots set and a key put on it.
+    /// </remarks>
+    private void AddSwordCrossbow_Click(object sender, RoutedEventArgs e)
+    {
+        SwitcherProfile ready = SwitcherStore.SwordCrossbow();
+        string name = SwitcherStore.UnusedName(_switcherList, ready.Name);
+
+        SwitcherStore.Upsert(_switcherList, ready with { Name = name });
+        SaveSwitchers();
+
+        if (NewSwitcherStatus != null)
+            NewSwitcherStatus.Text = $"Added {name}. Set your crossbow and sword slots on the card, then bind a key.";
+    }
+
     private void SaveSwitcher_Click(object sender, RoutedEventArgs e)
     {
         string name = NewSwitcherName.Text.Trim();
