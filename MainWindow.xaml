@@ -1654,23 +1654,6 @@
                         </DockPanel>
                     </Border>
 
-                    <!-- The simple path: one button, good timing already set. The
-                         form below is for anyone who wants to change it. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
-                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <DockPanel LastChildFill="False">
-                            <StackPanel VerticalAlignment="Center" MaxWidth="560">
-                                <TextBlock Text="SWORD + CROSSBOW" Style="{StaticResource CardLabel}"/>
-                                <TextBlock Text="One click makes a cycle that dips to your crossbow, holds the shot long enough to draw it so it doesn't ghost, and swaps back to your sword. Set your two slot numbers on the card it makes and bind a key — nothing else to tune."
-                                           Style="{StaticResource CardHint}"/>
-                            </StackPanel>
-                            <Button DockPanel.Dock="Right" Content="+  Sword + Crossbow"
-                                    Click="AddSwordCrossbow_Click" Height="40" MinWidth="200"
-                                    Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"
-                                    Background="{StaticResource Accent}" Foreground="White"/>
-                        </DockPanel>
-                    </Border>
-
                     <!-- One card per saved switcher, built in code: how many
                          there are is not known until the app runs, the same as
                          the macro list. -->
@@ -1759,19 +1742,6 @@
                                         VerticalAlignment="Top"
                                         Background="{StaticResource Accent}" Foreground="White"/>
                             </Grid>
-
-                            <!-- Slot 1 is the weapon dipped to. A crossbow ghosts on a fast
-                                 tap, so the switcher holds the shot to draw it instead. -->
-                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <StackPanel Width="92">
-                                    <TextBox x:Name="NewSwitcherDraw" Style="{StaticResource NumericFieldBox}" Text="0"/>
-                                    <TextBlock Text="DRAW (MS)" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <TextBlock VerticalAlignment="Center" Margin="14,0,0,0" MaxWidth="620"
-                                           TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" FontSize="11"
-                                           Text="Set this to about 80 when slot 1 is a crossbow that ghosts on the swap — the switcher holds the shot that long to draw and fire it, while your sword keeps clicking fast. Leave it 0 for two weapons that both fire on a tap."/>
-                            </StackPanel>
 
                             <TextBlock x:Name="NewSwitcherStatus" Text=""
                                        Foreground="{StaticResource TextMuted}" FontSize="11"

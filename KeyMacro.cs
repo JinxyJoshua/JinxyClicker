@@ -30,7 +30,7 @@ public sealed class KeyMacro
 
     public KeyMacro(string name, IEnumerable<int> keys, string keysText, int intervalMs,
                     int[]? holdsMs = null, int clicksWanted = 0, int equipMs = DefaultEquipMs,
-                    HotkeyBinding? hotkey = null, bool enabled = true, int drawMs = 0)
+                    HotkeyBinding? hotkey = null, bool enabled = true)
     {
         Enabled = enabled;
         Name = name;
@@ -42,7 +42,6 @@ public sealed class KeyMacro
 
         ClicksWanted = Math.Max(0, clicksWanted);
         EquipMs = Math.Clamp(equipMs, 0, MaxIntervalMs);
-        DrawMs = Math.Clamp(drawMs, 0, MaxIntervalMs);
 
         Hotkey = hotkey ?? HotkeyBinding.Unbound;
     }
@@ -94,12 +93,6 @@ public sealed class KeyMacro
 
     /// <summary>Time to allow for the weapon to appear before clicks count.</summary>
     public int EquipMs { get; }
-
-    /// <summary>
-    /// How long to hold the mouse on the first key, to draw a weapon that a tap
-    /// would not. Zero means the first key is not a draw.
-    /// </summary>
-    public int DrawMs { get; }
 
     /// <summary>
     /// How long to stay on each key, when they should not be equal.
@@ -348,13 +341,11 @@ public sealed class MacroRunner : IDisposable
                 }
 
                 int dwell = macro.DwellFor(at);
-                bool drawing = at == 0 && macro.DrawMs > 0 && Draw != null;
-                bool firing = at == 0 && !drawing && macro.ClicksWanted > 0 && Clicks != null;
+                bool firing = at == 0 && macro.ClicksWanted > 0 && Clicks != null;
 
                 at = (at + 1) % macro.Keys.Length;
 
-                if (drawing) DrawShot(macro, dwell, token);
-                else if (firing) WaitForShots(macro, dwell, token);
+                if (firing) WaitForShots(macro, dwell, token);
                 else Wait(dwell, token);
             }
         }
@@ -385,38 +376,6 @@ public sealed class MacroRunner : IDisposable
     /// actually fired rather than when a stopwatch says it probably has.
     /// </remarks>
     public Func<long>? Clicks { get; set; }
-
-    /// <summary>
-    /// Holds the mouse button down for the given milliseconds, then releases —
-    /// a draw-press for a weapon a tap will not fire.
-    /// </summary>
-    /// <remarks>
-    /// Supplied by the window so this file never learns SendInput, and so the
-    /// press goes through the same input lock the clicker takes: a draw and a
-    /// clicker tap cannot overlap on the one button.
-    /// </remarks>
-    public Action<int>? Draw { get; set; }
-
-    /// <summary>
-    /// Swaps to the first key, waits out the equip, draws the weapon, and holds
-    /// what is left of the dwell before the swap away.
-    /// </summary>
-    /// <remarks>
-    /// The crossbow half of a sword-and-crossbow switcher. A tap during the dip
-    /// draws nothing and the shot ghosts; this holds the button long enough to
-    /// draw and fire, then leaves a moment for the shot to register before the
-    /// sword is selected.
-    /// </remarks>
-    private void DrawShot(KeyMacro macro, int dwellMs, CancellationToken token)
-    {
-        if (!Wait(macro.EquipMs, token)) return;
-
-        Draw?.Invoke(macro.DrawMs);
-        Interlocked.Increment(ref _sent);
-
-        int remaining = dwellMs - macro.EquipMs - macro.DrawMs;
-        if (remaining > 0) Wait(remaining, token);
-    }
 
     /// <summary>
     /// Waits out a span accurately, rather than approximately.

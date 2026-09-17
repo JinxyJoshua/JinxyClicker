@@ -27,22 +27,8 @@ public sealed record SwitcherProfile(
     int HoldSecondMs,
     int EquipMs,
     HotkeyBinding Hotkey,
-    bool Enabled = true,
-    int DrawMs = 0)
+    bool Enabled = true)
 {
-    /// <summary>
-    /// A hand draw, for a crossbow that ghosts on a fast tap.
-    /// </summary>
-    /// <remarks>
-    /// The number a fresh sword-and-crossbow switcher starts from. A crossbow
-    /// fired by the clicker's 15 ms taps during the dip does not draw and the
-    /// shot ghosts; holding the button this long draws it, and 80 ms is a hand
-    /// press — the length that was measured to fire by hand. Zero means the old
-    /// behaviour, the clicker's taps, for a swap between two weapons that both
-    /// fire on a tap.
-    /// </remarks>
-    public const int DefaultDrawMs = 80;
-
     /// <summary>How many clicks a swap waits for before moving on.</summary>
     /// <remarks>
     /// Two, matching the single switcher this replaces. Kept as a name rather
@@ -106,16 +92,13 @@ public sealed record SwitcherProfile(
         (int[] Keys, string Text) keys =
             MacroStore.ParseKeys(SlotA.Trim() + "," + SlotB.Trim())!.Value;
 
-        int firstHold = EffectiveFirstHoldMs(clickPeriodMs);
+        int firstHold = Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
 
         return new KeyMacro(
             EngineName, keys.Keys, keys.Text, firstHold,
             new[] { firstHold, HoldSecondMs },
-            // A drawn crossbow fires itself with the draw-press, so it does not
-            // also wait for the clicker's taps; a tap-fired swap still does.
-            clicksWanted: DrawMs > 0 ? 0 : Shots,
-            equipMs: EquipMs,
-            drawMs: DrawMs);
+            clicksWanted: Shots,
+            equipMs: EquipMs);
     }
 
     /// <summary>
@@ -123,22 +106,11 @@ public sealed record SwitcherProfile(
     /// typed. Shown on the card so the raise is visible rather than surprising.
     /// </summary>
     public int EffectiveFirstHoldMs(double clickPeriodMs) =>
-        DrawMs > 0
-            ? Math.Max(HoldFirstMs,
-                Math.Clamp(EquipMs + DrawMs + DrawTailMs, KeyMacro.MinIntervalMs, KeyMacro.MaxIntervalMs))
-            : Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
-
-    /// <summary>Milliseconds left after the draw releases before the swap away.</summary>
-    /// <remarks>
-    /// The button has to come up and the shot register before the sword is
-    /// selected, or the swap eats the shot the draw just set up.
-    /// </remarks>
-    private const int DrawTailMs = 15;
+        Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
 
     /// <summary>A one-line description for the card.</summary>
     public string Summary() =>
-        $"{SlotA.Trim()} ↔ {SlotB.Trim()}   ·   {HoldFirstMs} ms then {HoldSecondMs} ms"
-        + (DrawMs > 0 ? $"   ·   {DrawMs} ms draw" : "");
+        $"{SlotA.Trim()} ↔ {SlotB.Trim()}   ·   {HoldFirstMs} ms then {HoldSecondMs} ms";
 }
 
 /// <summary>
@@ -161,9 +133,6 @@ public static class SwitcherStore
         public int HoldFirstMs { get; set; } = 21;
         public int HoldSecondMs { get; set; } = 1300;
         public int EquipMs { get; set; } = 5;
-        // Absent from files written before this shipped, reading zero, which is
-        // the old tap-fired behaviour — no migration needed.
-        public int DrawMs { get; set; }
         public int HotkeyVk { get; set; }
         public string HotkeyName { get; set; } = "";
 
@@ -189,28 +158,6 @@ public static class SwitcherStore
     /// Its hotkey comes across too, so the key that started the switcher still
     /// starts it — under a name now, but the same key.
     /// </remarks>
-    /// <summary>
-    /// A ready sword-and-crossbow cycle: dip to the bow, draw and fire it, swap
-    /// back to the sword.
-    /// </summary>
-    /// <remarks>
-    /// The one-click path. Every number is a sensible default a player never has
-    /// to see — slot 1 the crossbow, slot 2 the sword, an 80ms draw so the swap
-    /// shot lands, and a long sword hold so the dip is brief. The slots are the
-    /// only thing worth changing, and they are on the card. Named plainly so a
-    /// second one gets "Sword + Crossbow 2" rather than colliding.
-    /// </remarks>
-    public static SwitcherProfile SwordCrossbow() =>
-        new(
-            "Sword + Crossbow",
-            SlotA: "4",
-            SlotB: "1",
-            HoldFirstMs: 21,
-            HoldSecondMs: 1300,
-            EquipMs: 5,
-            Hotkey: HotkeyBinding.Unbound,
-            DrawMs: SwitcherProfile.DefaultDrawMs);
-
     public static SwitcherProfile FromSingle(AppSettings settings, HotkeyBinding hotkey) =>
         new(
             "Switcher",
@@ -238,8 +185,7 @@ public static class SwitcherStore
                     s.HotkeyVk == 0
                         ? HotkeyBinding.Unbound
                         : new HotkeyBinding(s.HotkeyVk, HotkeyBinding.Describe(s.HotkeyVk)),
-                    Enabled: !s.Disabled,
-                    DrawMs: s.DrawMs))
+                    Enabled: !s.Disabled))
                 .ToList();
         }
         catch
@@ -261,7 +207,6 @@ public static class SwitcherStore
                     HoldFirstMs = s.HoldFirstMs,
                     HoldSecondMs = s.HoldSecondMs,
                     EquipMs = s.EquipMs,
-                    DrawMs = s.DrawMs,
                     HotkeyVk = s.Hotkey.VirtualKey,
                     HotkeyName = s.Hotkey.Name,
                     Disabled = !s.Enabled

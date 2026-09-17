@@ -4939,21 +4939,6 @@ public partial class MainWindow : Window
         // Lets a weapon dip end on the click that fires it rather than on a
         // timer generous enough to be safe. Read only.
         _macros.Clicks = () => Interlocked.Read(ref _clickCount);
-
-        // The crossbow draw. Held under the same lock the clicker takes, so its
-        // press cannot land inside a clicker tap and the tap cannot cut the draw
-        // short — the draw has the button to itself for as long as it is down.
-        _macros.Draw = ms =>
-        {
-            ClickButton button = _clickButton;
-            lock (_inputGate)
-            {
-                SendButtonDown(button);
-                Thread.Sleep(Math.Clamp(ms, 1, 2000));
-                SendButtonUp(button);
-                Interlocked.Increment(ref _clickCount);
-            }
-        };
     }
 
     private void NavMacros_Click(object sender, RoutedEventArgs e)
