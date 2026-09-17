@@ -4875,17 +4875,6 @@ public partial class MainWindow : Window
     /// <summary>The send count when the switcher was last turned on.</summary>
     private long _switcherStartedAt;
 
-    /// <summary>How long the game takes to put a weapon in hand. Tunable, because
-    /// it is a guess that should be corrected against the hit counter.</summary>
-    private int _switcherEquipMs = KeyMacro.DefaultEquipMs;
-
-    /// <summary>Clicks the first slot must receive before the cycle moves on.</summary>
-    /// <remarks>
-    /// Two, so a click landing on the same instant the equip finishes cannot be
-    /// the only one counted.
-    /// </remarks>
-    private const int SwitcherShots = 2;
-
     /// <summary>
     /// Updates the switcher's live count while it runs.
     /// </summary>
