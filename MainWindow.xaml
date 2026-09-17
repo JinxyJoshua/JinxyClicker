@@ -2308,7 +2308,7 @@
                                            VerticalAlignment="Center"/>
                             </DockPanel>
 
-                            <TextBlock Text="Every flag below is on Roblox's published allowlist. Anything not on that list is ignored by the client, so this only offers what is actually permitted and actually works."
+                            <TextBlock Text="Every option here is one Roblox officially allows. Anything else it just ignores, so this only shows what actually works."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -2392,7 +2392,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-                            <TextBlock Text="Worth having while clicking: the click engine runs above normal priority itself, and with Ultra Accuracy it spin-waits, so it competes with the game for a core."
+                            <TextBlock Text="Worth having while clicking — the clicker works your CPU hard, and this makes sure the game still gets its share so it stays smooth."
                                        Foreground="{StaticResource TextDim}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,8,0,0"/>
 
