@@ -1531,34 +1531,6 @@
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
-                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <StackPanel>
-                                    <TextBlock Text="FISHER" Foreground="{StaticResource TextMuted}"
-                                               FontSize="10" FontWeight="Bold"/>
-                                    <TextBlock Text="Watches the catch bar and holds the mouse to keep the fish on the line. Cast, then turn this on — it finds the bar on its own, no setup."
-                                               Foreground="{StaticResource TextMuted}" FontSize="11"
-                                               TextWrapping="Wrap" Margin="0,4,40,0" MaxWidth="560"/>
-                                    <TextBlock x:Name="FisherStatusText" Text="Off"
-                                               Foreground="{StaticResource TextMuted}" FontSize="11"
-                                               Margin="0,8,0,0"/>
-                                </StackPanel>
-                                <CheckBox x:Name="FisherToggle" DockPanel.Dock="Right"
-                                          VerticalAlignment="Top" Margin="0,1,0,0"
-                                          Checked="FisherToggle_Changed" Unchecked="FisherToggle_Changed"/>
-                            </DockPanel>
-
-                            <TextBlock Text="If it holds the wrong way and pushes the bar off the needle, flick this."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,14,0,0"/>
-                            <CheckBox x:Name="FisherInvert" Content="Reverse the hold direction"
-                                      Foreground="{StaticResource TextBright}" FontSize="12"
-                                      Margin="0,8,0,0" Checked="FisherInvert_Changed" Unchecked="FisherInvert_Changed"/>
-                        </StackPanel>
-                    </Border>
-
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="NEW MACRO" Foreground="{StaticResource TextMuted}"

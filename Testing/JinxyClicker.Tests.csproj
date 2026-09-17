@@ -48,8 +48,6 @@
     <Compile Include="../UsageStats.cs" />
     <Compile Include="../UsageReporter.cs" />
     <Compile Include="../UsageStats.Tests.cs" />
-    <Compile Include="../FishingBar.cs" />
-    <Compile Include="../FishingBar.Tests.cs" />
     <Compile Include="../ClickButton.cs" />
     <Compile Include="../ClickButton.Tests.cs" />
     <Compile Include="../ClickOutput.cs" />
