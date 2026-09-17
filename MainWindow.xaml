@@ -890,7 +890,7 @@
                                Foreground="{StaticResource TextBright}"/>
                     <Border Height="3" Width="34" Background="{StaticResource Accent}"
                             HorizontalAlignment="Left" Margin="0,5,0,0"/>
-                    <TextBlock x:Name="PageSubtitleText" Text="Configure your own click engine"
+                    <TextBlock x:Name="PageSubtitleText" Text="Set how fast you click and how it behaves"
                                Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,7,0,0"/>
                 </StackPanel>
 
@@ -1062,7 +1062,7 @@
                                 <DockPanel LastChildFill="False">
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="BUILDING" Style="{StaticResource CardLabel}"/>
-                                        <TextBlock Text="Fixed 35 CPS at 1% — Ignores the sliders"
+                                        <TextBlock Text="A steady 35 a second for placing blocks. Ignores your CPS"
                                                    Style="{StaticResource CardHint}"/>
                                     </StackPanel>
                                     <Button x:Name="ClearBuildKey" Tag="Build" Style="{StaticResource ClearBindingButton}"
@@ -1166,7 +1166,7 @@
                                 <Slider x:Name="CdcSlider" Minimum="0" Maximum="100" Value="67"
                                         Margin="0,10,0,0" TickFrequency="10"
                                         ValueChanged="CdcSlider_ValueChanged"/>
-                                <TextBlock Text="Share of each cycle the button stays held"
+                                <TextBlock Text="How long each click is held down. Higher holds it longer"
                                            Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
                             </StackPanel>
                         </Border>
@@ -1181,7 +1181,7 @@
                             <Grid Margin="0,7">
                                 <StackPanel>
                                     <TextBlock Text="Ultra Accuracy" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Spin-waits for even click spacing. Costs up to a third of a core"
+                                    <TextBlock Text="Keeps your clicks evenly spaced. Uses a little more CPU"
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
                                 </StackPanel>
                                 <CheckBox x:Name="UltraAccuracy" HorizontalAlignment="Right"
@@ -1194,7 +1194,7 @@
                                 <StackPanel>
                                     <TextBlock Text="Ping Sync" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="PingStatusText"
-                                               Text="Holds maximum precision while latency is high"
+                                               Text="Keeps clicks steady when your connection lags"
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
                                 </StackPanel>
                                 <CheckBox x:Name="PingSync" HorizontalAlignment="Right"
@@ -1207,7 +1207,7 @@
                                 <StackPanel>
                                     <TextBlock Text="Shaky Tracking" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="ShakeStatusText"
-                                               Text="Moves the camera +/-8 px every 20-40 ms while running"
+                                               Text="Nudges your aim a little while clicking, so it looks hand-done"
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
                                     <!-- Travel in each direction in pixels, and how often it moves.
                                          One row per value: label, slider, readout. -->
