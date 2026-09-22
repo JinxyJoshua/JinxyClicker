@@ -856,6 +856,8 @@
                         Click="NavMod_Click"/>
                 <Button x:Name="NavKitWheel" app:NavIcon.Glyph="&#xE72C;" Content="KIT WHEEL" Style="{StaticResource NavButton}"
                         Click="NavKitWheel_Click"/>
+                <Button x:Name="NavCrosshair" app:NavIcon.Glyph="&#xE1D1;" Content="CROSSHAIR" Style="{StaticResource NavButton}"
+                        Click="NavCrosshair_Click"/>
                 <Button x:Name="NavRecorder" app:NavIcon.Glyph="&#xE714;" Content="RECORDER" Style="{StaticResource NavButton}"
                         Click="NavRecorder_Click"/>
                 <Button x:Name="NavHistory" app:NavIcon.Glyph="&#xE81C;" Content="HISTORY" Style="{StaticResource NavButton}"
@@ -2141,6 +2143,69 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PageCrosshair" Visibility="Collapsed">
+
+                    <Border Style="{StaticResource ControlCard}" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="176"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="IN-GAME CROSSHAIR" Style="{StaticResource CardLabel}"/>
+                                <TextBlock Text="Puts a crosshair in place of Roblox's mouse cursor, so it becomes the real cursor you aim with &#8212; in every installed version, and in Bloxstrap, Fishstrap and Froststrap mods if you use them. Fully reversible."
+                                           Style="{StaticResource CardHint}" TextWrapping="Wrap" MaxWidth="560"/>
+
+                                <TextBlock x:Name="CrosshairStatus" Text="Pick a crosshair below, then Apply to Roblox."
+                                           Margin="0,12,0,0" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource Accent}" TextWrapping="Wrap"/>
+
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="52"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="SIZE" FontSize="10" FontWeight="Bold"
+                                               VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                    <Slider Grid.Column="1" x:Name="CrosshairSizeSlider" Minimum="40" Maximum="160" Value="100"
+                                            IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center"
+                                            ValueChanged="CrosshairSize_Changed"/>
+                                    <TextBlock Grid.Column="2" x:Name="CrosshairSizeValue" Text="100%" HorizontalAlignment="Right"
+                                               VerticalAlignment="Center" FontSize="12" FontWeight="Bold"
+                                               Foreground="{StaticResource Accent}"/>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                    <Button x:Name="CrosshairApplyButton" Content="Apply to Roblox" Click="CrosshairApply_Click"
+                                            Style="{StaticResource AccentButton}" Height="38" MinWidth="150" Padding="16,0"/>
+                                    <Button x:Name="CrosshairRemoveButton" Content="Remove" Click="CrosshairRemove_Click"
+                                            Height="38" MinWidth="96" Padding="16,0" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Text="Roblox reads the cursor when it starts, so relaunch Roblox after applying."
+                                           Style="{StaticResource CardHint}" Margin="0,10,0,0"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="1" CornerRadius="6" Margin="16,0,0,0" MinHeight="160"
+                                    Background="#101018" BorderBrush="{StaticResource Outline}" BorderThickness="1">
+                                <Image x:Name="CrosshairPreviewImage" Width="132" Height="132"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource ControlCard}">
+                        <StackPanel>
+                            <TextBlock Text="GALLERY" Style="{StaticResource CardLabel}"/>
+                            <TextBlock Text="Tap one to preview it, then Apply to Roblox. Keep the size small for a precise dot, or turn it up to see it easily."
+                                       Style="{StaticResource CardHint}" Margin="0,4,0,0"/>
+                            <WrapPanel x:Name="CrosshairGalleryPanel" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageTweaks" Visibility="Collapsed">

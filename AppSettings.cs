@@ -88,6 +88,20 @@ public sealed class AppSettings
     /// </remarks>
     public bool OverlayOn { get; set; }
 
+    /// <summary>
+    /// The crosshair: which gallery entry was last chosen, and its size.
+    /// </summary>
+    /// <remarks>
+    /// The crosshair is written into Roblox's own cursor files rather than drawn
+    /// as an overlay, so nothing here switches it on — that is what the Apply
+    /// button does, and whether it is applied is read back from the files on
+    /// disk. This only remembers the choice so the page opens where it was left.
+    /// The name is stored rather than an index so reordering the gallery cannot
+    /// silently change which crosshair a settings file means.
+    /// </remarks>
+    public string CrosshairName { get; set; } = "Green Cross";
+    public int CrosshairSizePercent { get; set; } = 100;
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

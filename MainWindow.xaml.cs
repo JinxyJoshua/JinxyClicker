@@ -1878,6 +1878,7 @@ public partial class MainWindow : Window
     private void ApplyAppSettings(AppSettings s)
     {
         ApplySwitcherToUi(s);
+        LoadCrosshair(s);
 
         CpsSlider.Value = Math.Clamp(s.Cps, CpsSlider.Minimum, CpsSlider.Maximum);
         CdcSlider.Value = Math.Clamp(s.Cdc, CdcSlider.Minimum, CdcSlider.Maximum);
@@ -2053,6 +2054,8 @@ public partial class MainWindow : Window
             HideValues = _valuesHidden,
             StreamerMode = StreamerModeCheck.IsChecked == true,
             OverlayOn = OverlayCheck.IsChecked == true,
+            CrosshairName = _crosshairName,
+            CrosshairSizePercent = (int)(CrosshairSizeSlider?.Value ?? 100),
             ReplayEnabled = ReplayEnabled.IsChecked == true,
             ReplaySeconds = ReplaySeconds,
             AccentColor = _accentHex,
@@ -4839,13 +4842,13 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavPresets, NavKitWheel, NavTweaks, NavOptimizations,
+        NavClicker, NavPresets, NavKitWheel, NavCrosshair, NavTweaks, NavOptimizations,
         NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PagePresets, PageKitWheel, PageTweaks, PageOptimizations,
+        PageClicker, PagePresets, PageKitWheel, PageCrosshair, PageTweaks, PageOptimizations,
         PageMacros, PageSwitcher, PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 

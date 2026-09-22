@@ -50,6 +50,11 @@
     <Compile Include="../UsageStats.cs" />
     <Compile Include="../UsageReporter.cs" />
     <Compile Include="../UsageStats.Tests.cs" />
+    <Compile Include="../CrosshairStyle.cs" />
+    <Compile Include="../CrosshairStyle.Tests.cs" />
+    <Compile Include="../CrosshairGallery.cs" />
+    <Compile Include="../RobloxCursors.cs" />
+    <Compile Include="../RobloxCursors.Tests.cs" />
     <Compile Include="../ClickButton.cs" />
     <Compile Include="../ClickButton.Tests.cs" />
     <Compile Include="../ClickOutput.cs" />
