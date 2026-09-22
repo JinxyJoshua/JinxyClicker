@@ -2206,6 +2206,61 @@
                         </StackPanel>
                     </Border>
 
+                    <Border Style="{StaticResource ControlCard}" Margin="0,14,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="MAKE YOUR OWN" Style="{StaticResource CardLabel}"/>
+                                <TextBlock Text="Pick a shape and colours, then add it to the gallery. It gets its own size like the rest."
+                                           Style="{StaticResource CardHint}" Margin="0,4,0,0"/>
+
+                                <TextBlock Text="SHAPE" FontSize="9" FontWeight="Bold" Margin="0,12,0,6"
+                                           Foreground="{StaticResource TextMuted}"/>
+                                <WrapPanel>
+                                    <RadioButton x:Name="CustomShapeCross" Content="Cross" GroupName="CustomShape" Tag="Cross"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="64" IsChecked="True" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeCrossDot" Content="Cross + Dot" GroupName="CustomShape" Tag="CrossDot"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="80" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeX" Content="X" GroupName="CustomShape" Tag="X"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="48" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeXDot" Content="X + Dot" GroupName="CustomShape" Tag="XDot"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="64" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeDot" Content="Dot" GroupName="CustomShape" Tag="Dot"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="48" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeRing" Content="Ring" GroupName="CustomShape" Tag="Circle"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="52" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeRingDot" Content="Ring + Dot" GroupName="CustomShape" Tag="CircleDot"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="78" Checked="CustomShape_Checked"/>
+                                    <RadioButton x:Name="CustomShapeT" Content="T" GroupName="CustomShape" Tag="TShape"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="44" Checked="CustomShape_Checked"/>
+                                </WrapPanel>
+
+                                <TextBlock Text="MAIN COLOUR" FontSize="9" FontWeight="Bold" Margin="0,14,0,8"
+                                           Foreground="{StaticResource TextMuted}"/>
+                                <WrapPanel x:Name="CustomColorPanel"/>
+
+                                <TextBlock Text="CENTRE COLOUR" FontSize="9" FontWeight="Bold" Margin="0,10,0,8"
+                                           Foreground="{StaticResource TextMuted}"/>
+                                <WrapPanel x:Name="CustomDotColorPanel"/>
+
+                                <Button x:Name="CustomAddButton" Content="+  Add to gallery" Click="CustomAdd_Click"
+                                        Style="{StaticResource AccentButton}" Height="36" MinWidth="150" Padding="16,0"
+                                        HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="1" CornerRadius="6" Margin="14,0,0,0" MinHeight="120"
+                                    Background="#101018" BorderBrush="{StaticResource Outline}" BorderThickness="1"
+                                    VerticalAlignment="Top">
+                                <Image x:Name="CustomPreviewImage" Width="96" Height="96"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageTweaks" Visibility="Collapsed">

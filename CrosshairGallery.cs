@@ -92,4 +92,33 @@ public static class CrosshairGallery
 
     /// <summary>Names in gallery order, for building the tiles.</summary>
     public static IEnumerable<string> Names => All.Select(e => e.Name);
+
+    /// <summary>Whether a name belongs to a built-in gallery entry.</summary>
+    public static bool IsBuiltIn(string? name) =>
+        All.Any(e => string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase));
+}
+
+/// <summary>
+/// A crosshair the user built and saved, stored in the settings file.
+/// </summary>
+/// <remarks>
+/// Kept as plain strings rather than a <see cref="CrosshairStyle"/> so the
+/// settings file stays readable and an unknown shape or a bad colour falls back
+/// to something drawable rather than throwing. The size is not stored here — it
+/// lives with every other crosshair's size, by name, in the settings.
+/// </remarks>
+public sealed class CustomCrosshair
+{
+    public string Name { get; set; } = "";
+    public string Shape { get; set; } = "Cross";
+    public string Color { get; set; } = "#33FF66";
+    public string? DotColor { get; set; }
+
+    /// <summary>The drawable style, with sensible proportions filled in.</summary>
+    public CrosshairStyle ToStyle()
+    {
+        CrosshairShape shape = Enum.TryParse(Shape, out CrosshairShape s) ? s : CrosshairShape.Cross;
+        return new CrosshairStyle(shape, Size: 9, Thickness: 3, Gap: 4, DotSize: 3,
+            ColorHex: Color, DotColorHex: DotColor);
+    }
 }

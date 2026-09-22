@@ -46,6 +46,26 @@ public static class CrosshairImage
         return ms.ToArray();
     }
 
+    /// <summary>
+    /// The cursor PNG for one of Roblox's cursor slots, sized for the game.
+    /// </summary>
+    /// <remarks>
+    /// Roblox draws the cursor at the image's own pixel size, so the size slider
+    /// has to change the image's dimensions, not just how much of a fixed square
+    /// the crosshair fills. A 64-pixel arrow at 150% is written as a 96-pixel
+    /// image, and Roblox shows a bigger cursor; the crosshair keeps its share of
+    /// the picture because the draw scale grows with it.
+    /// </remarks>
+    public static byte[] RenderCursorPng(CrosshairStyle style, int basePixels, double sizeFactor)
+    {
+        int outPixels = Math.Clamp((int)Math.Round(basePixels * sizeFactor), 16, 160);
+
+        // sizeFactor 1 keeps the arrow at 64 and the locked cursor at 32, exactly
+        // as Roblox ships them; RenderBitmap's own scale (pixels / BaseImage) then
+        // fills the larger or smaller image by the same fraction.
+        return RenderPng(style, outPixels, 1.0);
+    }
+
     private static void Draw(DrawingContext dc, CrosshairStyle style, int pixels, double sizeFactor)
     {
         double centre = pixels / 2.0;

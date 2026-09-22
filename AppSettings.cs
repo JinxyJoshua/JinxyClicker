@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
@@ -100,7 +101,19 @@ public sealed class AppSettings
     /// silently change which crosshair a settings file means.
     /// </remarks>
     public string CrosshairName { get; set; } = "Green Cross";
-    public int CrosshairSizePercent { get; set; } = 100;
+
+    /// <summary>
+    /// The size, as a percentage, kept per crosshair by name.
+    /// </summary>
+    /// <remarks>
+    /// Each crosshair remembers its own size, so turning one up does not change
+    /// the others — a dot and a sniper cross want very different sizes. A name
+    /// missing from the map just means it has never been resized and uses 100%.
+    /// </remarks>
+    public Dictionary<string, int> CrosshairSizes { get; set; } = new();
+
+    /// <summary>Crosshairs the user built themselves, shown after the ready-made ones.</summary>
+    public List<CustomCrosshair> CustomCrosshairs { get; set; } = new();
 
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
