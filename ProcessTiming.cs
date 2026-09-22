@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace JinxyClicker;
@@ -53,6 +54,54 @@ public static class ProcessTiming
         catch
         {
             // Older Windows, or a policy that forbids it. Not worth a crash.
+        }
+
+        OutrankTheGame();
+    }
+
+    /// <summary>
+    /// Raises this process to AboveNormal, so the game cannot take the CPU the
+    /// clicks need.
+    /// </summary>
+    /// <remarks>
+    /// The third thing slowing the clicks down, and the only one this app was
+    /// causing itself. The click thread runs AboveNormal, but inside a Normal
+    /// process that only puts it one step above Roblox's ordinary threads.
+    /// The "Roblox priority" setting raises Roblox to AboveNormal, and after
+    /// that every Roblox thread outranks the click thread. At uncapped FPS
+    /// Roblox always has work queued, so the click thread waits its turn.
+    ///
+    /// Measured with a stand-in for Roblox keeping every core busy at
+    /// AboveNormal: with this process at Normal, a 10-second run sent 202 to
+    /// 224 of its 334 clicks under Ultra Accuracy, and one wait lasted 1.9
+    /// seconds. At AboveNormal it sent 334 of 334 in every run, including
+    /// against a Roblox on High. Fewer clicks in a 10-second test is fewer
+    /// hits.
+    ///
+    /// Covers the macro and switcher threads too, since they belong to the same
+    /// process. The limit is AboveNormal, never High, for the same reason
+    /// Roblox is only raised that far: High can starve input handling on a weak
+    /// machine. A class the user set higher on purpose is left alone.
+    /// </remarks>
+    private static void OutrankTheGame()
+    {
+        try
+        {
+            using Process self = Process.GetCurrentProcess();
+
+            // Checked by name, not compared: the enum values are Win32 flags, so
+            // they are not in priority order. AboveNormal is numerically larger
+            // than High.
+            if (self.PriorityClass is ProcessPriorityClass.Idle
+                or ProcessPriorityClass.BelowNormal
+                or ProcessPriorityClass.Normal)
+            {
+                self.PriorityClass = ProcessPriorityClass.AboveNormal;
+            }
+        }
+        catch
+        {
+            // Refused by policy. The clicks still go out, just without the edge.
         }
     }
 
