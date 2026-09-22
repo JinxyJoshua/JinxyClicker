@@ -294,13 +294,13 @@ public partial class MainWindow
     {
         if (CrosshairPreviewImage == null) return;
 
-        // Size means nothing for the plain cursor, so the slider steps aside for it.
-        if (CrosshairSizeSlider != null) CrosshairSizeSlider.IsEnabled = !IsDefaultSelected;
+        // Size means nothing for the plain cursor, so the whole row goes away for it.
+        if (CrosshairSizeRow != null)
+            CrosshairSizeRow.Visibility = IsDefaultSelected ? Visibility.Collapsed : Visibility.Visible;
 
         if (IsDefaultSelected)
         {
             CrosshairPreviewImage.Source = CrosshairImage.RenderDefaultCursor(132);
-            if (CrosshairSizeValue != null) CrosshairSizeValue.Text = "—";
             return;
         }
 
