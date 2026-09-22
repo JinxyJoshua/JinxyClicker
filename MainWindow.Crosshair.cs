@@ -44,6 +44,11 @@ public partial class MainWindow
 
     private const int DefaultSizePercent = 100;
 
+    /// <summary>The gallery entry that means "Roblox's own cursor, no crosshair".</summary>
+    private const string DefaultCursorName = "Default";
+
+    private bool IsDefaultSelected => string.Equals(_crosshairName, DefaultCursorName, StringComparison.OrdinalIgnoreCase);
+
     private static readonly string[] CrosshairPalette =
     {
         "#33FF66", "#00E5FF", "#45B7FF", "#FF3B3B", "#FF2D55", "#FF57E6",
@@ -76,6 +81,7 @@ public partial class MainWindow
 
     private string StyleName(string? name)
     {
+        if (string.Equals(name, DefaultCursorName, StringComparison.OrdinalIgnoreCase)) return DefaultCursorName;
         if (CrosshairGallery.IsBuiltIn(name)) return CrosshairGallery.ByName(name).Name;
         CustomCrosshair? c = _customCrosshairs.FirstOrDefault(x =>
             string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
@@ -112,11 +118,57 @@ public partial class MainWindow
         if (CrosshairGalleryPanel == null || _galleryBuilt) return;
         _galleryBuilt = true;
 
+        AddDefaultTile();
+
         foreach ((string name, CrosshairStyle style) in CrosshairGallery.All)
             AddTile(name, style, custom: false);
 
         foreach (CustomCrosshair c in _customCrosshairs)
             AddTile(c.Name, c.ToStyle(), custom: true);
+    }
+
+    /// <summary>The first tile: Roblox's own cursor, for switching the crosshair off.</summary>
+    private void AddDefaultTile()
+    {
+        var image = new Image
+        {
+            Width = 46,
+            Height = 46,
+            Stretch = Stretch.Uniform,
+            Source = CrosshairImage.RenderDefaultCursor(48)
+        };
+
+        var label = new TextBlock
+        {
+            Text = "Default",
+            FontSize = 11,
+            Foreground = (Brush)FindResource("TextMuted"),
+            Width = 96,
+            Margin = new Thickness(0, 6, 0, 0),
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var stack = new StackPanel { Margin = new Thickness(8) };
+        stack.Children.Add(image);
+        stack.Children.Add(label);
+
+        var tile = new Border
+        {
+            Tag = DefaultCursorName,
+            Child = stack,
+            Width = 112,
+            Margin = new Thickness(0, 0, 10, 10),
+            CornerRadius = new CornerRadius(6),
+            Background = (Brush)FindResource("Control"),
+            BorderThickness = new Thickness(1),
+            BorderBrush = (Brush)FindResource("Outline"),
+            Cursor = Cursors.Hand
+        };
+        tile.MouseLeftButtonUp += CrosshairTile_Click;
+
+        _crosshairTiles.Add(tile);
+        CrosshairGalleryPanel.Children.Add(tile);
     }
 
     private void AddTile(string name, CrosshairStyle style, bool custom)
@@ -203,9 +255,13 @@ public partial class MainWindow
         RefreshCrosshairPreview();
 
         if (switched && CrosshairStatus != null)
-            CrosshairStatus.Text = _crosshairApplied
-                ? $"✓ Switched to {name} — Apply to Roblox to use it."
-                : $"✓ Switched to {name}. Apply to Roblox, then relaunch.";
+        {
+            CrosshairStatus.Text = IsDefaultSelected
+                ? "Roblox's normal cursor. Apply to Roblox to put it back, then relaunch."
+                : _crosshairApplied
+                    ? $"✓ Switched to {name} — Apply to Roblox to use it."
+                    : $"✓ Switched to {name}. Apply to Roblox, then relaunch.";
+        }
 
         SaveAppSettings();
     }
@@ -238,6 +294,16 @@ public partial class MainWindow
     {
         if (CrosshairPreviewImage == null) return;
 
+        // Size means nothing for the plain cursor, so the slider steps aside for it.
+        if (CrosshairSizeSlider != null) CrosshairSizeSlider.IsEnabled = !IsDefaultSelected;
+
+        if (IsDefaultSelected)
+        {
+            CrosshairPreviewImage.Source = CrosshairImage.RenderDefaultCursor(132);
+            if (CrosshairSizeValue != null) CrosshairSizeValue.Text = "—";
+            return;
+        }
+
         CrosshairPreviewImage.Source = CrosshairImage.RenderBitmap(CurrentCrosshairStyle(), 132, SizeFactor());
 
         if (CrosshairSizeValue != null)
@@ -248,6 +314,13 @@ public partial class MainWindow
 
     private void CrosshairApply_Click(object sender, RoutedEventArgs e)
     {
+        // Applying "Default" means putting Roblox's own cursor back.
+        if (IsDefaultSelected)
+        {
+            CrosshairRemove_Click(sender, e);
+            return;
+        }
+
         CrosshairStyle style = CurrentCrosshairStyle();
         double factor = SizeFactor();
 

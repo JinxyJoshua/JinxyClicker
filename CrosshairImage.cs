@@ -66,6 +66,48 @@ public static class CrosshairImage
         return RenderPng(style, outPixels, 1.0);
     }
 
+    /// <summary>
+    /// A plain arrow-pointer icon, to stand for "Roblox's normal cursor" in the
+    /// gallery and preview. Not a crosshair — it is what the Default tile shows.
+    /// </summary>
+    public static BitmapSource RenderDefaultCursor(int pixels)
+    {
+        var visual = new DrawingVisual();
+        using (DrawingContext dc = visual.RenderOpen())
+            DrawArrow(dc, pixels);
+
+        var bmp = new RenderTargetBitmap(pixels, pixels, 96, 96, PixelFormats.Pbgra32);
+        bmp.Render(visual);
+        bmp.Freeze();
+        return bmp;
+    }
+
+    private static void DrawArrow(DrawingContext dc, int pixels)
+    {
+        // A classic NW-pointing pointer, in a 0..1 box, nudged to sit centred.
+        (double X, double Y)[] pts =
+        {
+            (0.34, 0.20), (0.34, 0.78), (0.47, 0.65), (0.57, 0.88),
+            (0.65, 0.84), (0.55, 0.62), (0.70, 0.62)
+        };
+
+        var geometry = new StreamGeometry();
+        using (StreamGeometryContext ctx = geometry.Open())
+        {
+            ctx.BeginFigure(new Point(pts[0].X * pixels, pts[0].Y * pixels), isFilled: true, isClosed: true);
+            for (int i = 1; i < pts.Length; i++)
+                ctx.LineTo(new Point(pts[i].X * pixels, pts[i].Y * pixels), isStroked: true, isSmoothJoin: false);
+        }
+        geometry.Freeze();
+
+        var fill = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
+        fill.Freeze();
+        var edge = new Pen(new SolidColorBrush(Color.FromRgb(0, 0, 0)), Math.Max(1.0, pixels / 32.0));
+        edge.Freeze();
+
+        dc.DrawGeometry(fill, edge, geometry);
+    }
+
     private static void Draw(DrawingContext dc, CrosshairStyle style, int pixels, double sizeFactor)
     {
         double centre = pixels / 2.0;
