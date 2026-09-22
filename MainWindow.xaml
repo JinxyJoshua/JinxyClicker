@@ -2443,6 +2443,46 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
+                                <TextBlock Text="FPS LIMIT" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="FpsCapStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Roblox caps at 60 FPS out of the box. Lift the cap to match your monitor for smoother aim and movement. Applied the moment you choose &#8212; restart Roblox to see it. Pick a limit at or under your monitor's refresh rate; higher just wastes GPU."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <UniformGrid x:Name="FpsCapPanel" Columns="6" Margin="0,14,0,0"
+                                         MaxWidth="560" HorizontalAlignment="Left">
+                                <!-- No IsChecked here on purpose, as with the API grid:
+                                     RefreshFlags ticks the one that matches the file. -->
+                                <RadioButton Content="60" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag=""/>
+                                <RadioButton Content="120" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="120"/>
+                                <RadioButton Content="144" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="144"/>
+                                <RadioButton Content="240" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="240"/>
+                                <RadioButton Content="360" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="360"/>
+                                <RadioButton Content="Max" GroupName="FpsCap" Margin="0"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="9999"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
                                 <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
                                            FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <CheckBox x:Name="RobloxPriority" DockPanel.Dock="Right" Margin="0"

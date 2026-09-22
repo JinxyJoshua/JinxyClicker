@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -56,6 +57,51 @@ public static class FastFlagStore
         new FastFlag("DFFlagDebugPauseVoxelizer", "True",
             "Freezes voxel lighting. Lighting stops updating, which is the cost.")
     };
+
+    /// <summary>
+    /// The frame-rate cap. Roblox renders at 60 FPS unless this raises the target.
+    /// </summary>
+    /// <remarks>
+    /// A single integer flag — the same one Bloxstrap's framerate limit writes —
+    /// so it behaves like the graphics backend below, a choice where picking one
+    /// value replaces the last, not part of the FPS-boost set. "Unlimited" writes
+    /// a number past any monitor's refresh because the client has no true
+    /// infinity; a target of 60 or less is the client's own default and so is
+    /// stored as no flag at all.
+    /// </remarks>
+    public const string FpsCapFlagName = "DFIntTaskSchedulerTargetFps";
+
+    /// <summary>Above any display refresh, for an effectively uncapped target.</summary>
+    public const int UnlimitedFps = 9999;
+
+    private static readonly FastFlag FpsCapMarker = new(FpsCapFlagName, "", "");
+
+    /// <summary>Sets the frame-rate target, or clears it for the 60 FPS default.</summary>
+    public static void ApplyFpsCap(int? fps)
+    {
+        if (fps is null or <= 60)
+        {
+            Reset(new[] { FpsCapMarker });
+            return;
+        }
+
+        Apply(new[]
+        {
+            new FastFlag(FpsCapFlagName,
+                fps.Value.ToString(CultureInfo.InvariantCulture),
+                "Frame-rate target. Roblox renders up to this many FPS.")
+        });
+    }
+
+    /// <summary>The frame-rate target the file holds, or null for the 60 default.</summary>
+    public static int? CurrentFpsCap()
+    {
+        if (Read().TryGetValue(FpsCapFlagName, out string? value)
+            && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int fps))
+            return fps;
+
+        return null;
+    }
 
     /// <summary>
     /// The graphics backend, as a choice rather than a toggle.

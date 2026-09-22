@@ -3591,6 +3591,18 @@ public partial class MainWindow : Window
             GraphicsApiStateText.Foreground =
                 (System.Windows.Media.Brush)FindResource(api == null ? "TextMuted" : "Accent");
         }
+
+        int? fps = FastFlagStore.CurrentFpsCap();
+        SelectFpsCap(fps);
+
+        if (FpsCapStateText != null)
+        {
+            bool capped = fps is null or <= 60;
+            FpsCapStateText.Text = capped ? "60 (default)"
+                : fps >= FastFlagStore.UnlimitedFps ? "Unlimited" : $"{fps} FPS";
+            FpsCapStateText.Foreground =
+                (System.Windows.Media.Brush)FindResource(capped ? "TextMuted" : "Accent");
+        }
     }
 
     private void ApplyFlags_Click(object sender, RoutedEventArgs e)
@@ -3701,6 +3713,57 @@ public partial class MainWindow : Window
         finally
         {
             _writingGraphicsApi = false;
+        }
+    }
+
+    /// <summary>Guards the FPS buttons against the code that sets them.</summary>
+    private bool _writingFpsCap;
+
+    private void FpsCap_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_writingFpsCap || sender is not RadioButton { Tag: string tag }) return;
+
+        // Empty tag is "60", the client's own cap, which means no flag at all.
+        int? fps = int.TryParse(tag, out int value) ? value : null;
+
+        try
+        {
+            FastFlagStore.Backup();
+            FastFlagStore.ApplyFpsCap(fps);
+            RefreshFlags();
+
+            string where = fps is null or <= 60 ? "60 (the default)"
+                : fps >= FastFlagStore.UnlimitedFps ? "unlimited" : $"{fps} FPS";
+            ShowFlagStatus($"FPS limit set to {where}. Restart Roblox for it to take effect.", isError: false);
+        }
+        catch (Exception ex)
+        {
+            ShowFlagStatus(ex.Message, isError: true);
+        }
+    }
+
+    /// <summary>Checks the FPS button matching the file, without reapplying it.</summary>
+    private void SelectFpsCap(int? fps)
+    {
+        if (FpsCapPanel == null) return;
+
+        string target = fps is null or <= 60 ? string.Empty
+            : fps >= FastFlagStore.UnlimitedFps ? FastFlagStore.UnlimitedFps.ToString()
+            : fps.Value.ToString();
+
+        _writingFpsCap = true;
+
+        try
+        {
+            foreach (object child in FpsCapPanel.Children)
+            {
+                if (child is RadioButton { Tag: string tag } button)
+                    button.IsChecked = string.Equals(tag, target, StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            _writingFpsCap = false;
         }
     }
 
