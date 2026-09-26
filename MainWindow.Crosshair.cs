@@ -98,6 +98,17 @@ public partial class MainWindow
 
     private CrosshairStyle CurrentCrosshairStyle() => StyleFor(_crosshairName);
 
+    /// <summary>The custom entry for a name, or null if it is built-in or Default.</summary>
+    private CustomCrosshair? CustomByName(string name) =>
+        _customCrosshairs.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The imported image for the current crosshair, or null if it is not one.</summary>
+    private string? CurrentImagePath()
+    {
+        CustomCrosshair? c = CustomByName(_crosshairName);
+        return c is { IsImage: true } ? CrosshairStore.Resolve(c.ImageFile!) : null;
+    }
+
     // ---- size, kept per crosshair ----
 
     private int SizePercentFor(string name) =>
@@ -121,10 +132,10 @@ public partial class MainWindow
         AddDefaultTile();
 
         foreach ((string name, CrosshairStyle style) in CrosshairGallery.All)
-            AddTile(name, style, custom: false);
+            AddTile(name, CrosshairImage.RenderBitmap(style, 48, 1.15), custom: false);
 
         foreach (CustomCrosshair c in _customCrosshairs)
-            AddTile(c.Name, c.ToStyle(), custom: true);
+            AddTile(c.Name, CustomIcon(c), custom: true);
     }
 
     /// <summary>The first tile: Roblox's own cursor, for switching the crosshair off.</summary>
@@ -171,14 +182,21 @@ public partial class MainWindow
         CrosshairGalleryPanel.Children.Add(tile);
     }
 
-    private void AddTile(string name, CrosshairStyle style, bool custom)
+    /// <summary>The tile icon for a custom crosshair — its image, or its drawn shape.</summary>
+    private static ImageSource? CustomIcon(CustomCrosshair c) =>
+        c.IsImage
+            ? CrosshairImage.RenderImageBitmap(CrosshairStore.Resolve(c.ImageFile!), 48, 1.15)
+              ?? CrosshairImage.RenderBitmap(new CrosshairStyle(), 48, 1.15)
+            : CrosshairImage.RenderBitmap(c.ToStyle(), 48, 1.15);
+
+    private void AddTile(string name, ImageSource? icon, bool custom)
     {
         var image = new Image
         {
             Width = 46,
             Height = 46,
             Stretch = Stretch.Uniform,
-            Source = CrosshairImage.RenderBitmap(style, 48, 1.15)
+            Source = icon
         };
 
         var label = new TextBlock
@@ -304,7 +322,10 @@ public partial class MainWindow
             return;
         }
 
-        CrosshairPreviewImage.Source = CrosshairImage.RenderBitmap(CurrentCrosshairStyle(), 132, SizeFactor());
+        string? imagePath = CurrentImagePath();
+        CrosshairPreviewImage.Source = imagePath != null
+            ? CrosshairImage.RenderImageBitmap(imagePath, 132, SizeFactor())
+            : CrosshairImage.RenderBitmap(CurrentCrosshairStyle(), 132, SizeFactor());
 
         if (CrosshairSizeValue != null)
             CrosshairSizeValue.Text = $"{(int)(CrosshairSizeSlider?.Value ?? DefaultSizePercent)}%";
@@ -321,11 +342,13 @@ public partial class MainWindow
             return;
         }
 
-        CrosshairStyle style = CurrentCrosshairStyle();
         double factor = SizeFactor();
+        string? imagePath = CurrentImagePath();
+        CrosshairStyle style = CurrentCrosshairStyle();
 
-        CursorApplyResult result = CursorWriter.Apply(
-            basePixels => CrosshairImage.RenderCursorPng(style, basePixels, factor));
+        CursorApplyResult result = CursorWriter.Apply(basePixels => imagePath != null
+            ? CrosshairImage.RenderImageCursorPng(imagePath, basePixels, factor)
+            : CrosshairImage.RenderCursorPng(style, basePixels, factor));
 
         _crosshairApplied = result.AnyWritten || CursorWriter.IsApplied();
         UpdateCrosshairStatus(result);
@@ -494,7 +517,7 @@ public partial class MainWindow
         };
 
         _customCrosshairs.Add(custom);
-        AddTile(name, custom.ToStyle(), custom: true);
+        AddTile(name, CustomIcon(custom), custom: true);
         SelectCrosshair(name, switched: false);
 
         if (CrosshairStatus != null)
@@ -503,11 +526,48 @@ public partial class MainWindow
         SaveAppSettings();
     }
 
-    private string NextCustomName()
+    /// <summary>Imports a crosshair image the user picked, and adds it to the gallery.</summary>
+    private void CrosshairImport_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose a crosshair image",
+            Filter = CrosshairStore.FileFilter,
+            CheckFileExists = true
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        string? stored = CrosshairStore.Store(dialog.FileName);
+        if (stored == null)
+        {
+            MessageBox.Show(this,
+                "That image could not be used. It may be open in another program, or in a format this app cannot read. A PNG with a transparent background works best.",
+                "Import crosshair", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        string name = NextImportName();
+        var custom = new CustomCrosshair { Name = name, ImageFile = stored };
+
+        _customCrosshairs.Add(custom);
+        AddTile(name, CustomIcon(custom), custom: true);
+        SelectCrosshair(name, switched: false);
+
+        if (CrosshairStatus != null)
+            CrosshairStatus.Text = $"✓ Imported {name}. Set the size, then Apply to Roblox and relaunch.";
+
+        SaveAppSettings();
+    }
+
+    private string NextCustomName() => NextName("Custom");
+    private string NextImportName() => NextName("Import");
+
+    private string NextName(string prefix)
     {
         for (int i = 1; ; i++)
         {
-            string name = $"Custom {i}";
+            string name = $"{prefix} {i}";
             bool taken = _customCrosshairs.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
             if (!taken) return name;
         }
@@ -516,6 +576,10 @@ public partial class MainWindow
     private void CustomDelete_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button b || b.Tag is not string name) return;
+
+        // An imported crosshair owns a file on disk; take it with the entry.
+        CustomCrosshair? removing = CustomByName(name);
+        if (removing?.IsImage == true) CrosshairStore.Delete(removing.ImageFile);
 
         _customCrosshairs.RemoveAll(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
         _crosshairSizes.Remove(name);

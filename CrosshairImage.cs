@@ -108,6 +108,72 @@ public static class CrosshairImage
         dc.DrawGeometry(fill, edge, geometry);
     }
 
+    /// <summary>Loads an image file into a frozen bitmap, or null if it will not read.</summary>
+    /// <remarks>
+    /// Loaded fully on open so the file is not left locked, and colour profiles
+    /// are ignored so an odd one cannot throw. Frozen so it can be handed to the
+    /// UI thread and reused.
+    /// </remarks>
+    public static BitmapSource? TryLoadImage(string path)
+    {
+        try
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+            bmp.UriSource = new Uri(path);
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// An imported image, centred and scaled to fill a square, for a tile or preview.
+    /// </summary>
+    public static BitmapSource? RenderImageBitmap(string path, int pixels, double sizeFactor)
+    {
+        BitmapSource? src = TryLoadImage(path);
+        if (src == null) return null;
+
+        var visual = new DrawingVisual();
+        using (DrawingContext dc = visual.RenderOpen())
+        {
+            // The image keeps its shape and is scaled by the size, centred, so a
+            // tall or wide crosshair is never stretched out of proportion.
+            double fit = Math.Min(pixels / (double)src.PixelWidth, pixels / (double)src.PixelHeight);
+            double scale = fit * Math.Clamp(sizeFactor, 0.1, 4.0);
+            double w = src.PixelWidth * scale, h = src.PixelHeight * scale;
+            dc.DrawImage(src, new Rect((pixels - w) / 2, (pixels - h) / 2, w, h));
+        }
+
+        var bmp = new RenderTargetBitmap(pixels, pixels, 96, 96, PixelFormats.Pbgra32);
+        bmp.Render(visual);
+        bmp.Freeze();
+        return bmp;
+    }
+
+    /// <summary>The cursor PNG for an imported image, sized for the game like the built-ins.</summary>
+    public static byte[] RenderImageCursorPng(string path, int basePixels, double sizeFactor)
+    {
+        int outPixels = Math.Clamp((int)Math.Round(basePixels * sizeFactor), 16, 160);
+
+        BitmapSource? bmp = RenderImageBitmap(path, outPixels, 1.0);
+        if (bmp == null) return RenderCursorPng(new CrosshairStyle(), basePixels, sizeFactor);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bmp));
+
+        using var ms = new MemoryStream();
+        encoder.Save(ms);
+        return ms.ToArray();
+    }
+
     private static void Draw(DrawingContext dc, CrosshairStyle style, int pixels, double sizeFactor)
     {
         double centre = pixels / 2.0;

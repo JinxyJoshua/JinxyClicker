@@ -114,6 +114,16 @@ public sealed class CustomCrosshair
     public string Color { get; set; } = "#33FF66";
     public string? DotColor { get; set; }
 
+    /// <summary>
+    /// The bare file name of an imported image, when this crosshair is a picture
+    /// the user chose rather than one built from a shape and colour. Null for a
+    /// built-with-controls crosshair.
+    /// </summary>
+    public string? ImageFile { get; set; }
+
+    /// <summary>Whether this is an imported image rather than a drawn shape.</summary>
+    public bool IsImage => !string.IsNullOrWhiteSpace(ImageFile);
+
     /// <summary>The drawable style, with sensible proportions filled in.</summary>
     public CrosshairStyle ToStyle()
     {
