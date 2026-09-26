@@ -190,11 +190,17 @@ public partial class MainWindow : Window
             // app open.
             Loaded += async (_, _) =>
             {
-                // Config first, so anything it turns off is off before the
-                // update prompt or any feature has had a chance to run.
-                await RemoteConfig.LoadAsync(CancellationToken.None);
+                // Both start at once rather than the update check waiting behind
+                // the config fetch. They are independent — the update prompt does
+                // not read the config — and chaining them meant a slow config
+                // fetch delayed the prompt by seconds, long enough that opening
+                // the app and glancing at it missed the prompt before it arrived.
+                // The config still lands well before any feature it turns off is
+                // used, since nothing clicks until the user acts.
+                Task config = RemoteConfig.LoadAsync(CancellationToken.None);
+                Task update = UpdateCheck.RunAsync(this);
 
-                await UpdateCheck.RunAsync(this);
+                await Task.WhenAll(config, update);
             };
 
             RefreshKitWheel();
