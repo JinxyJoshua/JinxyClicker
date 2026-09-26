@@ -6,7 +6,7 @@
 ; and ffmpeg.exe to be present in the ffmpeg folder beside the project.
 
 #define AppName        "Jinxy AutoClicker Beta"
-#define AppVersion     "1.4.12"
+#define AppVersion     "1.4.13"
 #define AppPublisher   "JinxyJoshua"
 #define AppExeName     "JinxyClicker.exe"
 #define FfmpegDir      "..\ffmpeg"
@@ -23,6 +23,10 @@
 #ifdef DEV
   #define PublishDir   "..\bin\DevBuild\Release\net10.0-windows\win-x64\publish"
   #define OutputName   "JinxyAutoClicker-DEV-Setup-" + AppVersion
+  ; The dev update token, read from the build machine's own settings folder at
+  ; compile time. Only the dev installer carries it, so it never reaches a public
+  ; build; see the [Files] note below for why it is packaged at all.
+  #define DevTokenSource GetEnv("APPDATA") + "\JinxyClicker\dev-update.token"
 #else
   #define PublishDir   "..\bin\Release\net10.0-windows\win-x64\publish"
   #define OutputName   "JinxyAutoClicker-Beta-Setup-" + AppVersion
@@ -71,10 +75,19 @@ Source: "{#FfmpegDir}\ffmpeg.exe"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion
 Source: "{#FfmpegDir}\LICENSE"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 
-; The dev update token is deliberately NOT packaged. It used to be, which made
-; it a credential that travelled inside every dev build handed to anyone. It now
-; lives in the settings folder, placed there once by hand, so no installer ever
-; carries it and a leaked dev build leaks only the app.
+; The dev update token, for the DEV installer only. It is placed into the
+; settings folder so a dev build on any machine can update itself without the
+; token being put there by hand first - which is the whole point of handing
+; someone a dev build. It travels inside every dev build, so it is only as
+; private as the people those builds are given to; that is an accepted trade for
+; auto-update working everywhere, and it is why the token is fine-grained,
+; read-only, and scoped to the dev repository alone - a leaked one lets someone
+; download the dev installer they already have and nothing more. The public
+; installer never sees this line.
+#ifdef DEV
+Source: "{#DevTokenSource}"; DestDir: "{userappdata}\JinxyClicker"; \
+    Flags: ignoreversion skipifsourcedoesntexist
+#endif
 
 [Icons]
 ; WorkingDir is load-bearing, not decoration. The settings files resolve against
