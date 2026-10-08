@@ -15,7 +15,7 @@
       installer's AppVersion and this — or the update prompt compares against
       a version nobody shipped.
     -->
-    <Version>1.4.14</Version>
+    <Version>1.4.15</Version>
 
     <!--
       The compiler records where it built, and that record ships. A release DLL
@@ -95,6 +95,14 @@
       manifest name so relocating the source file cannot silently rename it.
     -->
     <EmbeddedResource Include="icon-source.png" LogicalName="DefaultWallpaper.png" />
+    <!--
+      The server-location globe page, baked into the app so the Server page can
+      serve it from the local feed with no web host to depend on. The source of
+      truth is the separate jinxy-server-globe project (also deployed to the web
+      for a shareable link); it is embedded here by that relative path, so the two
+      stay one file. LogicalName pins the manifest name GlobeFeed looks up.
+    -->
+    <EmbeddedResource Include="..\..\jinxy-server-globe\index.html" LogicalName="globe.html" />
   </ItemGroup>
 
   <ItemGroup>

@@ -215,7 +215,127 @@ cursor files on disk, not from settings.
 
 ---
 
-## 6. Suggested build order on Mac
+## 6. Custom crosshairs — build one, or import a picture
+
+Two ways a person ends up with a crosshair that is not in the gallery. Both end
+up as ordinary gallery tiles: they sit after the ready-made ones, they each keep
+their own size, and each carries a delete ✕. Everything in §2 (backup, restore,
+render once per pixel size) applies to them unchanged — by the time a crosshair
+reaches `RobloxCursors`, it is just PNG bytes.
+
+### 6.1 The record
+
+`CustomCrosshair` (in `CrosshairGallery.cs`) covers both kinds:
+
+| Field | Meaning |
+|---|---|
+| `Name` | Tile label and the key into the per-crosshair size map |
+| `Shape` | Shape name, e.g. `Cross`, `XDot` |
+| `Color` | Arm colour, hex |
+| `DotColor` | Centre colour, hex, or null for "same as the arms" |
+| `ImageFile` | Bare file name of an imported picture, else null |
+
+`ImageFile` set is what makes it an import (`IsImage`). Deliberately plain
+strings rather than a `CrosshairStyle`: the settings file stays readable, and an
+unknown shape or a bad colour falls back to something drawable instead of
+throwing. `ToStyle()` fills in proportions that suit a cursor — Size 9,
+Thickness 3, Gap 4, DotSize 3 — so a built crosshair is a colour and a shape
+decision only. Size is **not** stored here; it lives in the shared
+`name → percent` map with every other crosshair's.
+
+### 6.2 Build your own
+
+Controls: a shape (Cross, Cross+Dot, X, X+Dot, Dot, Ring, Ring+Dot, T), a main
+colour, a centre colour including a **None** option, and a live preview that
+redraws on every change. **Add to gallery** appends the record and selects it.
+
+Names are `Custom 1`, `Custom 2`, … — the first number not already taken, so
+deleting `Custom 2` and adding again does not produce two tiles with one name.
+Names are the key to the size map, so they must be unique.
+
+### 6.3 Import a picture
+
+The Mac has every piece of this already; use the existing ones rather than
+inventing new:
+
+1. **Pick.** `StorageProvider.OpenFilePickerAsync` with an image
+   `FilePickerFileType` — the same call and the same file type the wallpaper
+   picker uses in `MainWindow.axaml.cs`. Take `TryGetLocalPath()`; a picked file
+   with no local path (a cloud item) is a decline, not a crash.
+2. **Copy it in, immediately.** Never keep the path the user picked. Copy the
+   file into a `crosshairs/` folder beside the settings — on macOS that is
+   `~/Library/Application Support/JinxyMac/crosshairs` via
+   `SettingsPath.Folder`. `Core/Wallpaper.cs` is the precedent for copying a
+   chosen picture into the app's own folder; follow its shape.
+   A referenced file would break the moment it was renamed, moved or deleted,
+   and an uninstall would leave it behind.
+3. **Re-encode to PNG on the way in**, and store under a GUID name. Re-encoding
+   means a JPEG, an odd colour profile or a progressive file cannot trip up the
+   cursor writing later, when failing would leave Roblox's cursors half
+   replaced. The GUID means two imports both called `crosshair.png` cannot
+   collide.
+4. **Formats:** whatever the decoder actually handles. On Windows that is PNG,
+   JPG, BMP and GIF; on macOS, Avalonia decodes through Skia, so follow
+   `Wallpaper.Allowed` (`.png .jpg .jpeg .bmp .webp`) rather than copying the
+   Windows list. An animated GIF decodes to its first frame — fine for a cursor,
+   worth knowing before someone reports it.
+5. **Unreadable file:** store nothing, add no tile, and say so in the status
+   line ("That file could not be read. Try a PNG or JPEG."). The wallpaper
+   picker already words it that way.
+
+On apply, an import goes through `RenderImageCursorPng(path, basePixels,
+sizeFactor)`: same `outPixels = clamp(round(basePixels * sizeFactor), 16, 160)`
+as a drawn crosshair, the picture fitted and centred into that square preserving
+aspect, on a transparent background. If it cannot be read at apply time — the
+user deleted it from the folder by hand — fall back to rendering the default
+style rather than writing nothing.
+
+Note what this means for a big source image: a 1024px picture becomes a 64px
+cursor. Scaling down is the normal case, and scaling up a tiny picture will look
+soft. Say it in the UI rather than filtering sizes.
+
+### 6.4 Deleting
+
+The ✕ on a custom tile removes the record, its entry in the size map, and — for
+an import — the stored file. A leftover file is harmless and must never take the
+app down, so deletion failure is swallowed. If the deleted crosshair was the
+selected one, fall back to **Default**.
+
+Deleting a custom crosshair does **not** restore Roblox's cursors. If it was
+applied, the cursor files stay as they are until Remove is pressed; the backups
+from §2 are what makes that safe.
+
+### 6.5 Persistence
+
+`CustomCrosshairs` in the settings, a list of the records above, written
+whenever one is added or deleted. Combined with `CrosshairName` and
+`CrosshairSizes`, a restart puts the gallery, the selection and every
+per-crosshair size back exactly as they were.
+
+### 6.6 What to test
+
+Port or write, all of it pure and Mac-testable without Roblox:
+
+- Store re-encodes to PNG, returns a name that did not exist before, and two
+  imports of the same file get different names.
+- Store on an unreadable file returns null and writes nothing.
+- Delete removes the file; deleting a missing file is a no-op, not a throw.
+- `ToStyle()` maps an unknown shape and a bad colour to something drawable.
+- Naming picks the first free number after a delete.
+- `RenderImageCursorPng` returns an image of the expected side for a size
+  factor, and centres a non-square source without stretching it.
+
+### 6.7 One Mac-specific risk
+
+The app is unsigned and not sandboxed, so an ordinary file path works and no
+security-scoped bookmark is needed. If JinxyMac is ever sandboxed or notarised
+with a hardened runtime, reading the picked file would need a bookmark — but
+because the file is copied in at import and never re-read from its original
+location, only the import itself would need revisiting.
+
+---
+
+## 7. Suggested build order on Mac
 
 1. **Prove layer 2 by hand first** (§2): confirm the Mac cursor paths, replace one
    PNG manually, relaunch Roblox, confirm it shows and survives. If it doesn't,
@@ -224,8 +344,11 @@ cursor files on disk, not from settings.
 3. Port `CrosshairStyle` geometry + tests (pure, easy).
 4. Port `CrosshairImage` rendering (CoreGraphics/`NSImage`), including the
    size→dimensions rule.
-5. Port `CrosshairGallery` data.
-6. Build the page UI and wire Apply/Remove/Default/import/per-size.
+5. Port `CrosshairGallery` data, including the `CustomCrosshair` record (§6.1).
+6. Build the page UI and wire Apply/Remove/Default/per-size.
+7. Add the custom crosshairs last (§6): build-your-own first, since it needs no
+   file handling, then import. Neither changes how cursors are written, so both
+   can be built on top of a feature that already works.
 
 Keep the same relaunch-Roblox messaging and the same reversibility guarantees —
 those are what make it feel identical.

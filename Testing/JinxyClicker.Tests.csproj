@@ -85,6 +85,14 @@
     <Compile Include="../HotkeySettings.cs" />
     <Compile Include="../HotkeySettings.Tests.cs" />
     <Compile Include="../ProcessTiming.cs" />
+    <Compile Include="../RobloxServerLog.cs" />
+    <Compile Include="../RobloxServerLog.Tests.cs" />
+    <Compile Include="../ServerRegion.cs" />
+    <Compile Include="../ServerRegion.Tests.cs" />
+    <Compile Include="../FastFlags.cs" />
+    <Compile Include="../PcTweaks.cs" />
+    <Compile Include="../GamingMode.cs" />
+    <Compile Include="../GamingMode.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />

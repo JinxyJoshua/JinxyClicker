@@ -1915,6 +1915,7 @@ public partial class MainWindow : Window
 
         HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
         RobloxPriority.IsChecked = s.RobloxPriority;
+        LoadGamingMode(s);
 
         SetClickMode(s.HoldMode);
 
@@ -1923,6 +1924,8 @@ public partial class MainWindow : Window
 
         StreamerModeCheck.IsChecked = s.StreamerMode;
         OverlayCheck.IsChecked = s.OverlayOn;
+        ServerRegionCheck.IsChecked = s.ServerRegionOverlayOn;
+        LoadServerRegion(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2060,7 +2063,10 @@ public partial class MainWindow : Window
             HideValues = _valuesHidden,
             StreamerMode = StreamerModeCheck.IsChecked == true,
             OverlayOn = OverlayCheck.IsChecked == true,
+            ServerRegionOverlayOn = ServerRegionCheck.IsChecked == true,
+            ServerOverlaySeconds = _serverOverlaySeconds,
             CrosshairName = _crosshairName,
+            CrosshairApplied = _crosshairApplied,
             CrosshairSizes = _crosshairSizes,
             CustomCrosshairs = _customCrosshairs,
             ReplayEnabled = ReplayEnabled.IsChecked == true,
@@ -2073,6 +2079,11 @@ public partial class MainWindow : Window
             RecordDisplay = _captureDisplay?.DeviceName ?? AppSettings.AllDisplays,
             HotkeysEnabled = HotkeysEnabledToggle.IsChecked == true,
             RobloxPriority = RobloxPriority.IsChecked == true,
+            GamingModeOn = _gamingOn,
+            GamingModeAppliedTweaks = _gamingAppliedTweaks,
+            GamingModeSetFps = _gamingSetFps,
+            GamingModePrevFpsCap = _gamingPrevFpsCap,
+            GamingModeSetPriority = _gamingSetPriority,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
@@ -4849,6 +4860,10 @@ public partial class MainWindow : Window
         // cannot arrive in sentence case and break the header's rhythm.
         PageTitleText.Text = title.ToUpperInvariant();
         PageSubtitleText.Text = subtitle;
+
+        // The server poller runs while the overlay is on or its page is open, so
+        // leaving or entering any page may need it started or stopped.
+        UpdateServerRegionActivity();
     }
 
     /// <summary>How long a page takes to arrive.</summary>
@@ -4912,13 +4927,13 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavPresets, NavKitWheel, NavCrosshair, NavTweaks, NavOptimizations,
+        NavClicker, NavPresets, NavKitWheel, NavCrosshair, NavServer, NavTweaks, NavOptimizations,
         NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PagePresets, PageKitWheel, PageCrosshair, PageTweaks, PageOptimizations,
+        PageClicker, PagePresets, PageKitWheel, PageCrosshair, PageServer, PageTweaks, PageOptimizations,
         PageMacros, PageSwitcher, PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 
@@ -5440,6 +5455,7 @@ public partial class MainWindow : Window
         // so the change shows immediately instead of at the next macro.
         if (_macroBadge != null) _macroBadge.StreamerMode = on;
         if (_overlay != null) _overlay.StreamerMode = on;
+        if (_serverOverlay != null) _serverOverlay.StreamerMode = on;
 
         SaveAppSettings();
     }
@@ -5925,6 +5941,9 @@ public partial class MainWindow : Window
         _overlayTimer?.Stop();
         _overlay?.Close();
         _overlay = null;
+
+        // Same again for the server-region banner.
+        ShutdownServerRegion();
 
         // A recording still running at this point would leave an unplayable
         // file, so it gets a chance to finalise before the process goes.

@@ -72,9 +72,21 @@ public partial class MainWindow
 
         RefreshCustomPreview();
 
-        _crosshairApplied = CursorWriter.IsApplied();
         RefreshCrosshairPreview();
-        UpdateCrosshairStatus();
+
+        // If a crosshair was on last time and this isn't the default, put it back
+        // now — a Roblox update since then would have replaced the folder with the
+        // stock cursor, and re-writing it to every current folder is what keeps it
+        // working without the user noticing anything happened.
+        if (s.CrosshairApplied && !IsDefaultSelected)
+        {
+            UpdateCrosshairStatus(ApplyCurrentCrosshair());
+        }
+        else
+        {
+            _crosshairApplied = CursorWriter.IsApplied();
+            UpdateCrosshairStatus();
+        }
     }
 
     // ---- resolving a name to a style, built-in or home-made ----
@@ -342,6 +354,19 @@ public partial class MainWindow
             return;
         }
 
+        UpdateCrosshairStatus(ApplyCurrentCrosshair());
+        SaveAppSettings();
+    }
+
+    /// <summary>
+    /// Writes the chosen crosshair, at its chosen size, into Roblox's cursors.
+    /// </summary>
+    /// <remarks>
+    /// The one place the write happens, so the Apply button and the re-apply after a
+    /// Roblox update go through the same path and can never drift apart.
+    /// </remarks>
+    private CursorApplyResult ApplyCurrentCrosshair()
+    {
         double factor = SizeFactor();
         string? imagePath = CurrentImagePath();
         CrosshairStyle style = CurrentCrosshairStyle();
@@ -351,8 +376,7 @@ public partial class MainWindow
             : CrosshairImage.RenderCursorPng(style, basePixels, factor));
 
         _crosshairApplied = result.AnyWritten || CursorWriter.IsApplied();
-        UpdateCrosshairStatus(result);
-        SaveAppSettings();
+        return result;
     }
 
     private void CrosshairRemove_Click(object sender, RoutedEventArgs e)
@@ -379,7 +403,7 @@ public partial class MainWindow
                 {
                     (0, 0) => "No Roblox install found to apply to.",
                     ( > 0, > 0) => $"Applied to {r.Written} cursor file(s). {r.Failed} were in use — close Roblox and apply again.",
-                    ( > 0, 0) => $"Applied to {r.Written} cursor file(s) — relaunch Roblox.",
+                    ( > 0, 0) => $"✓ Applied — fully close and reopen Roblox to see your crosshair.",
                     _ => "Could not apply — close Roblox and try again."
                 };
             }

@@ -103,6 +103,19 @@ public sealed class AppSettings
     public string CrosshairName { get; set; } = "Green Cross";
 
     /// <summary>
+    /// Whether a crosshair is meant to be on Roblox's cursor right now.
+    /// </summary>
+    /// <remarks>
+    /// Kept so the app can put the crosshair back after a Roblox update, which
+    /// installs a fresh version folder with the default cursor and would otherwise
+    /// silently lose it — the usual "it just stopped working" report. The on-disk
+    /// backups can't answer this on their own: an old version folder left behind by
+    /// an update still carries a backup, so they say "applied" while the live cursor
+    /// is already back to default.
+    /// </remarks>
+    public bool CrosshairApplied { get; set; }
+
+    /// <summary>
     /// The size, as a percentage, kept per crosshair by name.
     /// </summary>
     /// <remarks>
@@ -114,6 +127,40 @@ public sealed class AppSettings
 
     /// <summary>Crosshairs the user built themselves, shown after the ready-made ones.</summary>
     public List<CustomCrosshair> CustomCrosshairs { get; set; } = new();
+
+    /// <summary>
+    /// Whether the server-region banner is shown over the game on joining.
+    /// </summary>
+    /// <remarks>
+    /// Off until asked for, like the click readout — it draws over a game people
+    /// are playing, so it has to be opted into. It reads only Roblox's own log,
+    /// never the game, and shows a region, never a ping (which cannot be measured
+    /// from outside the game). See <see cref="ServerOverlay"/>.
+    /// </remarks>
+    public bool ServerRegionOverlayOn { get; set; }
+
+    /// <summary>
+    /// How long the server banner stays on screen after a join, in seconds.
+    /// Zero means it stays up until the server changes or Roblox closes.
+    /// </summary>
+    public int ServerOverlaySeconds { get; set; }
+
+    /// <summary>
+    /// Gaming Mode: whether it is on, and exactly what it changed, so turning it
+    /// off reverts only its own doing.
+    /// </summary>
+    /// <remarks>
+    /// The list holds the ids of the tweaks the switch itself applied — not the
+    /// ones the user had already turned on by hand, which it must leave untouched.
+    /// The FPS cap and priority are tracked the same way: a flag for whether the
+    /// switch changed each, and the previous FPS value to put back. All of it is
+    /// restorable; none of it is a one-way change.
+    /// </remarks>
+    public bool GamingModeOn { get; set; }
+    public List<string> GamingModeAppliedTweaks { get; set; } = new();
+    public bool GamingModeSetFps { get; set; }
+    public int? GamingModePrevFpsCap { get; set; }
+    public bool GamingModeSetPriority { get; set; }
 
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
