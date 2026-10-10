@@ -77,6 +77,24 @@ public class AppSettingsDefaultsTests
         Assert.True(back.MontageCrossfade);
     }
 
+    [Fact]
+    public void Setup_profiles_round_trip()
+    {
+        var s = new AppSettings
+        {
+            ActiveSetup = "Ranked",
+            SetupProfiles = new()
+            {
+                new SetupProfile { Name = "Ranked", CrosshairName = "Red Dot", FastFlagsOn = true }
+            }
+        };
+        var back = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(s))!;
+        Assert.Equal("Ranked", back.ActiveSetup);
+        Assert.Single(back.SetupProfiles);
+        Assert.Equal("Red Dot", back.SetupProfiles[0].CrosshairName);
+        Assert.True(back.SetupProfiles[0].FastFlagsOn);
+    }
+
     /// <summary>And a file that does say so is honoured.</summary>
     [Fact]
     public void AChoiceToTurnItOnIsKept()

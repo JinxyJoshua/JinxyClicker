@@ -62,6 +62,8 @@
     <Compile Include="../ClickPreset.Tests.cs" />
     <Compile Include="../AppSettings.cs" />
     <Compile Include="../AppSettings.Tests.cs" />
+    <Compile Include="../SetupProfile.cs" />
+    <Compile Include="../SetupProfile.Tests.cs" />
     <Compile Include="../SettingsPath.cs" />
     <Compile Include="../Wallpaper.cs" />
     <Compile Include="../WallpaperGallery.cs" />

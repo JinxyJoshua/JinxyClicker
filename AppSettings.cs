@@ -190,6 +190,12 @@ public sealed class AppSettings
     /// <summary>Clip Studio (Pro): crossfade clips into each other instead of hard cuts.</summary>
     public bool MontageCrossfade { get; set; }
 
+    /// <summary>Pro: saved whole-app setups (crosshair + click preset + flags + theme).</summary>
+    public List<SetupProfile> SetupProfiles { get; set; } = new();
+
+    /// <summary>Pro: the name of the setup last applied, if any.</summary>
+    public string? ActiveSetup { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 
