@@ -3470,6 +3470,11 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <!-- Confetti layer for a successful Pro activation. Click-through and
+                 empty until something celebrates. -->
+            <Canvas x:Name="ProCelebration" IsHitTestVisible="False"
+                    Grid.RowSpan="2" Panel.ZIndex="100" ClipToBounds="True"/>
         </Grid>
     </Grid>
 </Window>

@@ -1,5 +1,11 @@
 using System;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace JinxyClicker;
 
@@ -113,9 +119,80 @@ public partial class MainWindow
         RefreshLicense();   // stamps a fresh pass if needed
         SaveAppSettings();  // persists the key and first-use date
 
-        ProActivateResult.Text = IsPro
-            ? "Activated. Thank you!"
-            : "That key has expired.";
+        if (IsPro)
+        {
+            ProActivateResult.Text = "Activated. Thank you!";
+            PlayCelebration();
+        }
+        else
+        {
+            ProActivateResult.Text = "That key has expired.";
+        }
+    }
+
+    // A confetti burst and a pop on the plan line when a key activates. Purely
+    // cosmetic, click-through, and cleans itself up after a few seconds.
+    private void PlayCelebration()
+    {
+        if (ProStatusText is not null)
+        {
+            var scale = new ScaleTransform(1, 1);
+            ProStatusText.RenderTransformOrigin = new Point(0, 0.5);
+            ProStatusText.RenderTransform = scale;
+            var pop = new DoubleAnimation(0.75, 1, TimeSpan.FromMilliseconds(550))
+            {
+                EasingFunction = new BackEase { Amplitude = 0.7, EasingMode = EasingMode.EaseOut }
+            };
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
+        }
+
+        Canvas? canvas = ProCelebration;
+        if (canvas is null) return;
+        canvas.Children.Clear();
+
+        double w = canvas.ActualWidth > 0 ? canvas.ActualWidth : 820;
+        double h = canvas.ActualHeight > 0 ? canvas.ActualHeight : 620;
+        var rnd = new Random();
+        Brush[] colors =
+            new[] { "#FF5C8A", "#FFD24C", "#4CE0B3", "#5CA8FF", "#B47CFF", "#FF8A4C" }
+            .Select(c => (Brush)new BrushConverter().ConvertFrom(c)!)
+            .ToArray();
+
+        for (int i = 0; i < 70; i++)
+        {
+            double dur = 1.4 + rnd.NextDouble() * 1.5;
+            double startX = rnd.NextDouble() * w;
+            double startY = -20 - rnd.NextDouble() * 120;
+
+            var rot = new RotateTransform(rnd.Next(360));
+            var piece = new Rectangle
+            {
+                Width = rnd.Next(6, 13),
+                Height = rnd.Next(9, 18),
+                Fill = colors[rnd.Next(colors.Length)],
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = rot
+            };
+            Canvas.SetLeft(piece, startX);
+            Canvas.SetTop(piece, startY);
+            canvas.Children.Add(piece);
+
+            piece.BeginAnimation(Canvas.TopProperty,
+                new DoubleAnimation(startY, h + 40, TimeSpan.FromSeconds(dur))
+                { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } });
+            piece.BeginAnimation(Canvas.LeftProperty,
+                new DoubleAnimation(startX, startX + (rnd.NextDouble() * 180 - 90), TimeSpan.FromSeconds(dur)));
+            rot.BeginAnimation(RotateTransform.AngleProperty,
+                new DoubleAnimation(rot.Angle, rot.Angle + (rnd.Next(2) == 0 ? 720 : -720), TimeSpan.FromSeconds(dur)));
+            piece.BeginAnimation(UIElement.OpacityProperty,
+                new DoubleAnimation(1, 0, TimeSpan.FromSeconds(dur))
+                { BeginTime = TimeSpan.FromSeconds(dur * 0.6) });
+        }
+
+        var clear = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3.2) };
+        clear.Tick += (_, _) => { clear.Stop(); canvas.Children.Clear(); };
+        clear.Start();
     }
 
     private static string ReadClipboard()
