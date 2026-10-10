@@ -133,9 +133,11 @@ bundled tracks later. Pick one at review.
 
 ---
 
-## Open questions for review
+## Decisions (confirmed)
 
-1. **Music:** ship 1–2 CC0 tracks + own-file (recommended), or own-file only?
-2. **Clip length:** 20s default good, or different? (It's a setting either way.)
-3. **Montage = all clips** in saved order for v1 — OK, or do you want tick-to-
-   include even in v1?
+1. ~~Music~~ — **ship free tracks + own-file.** The app ships with a `music`
+   folder holding a couple of royalty-free tracks and picks one by default; a
+   "use my own file" picker overrides it. Bundled tracks must be genuinely
+   license-clean (CC0, or original) — never ripped songs.
+2. ~~Clip length~~ — **20s default** (adjustable in settings).
+3. ~~Montage scope~~ — **all clips in saved order** for v1; delete to leave one out.
