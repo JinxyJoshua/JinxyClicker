@@ -2738,7 +2738,7 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MAKE A MONTAGE" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Stitches all your clips below into one video with music. Clip your moments in-game with your clip hotkey; they show up here. Drop your own .mp3s into the app's music folder to add more tracks."
+                            <TextBlock Text="Stitches your ticked clips into one video with music, in the order shown below. Use the arrows to reorder, Trim to keep just the good seconds, and the checkbox to leave a clip out. Clip your moments in-game with your clip hotkey."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -2759,7 +2759,7 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="YOUR CLIPS" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <TextBlock Text="YOUR CLIPS  (montage plays top to bottom)" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
                             <ItemsControl x:Name="ClipList"/>
                         </StackPanel>
                     </Border>

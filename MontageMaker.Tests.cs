@@ -4,7 +4,11 @@ using Xunit;
 
 public class MontageMakerTests
 {
-    private static readonly List<string> TwoClips = new() { @"C:\c\a.mp4", @"C:\c\b.mp4" };
+    private static readonly List<MontageClip> TwoClips = new()
+    {
+        new MontageClip(@"C:\c\a.mp4"),
+        new MontageClip(@"C:\c\b.mp4")
+    };
 
     [Fact]
     public void Builds_concat_for_each_clip()
@@ -51,5 +55,29 @@ public class MontageMakerTests
         string args = MontageMaker.BuildArgs(TwoClips, null, MontageShape.Landscape, @"C:\out.mp4");
         Assert.DoesNotContain(":a\"", args);
         Assert.DoesNotContain("-shortest", args);
+    }
+
+    [Fact]
+    public void Trim_adds_a_trim_filter_only_to_the_trimmed_clip()
+    {
+        var clips = new List<MontageClip>
+        {
+            new(@"C:\c\a.mp4", 4, 12),   // keep 4s..12s
+            new(@"C:\c\b.mp4")           // whole clip
+        };
+        string args = MontageMaker.BuildArgs(clips, null, MontageShape.Landscape, @"C:\out.mp4");
+        Assert.Contains("[0:v]trim=start=4:end=12,setpts=PTS-STARTPTS,scale=", args);
+        Assert.Contains("[1:v]scale=", args); // untrimmed clip starts straight at scale
+        Assert.DoesNotContain("[1:v]trim", args);
+    }
+
+    [Theory]
+    [InlineData("  Duration: 00:00:18.53, start: 0.000000, bitrate: 100 kb/s", 18.53)]
+    [InlineData("Duration: 00:01:05.00,", 65.0)]
+    [InlineData("Duration: 01:00:00.00,", 3600.0)]
+    [InlineData("no duration here", 0.0)]
+    public void ParseDuration_reads_ffmpeg_duration(string line, double expected)
+    {
+        Assert.Equal(expected, MontageMaker.ParseDuration(line), 2);
     }
 }
