@@ -3426,6 +3426,21 @@ public partial class MainWindow : Window
     private void NavPresets_Click(object sender, RoutedEventArgs e) =>
         ShowPage(NavPresets, PagePresets, "Presets", "Saved click configurations");
 
+    // Expands or collapses a sidebar group. The header's Tag points at the group's
+    // panel; the leading chevron in the label flips to show the state.
+    private void NavGroup_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn ||
+            btn.Tag is not System.Windows.FrameworkElement panel) return;
+
+        bool show = panel.Visibility != System.Windows.Visibility.Visible;
+        panel.Visibility = show ? System.Windows.Visibility.Visible
+                                : System.Windows.Visibility.Collapsed;
+
+        if (btn.Content is string label && label.Length > 1)
+            btn.Content = (show ? "▾" : "▸") + label.Substring(1);
+    }
+
     private void NavTweaks_Click(object sender, RoutedEventArgs e)
     {
         // Re-read on entry: a tweak may have been changed outside this app since

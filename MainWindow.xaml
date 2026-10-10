@@ -805,6 +805,29 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- A collapsible group header in the sidebar: a muted label with a
+             chevron that flips when the group is toggled. Borderless so it reads
+             as a heading, not a tab. -->
+        <Style x:Key="GroupHeader" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="6,12,6,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -833,6 +856,7 @@
                         app:NavIcon.Glyph="&#xE735;" Content="GET PRO"
                         Style="{StaticResource NavButton}" Click="NavPro_Click"
                         Margin="0,10,0,0"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                 <!-- Wordmark sits against a solid accent block rather than
                      floating over the sidebar. The slab is the mark. -->
@@ -848,35 +872,60 @@
 
                 <Border Height="1" Background="{StaticResource Divider}" Margin="4,16,8,18"/>
 
-                <Button x:Name="NavClicker" app:NavIcon.Glyph="&#xE7C9;" Content="CLICKER" Style="{StaticResource NavButton}"
-                        Tag="Selected" Click="NavClicker_Click"/>
-                <Button x:Name="NavPresets" app:NavIcon.Glyph="&#xE734;" Content="PRESETS" Style="{StaticResource NavButton}"
-                        Click="NavPresets_Click"/>
-                <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="MACROS" Style="{StaticResource NavButton}"
-                        Click="NavMacros_Click"/>
-                <Button x:Name="NavSwitcher" app:NavIcon.Glyph="&#xE8AB;" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
-                        Click="NavSwitcher_Click"/>
-                <Button x:Name="NavTweaks" app:NavIcon.Glyph="&#xE90F;" Content="TWEAKS" Style="{StaticResource NavButton}"
-                        Click="NavTweaks_Click"/>
-                <Button x:Name="NavOptimizations" app:NavIcon.Glyph="&#xE945;" Content="OPTIMIZATIONS" Style="{StaticResource NavButton}"
-                        Click="NavOptimizations_Click"/>
-                <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
-                        Click="NavMod_Click"/>
-                <Button x:Name="NavKitWheel" app:NavIcon.Glyph="&#xE72C;" Content="KIT WHEEL" Style="{StaticResource NavButton}"
-                        Click="NavKitWheel_Click"/>
-                <Button x:Name="NavCrosshair" app:NavIcon.Glyph="&#xE1D1;" Content="CROSSHAIR" Style="{StaticResource NavButton}"
-                        Click="NavCrosshair_Click"/>
-                <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
-                        Click="NavServer_Click"/>
-                <Button x:Name="NavRecorder" app:NavIcon.Glyph="&#xE714;" Content="RECORDER" Style="{StaticResource NavButton}"
-                        Click="NavRecorder_Click"/>
-                <Button x:Name="NavHistory" app:NavIcon.Glyph="&#xE81C;" Content="HISTORY" Style="{StaticResource NavButton}"
-                        Click="NavHistory_Click"/>
-                <Button x:Name="NavTheme" app:NavIcon.Glyph="&#xE790;" Content="THEME" Style="{StaticResource NavButton}"
-                        Click="NavTheme_Click"/>
-                <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
-                        Click="NavSettings_Click"/>
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; CLICKING"
+                        Tag="{Binding ElementName=GroupClicking}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupClicking">
+                    <Button x:Name="NavClicker" app:NavIcon.Glyph="&#xE7C9;" Content="CLICKER" Style="{StaticResource NavButton}"
+                            Tag="Selected" Click="NavClicker_Click"/>
+                    <Button x:Name="NavPresets" app:NavIcon.Glyph="&#xE734;" Content="PRESETS" Style="{StaticResource NavButton}"
+                            Click="NavPresets_Click"/>
+                    <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="MACROS" Style="{StaticResource NavButton}"
+                            Click="NavMacros_Click"/>
+                    <Button x:Name="NavSwitcher" app:NavIcon.Glyph="&#xE8AB;" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
+                            Click="NavSwitcher_Click"/>
                 </StackPanel>
+
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
+                        Tag="{Binding ElementName=GroupGame}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupGame">
+                    <Button x:Name="NavKitWheel" app:NavIcon.Glyph="&#xE72C;" Content="KIT WHEEL" Style="{StaticResource NavButton}"
+                            Click="NavKitWheel_Click"/>
+                    <Button x:Name="NavCrosshair" app:NavIcon.Glyph="&#xE1D1;" Content="CROSSHAIR" Style="{StaticResource NavButton}"
+                            Click="NavCrosshair_Click"/>
+                    <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
+                            Click="NavServer_Click"/>
+                </StackPanel>
+
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PERFORMANCE"
+                        Tag="{Binding ElementName=GroupPerf}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupPerf">
+                    <Button x:Name="NavTweaks" app:NavIcon.Glyph="&#xE90F;" Content="TWEAKS" Style="{StaticResource NavButton}"
+                            Click="NavTweaks_Click"/>
+                    <Button x:Name="NavOptimizations" app:NavIcon.Glyph="&#xE945;" Content="OPTIMIZATIONS" Style="{StaticResource NavButton}"
+                            Click="NavOptimizations_Click"/>
+                    <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
+                            Click="NavMod_Click"/>
+                </StackPanel>
+
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; CAPTURE"
+                        Tag="{Binding ElementName=GroupCapture}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupCapture">
+                    <Button x:Name="NavRecorder" app:NavIcon.Glyph="&#xE714;" Content="RECORDER" Style="{StaticResource NavButton}"
+                            Click="NavRecorder_Click"/>
+                    <Button x:Name="NavHistory" app:NavIcon.Glyph="&#xE81C;" Content="HISTORY" Style="{StaticResource NavButton}"
+                            Click="NavHistory_Click"/>
+                </StackPanel>
+
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; APP"
+                        Tag="{Binding ElementName=GroupApp}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupApp">
+                    <Button x:Name="NavTheme" app:NavIcon.Glyph="&#xE790;" Content="THEME" Style="{StaticResource NavButton}"
+                            Click="NavTheme_Click"/>
+                    <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
+                            Click="NavSettings_Click"/>
+                </StackPanel>
+                </StackPanel>
+                </ScrollViewer>
             </DockPanel>
         </Border>
 
