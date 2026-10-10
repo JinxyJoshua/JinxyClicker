@@ -67,12 +67,22 @@ public partial class MainWindow
             { IsPro: true, ExpiresUtc: { } exp } => $"Pro — {status.Tier}, until {exp.ToLocalTime():d}",
             _ => "Free version"
         };
+
+        // Once Pro is active there's nothing to activate, so lock the controls.
+        // They unlock again on their own if a pass later expires (IsPro goes false).
+        bool canActivate = !IsPro;
+        if (ProKeyInput is not null) ProKeyInput.IsEnabled = canActivate;
+        if (ProPasteButton is not null) ProPasteButton.IsEnabled = canActivate;
+        if (ProActivateButton is not null) ProActivateButton.IsEnabled = canActivate;
+        if (ProActivateResult is not null && IsPro)
+            ProActivateResult.Text = "You're already Pro — no need to activate again.";
     }
 
     // One reliable click: read the whole key straight from the clipboard (so a
     // half-finished paste in the box can't get in the way), show it, and activate.
     private void ProPaste_Click(object sender, RoutedEventArgs e)
     {
+        if (IsPro) return; // already active; nothing to re-activate
         string clip = ReadClipboard();
         if (clip.Length > 0) ProKeyInput.Text = clip;
         TryActivate(ProKeyInput.Text ?? "");
@@ -80,7 +90,7 @@ public partial class MainWindow
 
     private void ProActivate_Click(object sender, RoutedEventArgs e)
     {
-        if (_license is null) return;
+        if (_license is null || IsPro) return; // already active; nothing to re-activate
 
         string typed = ProKeyInput.Text ?? "";
 
