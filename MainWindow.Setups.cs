@@ -214,6 +214,22 @@ public partial class MainWindow
 
     private void SetSetupsStatus(string text) { if (SetupsStatus is not null) SetupsStatus.Text = text; }
 
+    /// <summary>
+    /// A later launch reached the running copy: bring this window to the front, and
+    /// if it came from the Play shortcut, run Play.
+    /// </summary>
+    public void OnSecondInstance(string message)
+    {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Show();
+        Activate();
+        Topmost = true;   // nudge above whatever had focus, then release
+        Topmost = false;
+        Focus();
+
+        if (string.Equals(message, "play", StringComparison.OrdinalIgnoreCase)) RunPlay();
+    }
+
     // Writes a "Jinxy Play" shortcut to the desktop that relaunches the app with
     // --play, so a double-click applies the active setup and opens the game. Uses
     // the Windows Script Host COM object so no extra package is needed.
