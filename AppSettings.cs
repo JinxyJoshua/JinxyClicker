@@ -162,6 +162,19 @@ public sealed class AppSettings
     public int? GamingModePrevFpsCap { get; set; }
     public bool GamingModeSetPriority { get; set; }
 
+    /// <summary>
+    /// The Pro license key the user pasted, or null for a free install. The key
+    /// itself carries the tier and is re-verified on every launch, so nothing here
+    /// needs to be trusted — a hand-edited value just fails verification.
+    /// </summary>
+    public string? LicenseKey { get; set; }
+
+    /// <summary>
+    /// When a timed pass was first activated, so its countdown runs from first use
+    /// rather than from when it was minted. Null for a lifetime key or no key.
+    /// </summary>
+    public DateTime? LicenseFirstUseUtc { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

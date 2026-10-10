@@ -42,6 +42,24 @@ public class AppSettingsDefaultsTests
         Assert.False(loaded!.OverlayOn);
     }
 
+    /// <summary>
+    /// The Pro key and its first-use date have to survive a round trip, or a
+    /// paid user would drop back to free on the next launch.
+    /// </summary>
+    [Fact]
+    public void License_fields_round_trip_through_json()
+    {
+        var s = new AppSettings
+        {
+            LicenseKey = "JINXY-ABCDE-FGHIJ",
+            LicenseFirstUseUtc = new System.DateTime(2026, 2, 3, 4, 5, 6, System.DateTimeKind.Utc)
+        };
+        string json = JsonSerializer.Serialize(s);
+        var back = JsonSerializer.Deserialize<AppSettings>(json)!;
+        Assert.Equal(s.LicenseKey, back.LicenseKey);
+        Assert.Equal(s.LicenseFirstUseUtc, back.LicenseFirstUseUtc);
+    }
+
     /// <summary>And a file that does say so is honoured.</summary>
     [Fact]
     public void AChoiceToTurnItOnIsKept()
