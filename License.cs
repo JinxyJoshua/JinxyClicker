@@ -60,6 +60,10 @@ public sealed class License
         return (pastedKey, sameKey ? currentFirstUse : null);
     }
 
+    /// <summary>The tier a key grants, or null if the key is missing or invalid.</summary>
+    public ProTier? TierOf(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? null : LicenseKeyCodec.Verify(key, _publicKey)?.Tier;
+
     public LicenseStatus Evaluate(string? key, DateTime? firstUseUtc)
     {
         if (string.IsNullOrWhiteSpace(key)) return LicenseStatus.Free;

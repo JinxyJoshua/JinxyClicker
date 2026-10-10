@@ -22,6 +22,14 @@ public static class LicenseKeys
     }
 
     /// <summary>
+    /// The pass-check Worker: records when each timed pass was first activated, on
+    /// the server, so the countdown can't be reset by deleting local files or
+    /// reinstalling. Lifetime keys never call it and stay fully offline. Empty
+    /// disables the check (passes then fall back to the local date).
+    /// </summary>
+    public const string PassServerUrl = "https://jinxy-pass-check.jinxy-server-globe.workers.dev";
+
+    /// <summary>
     /// Key ids of leaked keys to refuse. Add an id here and ship an update to kill
     /// a key that has been posted publicly; look the id up in your KeyGen keys.csv.
     /// </summary>

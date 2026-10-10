@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,6 +20,7 @@ namespace JinxyClicker;
 public partial class MainWindow
 {
     private License? _license;
+    private PassServer? _passServer;
     private string? _licenseKey;
     private DateTime? _licenseFirstUseUtc;
 
@@ -29,9 +31,33 @@ public partial class MainWindow
     private void LoadLicense(AppSettings s)
     {
         _license = new License(LicenseKeys.PublicKey(), LicenseKeys.Blocklist, () => DateTime.UtcNow);
+        _passServer = string.IsNullOrEmpty(LicenseKeys.PassServerUrl)
+            ? null : new PassServer(LicenseKeys.PassServerUrl);
         _licenseKey = s.LicenseKey;
         _licenseFirstUseUtc = s.LicenseFirstUseUtc;
         RefreshLicense();
+        SyncPassWithServerAsync();   // fire-and-forget: the server's date wins once online
+    }
+
+    // For an active pass, pull the authoritative first-use date from the server and
+    // let it win over the local one — so deleting local files or reinstalling can't
+    // restart a pass. Does nothing for lifetime keys or when offline.
+    private async void SyncPassWithServerAsync()
+    {
+        if (_license is null || _passServer is null || string.IsNullOrEmpty(_licenseKey)) return;
+
+        ProTier? tier = _license.TierOf(_licenseKey);
+        if (tier is null || tier == ProTier.Lifetime) return;
+
+        DateTime? serverFirst = await _passServer.FirstUseUtcAsync(_licenseKey!);
+        if (serverFirst is null) return; // offline: keep the local date
+
+        if (serverFirst != _licenseFirstUseUtc)
+        {
+            _licenseFirstUseUtc = serverFirst;
+            SaveAppSettings();
+            RefreshLicense();
+        }
     }
 
     // Shows the Pro page and refreshes its status, in case a pass expired since
@@ -80,15 +106,15 @@ public partial class MainWindow
 
     // One reliable click: read the whole key straight from the clipboard (so a
     // half-finished paste in the box can't get in the way), show it, and activate.
-    private void ProPaste_Click(object sender, RoutedEventArgs e)
+    private async void ProPaste_Click(object sender, RoutedEventArgs e)
     {
         if (IsPro) return; // already active; nothing to re-activate
         string clip = ReadClipboard();
         if (clip.Length > 0) ProKeyInput.Text = clip;
-        TryActivate(ProKeyInput.Text ?? "");
+        await TryActivateAsync(ProKeyInput.Text ?? "");
     }
 
-    private void ProActivate_Click(object sender, RoutedEventArgs e)
+    private async void ProActivate_Click(object sender, RoutedEventArgs e)
     {
         if (_license is null || IsPro) return; // already active; nothing to re-activate
 
@@ -107,13 +133,14 @@ public partial class MainWindow
             }
         }
 
-        TryActivate(typed);
+        await TryActivateAsync(typed);
     }
 
     // Verifies and applies a key. PrepareActivation decides the first-use date:
-    // a new key starts a fresh clock, the SAME key re-pasted keeps its clock, so an
-    // expired pass cannot be renewed just by pasting it again.
-    private void TryActivate(string key)
+    // a new key starts a fresh clock, the SAME key re-pasted keeps its clock. For a
+    // pass, the server then owns the first-use date so it can't be reset by wiping
+    // local files; lifetime keys skip the server and stay offline.
+    private async Task TryActivateAsync(string key)
     {
         if (_license is null) return;
 
@@ -126,6 +153,16 @@ public partial class MainWindow
 
         _licenseKey = prep.Value.Key;
         _licenseFirstUseUtc = prep.Value.FirstUseUtc;
+
+        ProTier? tier = _license.TierOf(_licenseKey);
+        if (_passServer is not null && tier is not null && tier != ProTier.Lifetime)
+        {
+            ProActivateResult.Text = "Checking…";
+            DateTime? serverFirst = await _passServer.FirstUseUtcAsync(_licenseKey!);
+            if (serverFirst is not null) _licenseFirstUseUtc = serverFirst;
+            // null = offline: keep the local date so the pass still activates
+        }
+
         RefreshLicense();   // stamps a fresh pass if needed
         SaveAppSettings();  // persists the key and first-use date
 

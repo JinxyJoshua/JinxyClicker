@@ -121,4 +121,14 @@ public class LicenseTests
         var (gate, _) = Build(T0);
         Assert.Null(gate.PrepareActivation(null, null, "JINXY-NOTAREALKEY"));
     }
+
+    [Fact]
+    public void TierOf_reads_the_tier_of_a_valid_key()
+    {
+        var (gate, minter) = Build(T0);
+        string key = LicenseKeyCodec.Create(new LicensePayload(ProTier.Month, 1), minter);
+        Assert.Equal(ProTier.Month, gate.TierOf(key));
+        Assert.Null(gate.TierOf("garbage"));
+        Assert.Null(gate.TierOf(null));
+    }
 }
