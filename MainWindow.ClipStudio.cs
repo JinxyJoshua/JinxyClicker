@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace JinxyClicker;
@@ -161,10 +163,10 @@ public partial class MainWindow
 
     private async System.Threading.Tasks.Task TrimClipAsync(EditClip ec)
     {
-        ClipStudioStatus.Text = "Reading clip length…";
+        ClipStudioStatus.Text = "Reading clip…";
         double dur = await MontageMaker.ProbeDurationAsync(ec.Info.Path);
         ClipStudioStatus.Text = "";
-        if (dur <= 0) { ClipStudioStatus.Text = "Couldn't read that clip's length."; return; }
+        if (dur <= 0) { ClipStudioStatus.Text = "Couldn't read that clip."; return; }
 
         double start = Math.Clamp(ec.Start ?? 0, 0, dur);
         double end = Math.Clamp(ec.End ?? dur, 0, dur);
@@ -172,12 +174,42 @@ public partial class MainWindow
         var panel = new StackPanel { Margin = new Thickness(16) };
         panel.Children.Add(new TextBlock { Text = $"Trim — {ec.Info.Name}  ({Mmss(dur)} long)", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 10) });
 
-        var readout = new TextBlock { Margin = new Thickness(0, 0, 0, 10) };
-        var startSlider = new Slider { Minimum = 0, Maximum = dur, Value = start, Margin = new Thickness(0, 4, 0, 0) };
+        // Video preview: scrubs to the in/out frame as you drag; silent while
+        // scrubbing, with sound only while previewing the selection.
+        var media = new MediaElement
+        {
+            Source = new Uri(ec.Info.Path),
+            LoadedBehavior = MediaState.Manual,
+            UnloadedBehavior = MediaState.Manual,
+            Stretch = Stretch.Uniform,
+            Height = 230,
+            Volume = 0,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        var previewNote = new TextBlock { Visibility = Visibility.Collapsed, Foreground = Brushes.Silver, Margin = new Thickness(0, 0, 0, 10) };
+        media.MediaFailed += (_, _) =>
+        {
+            media.Visibility = Visibility.Collapsed;
+            previewNote.Text = "(Preview unavailable for this clip — trim by the sliders and times below.)";
+            previewNote.Visibility = Visibility.Visible;
+        };
+        panel.Children.Add(media);
+        panel.Children.Add(previewNote);
+
+        // Nudge the player to render the frame at a seeked position while paused.
+        var nudge = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+        nudge.Tick += (_, _) => { nudge.Stop(); media.Pause(); };
+        void ShowFrame(double pos)
+        {
+            try { media.Position = TimeSpan.FromSeconds(Math.Clamp(pos, 0, dur)); media.Play(); nudge.Stop(); nudge.Start(); } catch { }
+        }
+
+        var readout = new TextBlock { Margin = new Thickness(0, 10, 0, 10) };
+        var startSlider = new Slider { Minimum = 0, Maximum = dur, Value = start };
         var endSlider = new Slider { Minimum = 0, Maximum = dur, Value = end, Margin = new Thickness(0, 4, 0, 0) };
-        void Sync() => readout.Text = $"Keep {Mmss(startSlider.Value)} → {Mmss(endSlider.Value)}";
-        startSlider.ValueChanged += (_, _) => { if (startSlider.Value > endSlider.Value) startSlider.Value = endSlider.Value; Sync(); };
-        endSlider.ValueChanged += (_, _) => { if (endSlider.Value < startSlider.Value) endSlider.Value = startSlider.Value; Sync(); };
+        void Sync() => readout.Text = $"Keep {Mmss(startSlider.Value)} → {Mmss(endSlider.Value)}  ({Mmss(Math.Max(0, endSlider.Value - startSlider.Value))} long)";
+        startSlider.ValueChanged += (_, _) => { if (startSlider.Value > endSlider.Value) startSlider.Value = endSlider.Value; Sync(); ShowFrame(startSlider.Value); };
+        endSlider.ValueChanged += (_, _) => { if (endSlider.Value < startSlider.Value) endSlider.Value = startSlider.Value; Sync(); ShowFrame(endSlider.Value); };
         Sync();
 
         panel.Children.Add(new TextBlock { Text = "Start" });
@@ -185,7 +217,19 @@ public partial class MainWindow
         panel.Children.Add(new TextBlock { Text = "End", Margin = new Thickness(0, 8, 0, 0) });
         panel.Children.Add(endSlider);
         panel.Children.Add(readout);
-        readout.Margin = new Thickness(0, 10, 0, 10);
+
+        // Preview the selection (start -> end) with sound.
+        var playSel = new Button { Content = "▶ Preview selection", Padding = new Thickness(12, 4, 12, 4), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 10) };
+        var selTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        selTimer.Tick += (_, _) =>
+        {
+            if (media.Position.TotalSeconds >= endSlider.Value) { selTimer.Stop(); media.Pause(); media.Volume = 0; }
+        };
+        playSel.Click += (_, _) =>
+        {
+            try { media.Volume = 0.6; media.Position = TimeSpan.FromSeconds(startSlider.Value); media.Play(); selTimer.Start(); } catch { }
+        };
+        panel.Children.Add(playSel);
 
         var ok = new Button { Content = "Save trim", Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(0, 0, 8, 0) };
         var reset = new Button { Content = "Use whole clip", Padding = new Thickness(14, 4, 14, 4) };
@@ -198,12 +242,14 @@ public partial class MainWindow
         {
             Title = "Trim clip",
             Content = panel,
-            Width = 420,
+            Width = 460,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
             ResizeMode = ResizeMode.NoResize
         };
+        win.Loaded += (_, _) => ShowFrame(startSlider.Value);
+        win.Closed += (_, _) => { try { selTimer.Stop(); nudge.Stop(); media.Close(); } catch { } };
         ok.Click += (_, _) =>
         {
             bool whole = startSlider.Value <= 0.05 && endSlider.Value >= dur - 0.05;
