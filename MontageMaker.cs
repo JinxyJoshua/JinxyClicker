@@ -1,5 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace JinxyClicker;
 
@@ -42,5 +46,48 @@ public static partial class MontageMaker
 
         sb.Append($"-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -movflags +faststart \"{outputPath}\"");
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Renders the montage to a new file in <paramref name="outputFolder"/>. Returns
+    /// the output path, or null on any failure — no ffmpeg, no clips, an ffmpeg
+    /// error, or an empty output.
+    /// </summary>
+    public static async Task<string?> RenderAsync(IReadOnlyList<string> clipPaths, string? musicPath,
+        MontageShape shape, string outputFolder)
+    {
+        if (clipPaths is null || clipPaths.Count == 0) return null;
+
+        string? ffmpeg = ScreenRecorder.FindFfmpeg();
+        if (ffmpeg == null) return null;
+
+        try
+        {
+            Directory.CreateDirectory(outputFolder);
+            string output = Path.Combine(outputFolder, $"montage-{DateTime.Now:yyyy-MM-dd-HHmmss}.mp4");
+            string args = BuildArgs(clipPaths, musicPath, shape, output);
+
+            var info = new ProcessStartInfo(ffmpeg, args)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true
+            };
+
+            using Process? p = Process.Start(info);
+            if (p == null) return null;
+            p.ErrorDataReceived += (_, _) => { };
+            p.OutputDataReceived += (_, _) => { };
+            p.BeginErrorReadLine();
+            p.BeginOutputReadLine();
+            await p.WaitForExitAsync().ConfigureAwait(false);
+
+            return File.Exists(output) && new FileInfo(output).Length > 0 ? output : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
