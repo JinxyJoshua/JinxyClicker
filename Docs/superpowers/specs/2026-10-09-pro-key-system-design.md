@@ -29,10 +29,18 @@ in with a single line. So it goes first.
 |----------|---------------|-------|
 | Day pass | Pro for 1 day | $2 |
 | Weekend pass | Pro for 3 days | $4 |
+| Month pass | Pro for 30 days | $8 |
 | Lifetime | Pro forever | $20 |
 
 Lifetime is the real product and is rock-solid. The passes are a cheap on-ramp
 and are "good enough" (see Honest limits below).
+
+Note on the month pass: offline, it is **not** an auto-renewing subscription —
+there is no processor to charge each month. It is simply a 30-day pass the buyer
+rebuys by hand when it runs out. It earns its place by catching the buyer who
+won't risk $20 "forever" on a tool that could someday be taken down, but will pay
+$8 to use it for a month. Priced at $8 (2.5 months = lifetime) it does not
+cannibalize lifetime; $10 would.
 
 ---
 
