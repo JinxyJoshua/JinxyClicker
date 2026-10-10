@@ -128,4 +128,16 @@
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Royalty-free montage music, copied beside the app like the kit art. These
+      are simple original loops (license-clean); better CC0 tracks can replace
+      them by dropping .mp3 files into the app's "music" folder.
+    -->
+    <Content Include="music\*.mp3"
+             Link="music\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
