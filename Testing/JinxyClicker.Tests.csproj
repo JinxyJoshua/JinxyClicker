@@ -99,6 +99,8 @@
     <Compile Include="../License.Tests.cs" />
     <Compile Include="../ClipLibrary.cs" />
     <Compile Include="../ClipLibrary.Tests.cs" />
+    <Compile Include="../MontageMaker.cs" />
+    <Compile Include="../MontageMaker.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />
