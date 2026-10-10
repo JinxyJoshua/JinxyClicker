@@ -287,12 +287,14 @@ public partial class MainWindow
             Title = "Trim clip",
             Content = panel,
             Background = Brush("Sidebar"),
+            Foreground = Brush("TextBright"),
             Width = 470,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
             ResizeMode = ResizeMode.NoResize
         };
+        media.MediaOpened += (_, _) => ShowFrame(bar.Value); // first frame once the clip is ready
         win.Loaded += (_, _) => ShowFrame(bar.Value);
         win.Closed += (_, _) => { try { playTimer.Stop(); nudge.Stop(); media.Close(); } catch { } };
         ok.Click += (_, _) =>

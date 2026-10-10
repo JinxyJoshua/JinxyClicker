@@ -860,38 +860,18 @@
 
         <!-- A small flat outlined button for clip-row actions and dialog
              secondaries, so they read as part of the dark UI, not default chrome. -->
-        <Style x:Key="ChipButton" TargetType="Button">
-            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
+        <!-- Small bordered action button. Inherits the default Button template
+             (which renders its content correctly in any window, unlike a hand-rolled
+             one) and just restyles it: literal white text, panel fill, hairline
+             outline. -->
+        <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Outline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" CornerRadius="5" Background="{TemplateBinding Background}"
-                                BorderBrush="{StaticResource Outline}" BorderThickness="1"
-                                Padding="{TemplateBinding Padding}"
-                                TextElement.Foreground="{TemplateBinding Foreground}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="{StaticResource Panel}"/>
-                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Opacity" Value="0.7"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Padding" Value="11,5"/>
+            <Setter Property="Margin" Value="0"/>
         </Style>
     </Window.Resources>
 
