@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using JinxyClicker;
 using Xunit;
 
@@ -47,5 +48,52 @@ public class LicenseKeyCodecTests
     public void Base32_decode_returns_null_on_bad_char()
     {
         Assert.Null(LicenseKeyCodec.Base32Decode("!!!!"));
+    }
+}
+
+public class LicenseKeyCodecSigningTests
+{
+    private static ECDsa NewKey() => ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
+    [Fact]
+    public void Create_then_verify_returns_payload()
+    {
+        using ECDsa key = NewKey();
+        var p = new LicensePayload(ProTier.Lifetime, 123456789UL);
+        string text = LicenseKeyCodec.Create(p, key);
+        Assert.StartsWith("JINXY-", text);
+        Assert.Equal(p, LicenseKeyCodec.Verify(text, key));
+    }
+
+    [Fact]
+    public void Verify_rejects_a_different_key()
+    {
+        using ECDsa minter = NewKey();
+        using ECDsa other = NewKey();
+        string text = LicenseKeyCodec.Create(new LicensePayload(ProTier.Month, 42), minter);
+        Assert.Null(LicenseKeyCodec.Verify(text, other));
+    }
+
+    [Fact]
+    public void Verify_rejects_tampering()
+    {
+        using ECDsa key = NewKey();
+        string text = LicenseKeyCodec.Create(new LicensePayload(ProTier.Day, 7), key);
+        // Flip a character in the body (after the JINXY- prefix).
+        char[] chars = text.ToCharArray();
+        int i = text.Length - 3;
+        chars[i] = chars[i] == 'A' ? 'B' : 'A';
+        Assert.Null(LicenseKeyCodec.Verify(new string(chars), key));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a key")]
+    [InlineData("JINXY-!!!!")]
+    [InlineData("JINXY-ABCDE")]
+    public void Verify_returns_null_on_garbage(string junk)
+    {
+        using ECDsa key = NewKey();
+        Assert.Null(LicenseKeyCodec.Verify(junk, key));
     }
 }

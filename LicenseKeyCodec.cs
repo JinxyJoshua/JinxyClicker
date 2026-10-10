@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace JinxyClicker;
@@ -81,5 +82,49 @@ public static partial class LicenseKeyCodec
             }
         }
         return bytes.ToArray();
+    }
+
+    private const string Prefix = "JINXY-";
+    private const int SignatureLength = 64; // P-256 IEEE-P1363 (r||s)
+
+    public static string Create(LicensePayload p, ECDsa signingKey)
+    {
+        byte[] payload = SerializePayload(p);
+        byte[] sig = signingKey.SignData(payload, HashAlgorithmName.SHA256);
+        byte[] blob = new byte[payload.Length + sig.Length];
+        Buffer.BlockCopy(payload, 0, blob, 0, payload.Length);
+        Buffer.BlockCopy(sig, 0, blob, payload.Length, sig.Length);
+        return Prefix + Group(Base32Encode(blob));
+    }
+
+    public static LicensePayload? Verify(string keyString, ECDsa publicKey)
+    {
+        if (string.IsNullOrWhiteSpace(keyString)) return null;
+
+        string body = keyString.Trim();
+        if (body.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+            body = body.Substring(Prefix.Length);
+
+        byte[]? blob = Base32Decode(body);
+        if (blob is null || blob.Length != PayloadLength + SignatureLength) return null;
+
+        byte[] payload = blob[..PayloadLength];
+        byte[] sig = blob[PayloadLength..];
+
+        if (!TryDeserializePayload(payload, out var p)) return null;
+        if (!publicKey.VerifyData(payload, sig, HashAlgorithmName.SHA256)) return null;
+        return p;
+    }
+
+    // Dash-grouped for readability; Base32Decode ignores the dashes again.
+    private static string Group(string s)
+    {
+        var sb = new StringBuilder();
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (i > 0 && i % 5 == 0) sb.Append('-');
+            sb.Append(s[i]);
+        }
+        return sb.ToString();
     }
 }
