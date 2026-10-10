@@ -190,6 +190,10 @@ public partial class MainWindow : Window
             // app open.
             Loaded += async (_, _) =>
             {
+                // Launched from the "Jinxy Play" desktop shortcut: apply the active
+                // setup and open the game straight away.
+                if (LaunchedWithPlay()) RunPlay();
+
                 // Both start at once rather than the update check waiting behind
                 // the config fetch. They are independent — the update prompt does
                 // not read the config — and chaining them meant a slow config

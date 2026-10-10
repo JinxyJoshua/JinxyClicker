@@ -103,7 +103,13 @@ public partial class MainWindow
         RefreshSetupsList();
     }
 
-    private void Play_Click(object sender, RoutedEventArgs e)
+    private void Play_Click(object sender, RoutedEventArgs e) => RunPlay();
+
+    /// <summary>True when the app was launched from the "Jinxy Play" desktop shortcut.</summary>
+    private static bool LaunchedWithPlay() =>
+        Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--play", StringComparison.OrdinalIgnoreCase));
+
+    private void RunPlay()
     {
         if (!IsPro) return;
 
@@ -207,4 +213,37 @@ public partial class MainWindow
     }
 
     private void SetSetupsStatus(string text) { if (SetupsStatus is not null) SetupsStatus.Text = text; }
+
+    // Writes a "Jinxy Play" shortcut to the desktop that relaunches the app with
+    // --play, so a double-click applies the active setup and opens the game. Uses
+    // the Windows Script Host COM object so no extra package is needed.
+    private void CreatePlayShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsPro) return;
+
+        try
+        {
+            string exe = Process.GetCurrentProcess().MainModule!.FileName;
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            string lnk = System.IO.Path.Combine(desktop, "Jinxy Play.lnk");
+
+            Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType is null) { SetSetupsStatus("Couldn't create the shortcut on this system."); return; }
+
+            dynamic shell = Activator.CreateInstance(shellType)!;
+            dynamic shortcut = shell.CreateShortcut(lnk);
+            shortcut.TargetPath = exe;
+            shortcut.Arguments = "--play";
+            shortcut.WorkingDirectory = System.IO.Path.GetDirectoryName(exe);
+            shortcut.IconLocation = exe + ",0";
+            shortcut.Description = "Launch Jinxy and play with your active setup";
+            shortcut.Save();
+
+            SetSetupsStatus("Added “Jinxy Play” to your desktop. Double-click it to apply your setup and open your game.");
+        }
+        catch (Exception ex)
+        {
+            SetSetupsStatus("Couldn't create the shortcut: " + ex.Message);
+        }
+    }
 }

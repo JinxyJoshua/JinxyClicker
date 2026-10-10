@@ -3143,9 +3143,15 @@
                             <TextBlock Text="PLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then opens your game. One click to match-ready."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                            <Button x:Name="PlayButton" Content="▶  PLAY" Style="{StaticResource AccentButton}"
-                                    Padding="26,11" Margin="0,14,0,0" FontWeight="Bold" FontSize="15"
-                                    HorizontalAlignment="Left" Click="Play_Click"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="PlayButton" Content="▶  PLAY" Style="{StaticResource AccentButton}"
+                                        Padding="26,11" FontWeight="Bold" FontSize="15"
+                                        HorizontalAlignment="Left" Click="Play_Click"/>
+                                <Button x:Name="PlayShortcutButton" Content="Make desktop shortcut" Style="{StaticResource ChipButton}"
+                                        Padding="14,7" Margin="12,0,0,0" VerticalAlignment="Center"
+                                        Click="CreatePlayShortcut_Click"
+                                        ToolTip="Puts a 'Jinxy Play' icon on your desktop that launches and plays in one double-click."/>
+                            </StackPanel>
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <TextBlock DockPanel.Dock="Left" Text="Game link" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
                                 <TextBox x:Name="PlayUrlBox" DockPanel.Dock="Left" Width="320" Padding="8,5" Margin="12,0,0,0"
