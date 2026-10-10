@@ -1,94 +1,145 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using JinxyClicker;
 
-// Where the private signing key and the sales log live: outside the repo, in the
-// user's own AppData, so they can never be committed or shipped by accident.
-string dir = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JinxyKeyGen");
-Directory.CreateDirectory(dir);
-string keyFile = Path.Combine(dir, "signing-key.txt");
-string logFile = Path.Combine(dir, "keys.csv");
-
-string command = args.Length > 0 ? args[0].ToLowerInvariant() : "help";
-
-switch (command)
+// A tiny window for minting keys: click the tier someone paid for, the key is
+// shown and copied to the clipboard, and logged. This is the private seller tool
+// and never ships with the app.
+internal static class Program
 {
-    case "init":
-        Init();
-        break;
-    case "make":
-        Make(args.Length > 2 && args[1] == "--tier" ? args[2] : "");
-        break;
-    case "verify":
-        Verify(args.Length > 1 ? args[1] : "");
-        break;
-    default:
-        Console.WriteLine("Usage: keygen init   |   keygen make --tier (day|weekend|month|lifetime)   |   keygen verify <key>");
-        break;
-}
+    private static readonly string Dir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JinxyKeyGen");
+    private static readonly string KeyFile = Path.Combine(Dir, "signing-key.txt");
+    private static readonly string LogFile = Path.Combine(Dir, "keys.csv");
 
-void Init()
-{
-    if (File.Exists(keyFile))
+    private static TextBox _output = null!;
+    private static TextBlock _status = null!;
+
+    [STAThread]
+    public static void Main()
     {
-        Console.WriteLine($"A signing key already exists at {keyFile}. Delete it only if you mean to.");
-        return;
+        var app = new Application();
+        app.Run(BuildWindow());
     }
-    using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-    File.WriteAllText(keyFile, Convert.ToBase64String(key.ExportECPrivateKey()));
-    string pub = Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
-    Console.WriteLine("Signing key written to " + keyFile);
-    Console.WriteLine("BACK THIS FILE UP somewhere safe. Never commit it, never share it.\n");
-    Console.WriteLine("Paste this public key into LicenseKeys.cs (PublicKeyBase64):\n");
-    Console.WriteLine(pub);
-}
 
-void Make(string tierName)
-{
-    if (!File.Exists(keyFile))
+    private static Window BuildWindow()
     {
-        Console.WriteLine("No signing key yet. Run: keygen init");
-        return;
+        var panel = new StackPanel { Margin = new Thickness(18) };
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Jinxy KeyGen",
+            FontSize = 20,
+            FontWeight = FontWeights.Bold,
+            Foreground = Brushes.White
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Click the tier the buyer paid for. The key appears below and is copied to your clipboard automatically — just paste it to them.",
+            Foreground = Brushes.Silver,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 4, 0, 14)
+        });
+
+        var row = new UniformGrid { Columns = 4, Height = 56 };
+        row.Children.Add(TierButton("Lifetime\n$20", ProTier.Lifetime));
+        row.Children.Add(TierButton("Month\n$8", ProTier.Month));
+        row.Children.Add(TierButton("Weekend\n$4", ProTier.Weekend));
+        row.Children.Add(TierButton("Day\n$2", ProTier.Day));
+        panel.Children.Add(row);
+
+        _output = new TextBox
+        {
+            IsReadOnly = true,
+            TextWrapping = TextWrapping.Wrap,
+            MinHeight = 72,
+            Margin = new Thickness(0, 14, 0, 0),
+            FontFamily = new FontFamily("Consolas"),
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        panel.Children.Add(_output);
+
+        var copyBtn = new Button
+        {
+            Content = "Copy key again",
+            Padding = new Thickness(14, 6, 14, 6),
+            Margin = new Thickness(0, 10, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        copyBtn.Click += (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(_output.Text))
+            {
+                TrySetClipboard(_output.Text);
+                SetStatus("Copied to clipboard.");
+            }
+        };
+        panel.Children.Add(copyBtn);
+
+        _status = new TextBlock
+        {
+            Foreground = Brushes.Silver,
+            Margin = new Thickness(0, 12, 0, 0),
+            TextWrapping = TextWrapping.Wrap
+        };
+        panel.Children.Add(_status);
+
+        return new Window
+        {
+            Title = "Jinxy KeyGen",
+            Width = 560,
+            Height = 350,
+            Background = (Brush)new BrushConverter().ConvertFrom("#15161B")!,
+            Content = panel,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen
+        };
     }
-    if (!TryTier(tierName, out ProTier tier))
+
+    private static Button TierButton(string label, ProTier tier)
     {
-        Console.WriteLine("Unknown tier. Use day, weekend, month, or lifetime.");
-        return;
+        var b = new Button { Content = label, Margin = new Thickness(4), FontWeight = FontWeights.Bold };
+        b.Click += (_, _) => Generate(tier);
+        return b;
     }
-    using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-    key.ImportECPrivateKey(Convert.FromBase64String(File.ReadAllText(keyFile)), out _);
 
-    ulong id = BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(8));
-    string keyString = LicenseKeyCodec.Create(new LicensePayload(tier, id), key);
-
-    File.AppendAllText(logFile, $"{DateTime.UtcNow:o},{tier},{id},{keyString}\n");
-    Console.WriteLine($"\n{tier} key (logged to {logFile}):\n");
-    Console.WriteLine(keyString);
-}
-
-// Checks a key against the SAME public key the shipped app carries, so you can
-// confirm a key you are about to send will actually unlock Pro for the buyer.
-void Verify(string key)
-{
-    using var pub = LicenseKeys.PublicKey();
-    LicensePayload? p = LicenseKeyCodec.Verify(key, pub);
-    if (p is { } payload)
-        Console.WriteLine($"VALID — tier {payload.Tier}, id {payload.KeyId}");
-    else
-        Console.WriteLine("INVALID — the shipped app would reject this key.");
-}
-
-static bool TryTier(string name, out ProTier tier)
-{
-    tier = default;
-    switch (name.ToLowerInvariant())
+    private static void Generate(ProTier tier)
     {
-        case "day": tier = ProTier.Day; return true;
-        case "weekend": tier = ProTier.Weekend; return true;
-        case "month": tier = ProTier.Month; return true;
-        case "lifetime": tier = ProTier.Lifetime; return true;
-        default: return false;
+        try
+        {
+            if (!File.Exists(KeyFile))
+            {
+                SetStatus("No signing key found at " + KeyFile + "\nRestore it from your backup before making keys.");
+                return;
+            }
+
+            using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            key.ImportECPrivateKey(Convert.FromBase64String(File.ReadAllText(KeyFile)), out _);
+
+            ulong id = BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(8));
+            string keyString = LicenseKeyCodec.Create(new LicensePayload(tier, id), key);
+
+            Directory.CreateDirectory(Dir);
+            File.AppendAllText(LogFile, $"{DateTime.UtcNow:o},{tier},{id},{keyString}\n");
+
+            _output.Text = keyString;
+            TrySetClipboard(keyString);
+            SetStatus($"{tier} key made and copied. Send it to the buyer. (Logged to keys.csv)");
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Error: " + ex.Message);
+        }
     }
+
+    private static void TrySetClipboard(string text)
+    {
+        try { Clipboard.SetText(text); } catch { /* clipboard busy; the key is still shown to copy by hand */ }
+    }
+
+    private static void SetStatus(string s) => _status.Text = s;
 }
