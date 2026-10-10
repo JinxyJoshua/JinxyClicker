@@ -3211,16 +3211,16 @@
                         <StackPanel>
                             <TextBlock Text="ACTIVATE A KEY" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Paste your Pro key below and click Activate. Lifetime keys and day, weekend and month passes all work here. Use Paste so the whole key goes in."
+                            <TextBlock Text="Copy your key, then click &quot;Paste &amp; activate&quot; &#8212; it pulls the whole key from your clipboard for you. Lifetime keys and day, weekend and month passes all work here."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <TextBox x:Name="ProKeyInput" Margin="0,12,0,0" Padding="8" FontSize="12"
                                      MinHeight="66" AcceptsReturn="True" TextWrapping="Wrap"
                                      VerticalScrollBarVisibility="Auto" FontFamily="Consolas"/>
                             <DockPanel LastChildFill="False" Margin="0,10,0,0">
-                                <Button x:Name="ProPasteButton" Content="Paste" DockPanel.Dock="Left"
+                                <Button x:Name="ProPasteButton" Content="Paste &amp; activate" DockPanel.Dock="Left"
                                         Padding="14,6" Margin="0,0,8,0" Click="ProPaste_Click"/>
-                                <Button x:Name="ProActivateButton" Content="Activate key"
+                                <Button x:Name="ProActivateButton" Content="Activate typed key"
                                         DockPanel.Dock="Left" Padding="14,6" Click="ProActivate_Click"/>
                             </DockPanel>
                             <TextBlock x:Name="ProActivateResult" Text=""

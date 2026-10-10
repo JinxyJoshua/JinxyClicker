@@ -63,33 +63,48 @@ public partial class MainWindow
         };
     }
 
+    // One reliable click: read the whole key straight from the clipboard (so a
+    // half-finished paste in the box can't get in the way), show it, and activate.
     private void ProPaste_Click(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            if (System.Windows.Clipboard.ContainsText())
-                ProKeyInput.Text = System.Windows.Clipboard.GetText();
-        }
-        catch
-        {
-            // Clipboard can be momentarily locked by another app; just ignore it
-            // and let the user paste by hand.
-        }
+        string clip = ReadClipboard();
+        if (clip.Length > 0) ProKeyInput.Text = clip;
+        TryActivate(ProKeyInput.Text ?? "");
     }
 
     private void ProActivate_Click(object sender, RoutedEventArgs e)
     {
         if (_license is null) return;
 
-        string pasted = ProKeyInput.Text ?? "";
+        string typed = ProKeyInput.Text ?? "";
 
-        // PrepareActivation verifies the key and decides the first-use date:
-        // a new key starts a fresh clock, the SAME key re-pasted keeps its clock,
-        // so an expired pass cannot be renewed just by pasting it again.
-        var prep = _license.PrepareActivation(_licenseKey, _licenseFirstUseUtc, pasted);
+        // If the box doesn't hold a valid key, fall back to the clipboard — the box
+        // may have only caught part of a long key. This rescues a bad paste.
+        if (_license.PrepareActivation(_licenseKey, _licenseFirstUseUtc, typed) is null)
+        {
+            string clip = ReadClipboard();
+            if (clip.Length > 0 &&
+                _license.PrepareActivation(_licenseKey, _licenseFirstUseUtc, clip) is not null)
+            {
+                ProKeyInput.Text = clip;
+                typed = clip;
+            }
+        }
+
+        TryActivate(typed);
+    }
+
+    // Verifies and applies a key. PrepareActivation decides the first-use date:
+    // a new key starts a fresh clock, the SAME key re-pasted keeps its clock, so an
+    // expired pass cannot be renewed just by pasting it again.
+    private void TryActivate(string key)
+    {
+        if (_license is null) return;
+
+        var prep = _license.PrepareActivation(_licenseKey, _licenseFirstUseUtc, key);
         if (prep is null)
         {
-            ProActivateResult.Text = "That key isn't valid. Make sure you pasted the whole key.";
+            ProActivateResult.Text = "That key isn't valid. Copy the whole key, then click \"Paste & activate\".";
             return;
         }
 
@@ -101,5 +116,17 @@ public partial class MainWindow
         ProActivateResult.Text = IsPro
             ? "Activated. Thank you!"
             : "That key has expired.";
+    }
+
+    private static string ReadClipboard()
+    {
+        try
+        {
+            return System.Windows.Clipboard.ContainsText() ? System.Windows.Clipboard.GetText() : "";
+        }
+        catch
+        {
+            return ""; // clipboard momentarily locked by another app
+        }
     }
 }
