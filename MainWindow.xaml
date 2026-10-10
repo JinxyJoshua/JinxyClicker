@@ -2740,11 +2740,13 @@
                             <TextBlock Text="MAKE A MONTAGE" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="Stitches all your clips below into one video with music. Clip your moments in-game with your clip hotkey; they show up here. Drop your own .mp3s into the app's music folder to add more tracks."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                            <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <ComboBox x:Name="MusicCombo" Width="220" VerticalAlignment="Center"/>
-                                <Button Content="Use my file…" Margin="10,0,0,0" Padding="10,4" Click="MontagePickMusic_Click"/>
-                            </DockPanel>
+                                <Button x:Name="MusicChooseButton" Content="Choose music…" Padding="10,4" Click="MontagePickMusic_Click"/>
+                                <TextBlock x:Name="MusicChosenText" Text="None (montage will be silent)"
+                                           Foreground="{StaticResource TextMuted}" FontSize="12" VerticalAlignment="Center"
+                                           Margin="10,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
+                            </StackPanel>
                             <CheckBox x:Name="MontageVerticalCheck" Content="Vertical (TikTok / Shorts)"
                                       Foreground="{StaticResource TextSoft}" Margin="0,12,0,0"
                                       Checked="MontageVertical_Changed" Unchecked="MontageVertical_Changed"/>

@@ -18,14 +18,12 @@ public partial class MainWindow
     private bool _montageVertical;
     private string? _montageMusic;
 
-    private static string AppFolder => AppDomain.CurrentDomain.BaseDirectory;
-
     private void LoadClipStudio(AppSettings s)
     {
         _montageVertical = s.MontageVertical;
         _montageMusic = s.MontageMusic;
         if (MontageVerticalCheck is not null) MontageVerticalCheck.IsChecked = _montageVertical;
-        PopulateMusic();
+        UpdateMusicLabel();
     }
 
     private void NavClipStudio_Click(object sender, RoutedEventArgs e)
@@ -42,21 +40,18 @@ public partial class MainWindow
         if (ClipStudioLockNote is not null)
             ClipStudioLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
         if (MontageButton is not null) MontageButton.IsEnabled = pro;
-        if (MusicCombo is not null) MusicCombo.IsEnabled = pro;
+        if (MusicChooseButton is not null) MusicChooseButton.IsEnabled = pro;
         if (MontageVerticalCheck is not null) MontageVerticalCheck.IsEnabled = pro;
     }
 
-    private void PopulateMusic()
+    // Shows the chosen music file name, or that there's none (a silent montage).
+    private void UpdateMusicLabel()
     {
-        if (MusicCombo is null) return;
-        MusicCombo.Items.Clear();
-        foreach (string track in MusicLibrary.Bundled(AppFolder))
-            MusicCombo.Items.Add(Path.GetFileName(track));
-        if (!string.IsNullOrEmpty(_montageMusic) && !MusicCombo.Items.Contains(Path.GetFileName(_montageMusic)))
-            MusicCombo.Items.Add(Path.GetFileName(_montageMusic));
-        if (_montageMusic != null) MusicCombo.SelectedItem = Path.GetFileName(_montageMusic);
-        else if (MusicCombo.Items.Count > 0) MusicCombo.SelectedIndex = 0;
+        if (MusicChosenText is null) return;
+        MusicChosenText.Text = HasMusic ? Path.GetFileName(_montageMusic!) : "None (montage will be silent)";
     }
+
+    private bool HasMusic => !string.IsNullOrEmpty(_montageMusic) && File.Exists(_montageMusic);
 
     private void RefreshClipList()
     {
@@ -110,7 +105,7 @@ public partial class MainWindow
         {
             _montageMusic = dlg.FileName;
             _settingsDirty = true;
-            PopulateMusic();
+            UpdateMusicLabel();
         }
     }
 
@@ -121,12 +116,8 @@ public partial class MainWindow
         var clips = ClipLibrary.List(ClipFolder).Select(c => c.Path).Reverse().ToList(); // oldest first
         if (clips.Count == 0) { ClipStudioStatus.Text = "No clips to montage yet."; return; }
 
-        // Resolve the chosen music: the selected bundled name, or the saved own-file path.
-        string? chosen = _montageMusic;
-        if (MusicCombo?.SelectedItem is string picked &&
-            (string.IsNullOrEmpty(_montageMusic) || Path.GetFileName(_montageMusic) != picked))
-            chosen = picked;
-        string? music = MusicLibrary.Resolve(chosen, AppFolder);
+        // Music is whatever file the user chose, or none (a silent montage).
+        string? music = HasMusic ? _montageMusic : null;
 
         MontageButton.IsEnabled = false;
         ClipStudioStatus.Text = "Making your montage… this can take a minute.";

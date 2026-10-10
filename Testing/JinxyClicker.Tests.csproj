@@ -101,8 +101,6 @@
     <Compile Include="../ClipLibrary.Tests.cs" />
     <Compile Include="../MontageMaker.cs" />
     <Compile Include="../MontageMaker.Tests.cs" />
-    <Compile Include="../MusicLibrary.cs" />
-    <Compile Include="../MusicLibrary.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />
