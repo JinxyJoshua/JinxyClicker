@@ -6,8 +6,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using Path = System.IO.Path;
 
 namespace JinxyClicker;
 
@@ -224,6 +226,29 @@ public partial class MainWindow
         var timeLabel = new TextBlock { Foreground = Brush("TextMuted"), FontSize = 11, Margin = new Thickness(0, 2, 0, 8) };
         void UpdateTime() => timeLabel.Text = $"Position {Mmss(bar.Value)} / {Mmss(dur)}";
 
+        // A visual timeline: the kept part is highlighted in accent between a start
+        // and end marker, with the white playhead on top.
+        const double tlW = 430, tlH = 32;
+        var timeline = new Canvas { Width = tlW, Height = tlH, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 2, 0, 4) };
+        var trackBar = new Rectangle { Width = tlW, Height = 12, Fill = Brush("Panel"), Stroke = Brush("Outline"), StrokeThickness = 1, RadiusX = 3, RadiusY = 3 };
+        var selRect = new Rectangle { Height = 12, Fill = Brush("Accent"), Opacity = 0.6, RadiusX = 3, RadiusY = 3 };
+        var startHandle = new Rectangle { Width = 3, Height = tlH, Fill = Brush("Accent") };
+        var endHandle = new Rectangle { Width = 3, Height = tlH, Fill = Brush("Accent") };
+        var playhead = new Rectangle { Width = 2, Height = tlH, Fill = Brushes.White };
+        Canvas.SetTop(trackBar, (tlH - 12) / 2); timeline.Children.Add(trackBar);
+        Canvas.SetTop(selRect, (tlH - 12) / 2); timeline.Children.Add(selRect);
+        timeline.Children.Add(startHandle);
+        timeline.Children.Add(endHandle);
+        timeline.Children.Add(playhead);
+        void SetMarkers()
+        {
+            double sx = startSec / dur * tlW, ex = endSec / dur * tlW, px = Math.Clamp(bar.Value, 0, dur) / dur * tlW;
+            Canvas.SetLeft(selRect, sx); selRect.Width = Math.Max(0, ex - sx);
+            Canvas.SetLeft(startHandle, sx - 1.5);
+            Canvas.SetLeft(endHandle, ex - 1.5);
+            Canvas.SetLeft(playhead, px - 1);
+        }
+
         var nudge = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
         nudge.Tick += (_, _) => { nudge.Stop(); if (!playing) media.Pause(); };
         void ShowFrame(double pos)
@@ -234,6 +259,7 @@ public partial class MainWindow
         bar.ValueChanged += (_, _) =>
         {
             UpdateTime();
+            SetMarkers();
             if (syncing) return;                 // the play timer moved it, not the user
             if (playing) { try { media.Position = TimeSpan.FromSeconds(bar.Value); } catch { } }
             else ShowFrame(bar.Value);
@@ -256,12 +282,13 @@ public partial class MainWindow
         };
 
         panel.Children.Add(bar);
+        panel.Children.Add(timeline);
         panel.Children.Add(timeLabel);
         panel.Children.Add(playBtn);
 
         // Set start / set end at the current playhead.
         var selLabel = new TextBlock { FontWeight = FontWeights.Bold, FontSize = 13, Foreground = Brush("TextBright"), Margin = new Thickness(0, 6, 0, 12) };
-        void UpdateSel() => selLabel.Text = $"Keeping {Mmss(startSec)} → {Mmss(endSec)}   ({Mmss(Math.Max(0, endSec - startSec))} long)";
+        void UpdateSel() { selLabel.Text = $"Keeping {Mmss(startSec)} → {Mmss(endSec)}   ({Mmss(Math.Max(0, endSec - startSec))} long)"; SetMarkers(); }
 
         var setStart = new Button { Content = "⮜ Set start here", Style = (Style)FindResource("ChipButton"), Padding = new Thickness(14, 6, 14, 6), Margin = new Thickness(0, 0, 8, 0) };
         var setEnd = new Button { Content = "Set end here ⮞", Style = (Style)FindResource("ChipButton"), Padding = new Thickness(14, 6, 14, 6) };
