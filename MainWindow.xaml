@@ -3163,6 +3163,18 @@
                         </StackPanel>
                     </Border>
 
+                    <Border x:Name="RecentGamesCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Text="RECENTLY PLAYED" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Button x:Name="RefreshRecentButton" DockPanel.Dock="Right" Content="Refresh" Style="{StaticResource ChipButton}" Padding="12,5" Click="RefreshRecent_Click"/>
+                            </DockPanel>
+                            <TextBlock Text="Click a game to apply your setup and launch straight into it." Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <WrapPanel x:Name="RecentGamesPanel" Margin="0,12,0,0"/>
+                            <TextBlock x:Name="RecentGamesStatus" Text="" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
                     <Border x:Name="SetupsListCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="YOUR SETUPS" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>

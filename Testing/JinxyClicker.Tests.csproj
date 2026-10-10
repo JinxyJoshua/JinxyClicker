@@ -90,6 +90,8 @@
     <Compile Include="../ProcessTiming.cs" />
     <Compile Include="../RobloxServerLog.cs" />
     <Compile Include="../RobloxServerLog.Tests.cs" />
+    <Compile Include="../RobloxJoinLog.cs" />
+    <Compile Include="../RobloxJoinLog.Tests.cs" />
     <Compile Include="../ServerRegion.cs" />
     <Compile Include="../ServerRegion.Tests.cs" />
     <Compile Include="../FastFlags.cs" />

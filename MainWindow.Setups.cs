@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace JinxyClicker;
 
@@ -31,6 +33,8 @@ public partial class MainWindow
         ShowPage(NavSetups, PageSetups, "Setups", "Save and switch your whole configuration");
         ApplySetupsPro();
         RefreshSetupsList();
+        if (IsPro && RecentGamesPanel is not null && RecentGamesPanel.Children.Count == 0)
+            _ = LoadRecentGamesAsync();
     }
 
     private void ApplySetupsPro()
@@ -39,6 +43,94 @@ public partial class MainWindow
         if (SetupsLockNote is not null) SetupsLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
         if (SetupsProPanel is not null) SetupsProPanel.IsEnabled = pro;
         if (SetupsListCard is not null) SetupsListCard.IsEnabled = pro;
+        if (RecentGamesCard is not null) RecentGamesCard.IsEnabled = pro;
+    }
+
+    // ---- recently played games ----
+
+    private void RefreshRecent_Click(object sender, RoutedEventArgs e)
+    {
+        if (RecentGamesPanel is not null) RecentGamesPanel.Children.Clear();
+        _ = LoadRecentGamesAsync();
+    }
+
+    private async System.Threading.Tasks.Task LoadRecentGamesAsync()
+    {
+        if (RecentGamesPanel is null) return;
+        if (RecentGamesStatus is not null) RecentGamesStatus.Text = "Reading your recent games…";
+
+        IReadOnlyList<RecentGame> games;
+        try { games = await RecentGames.LoadAsync(); }
+        catch { games = Array.Empty<RecentGame>(); }
+
+        RecentGamesPanel.Children.Clear();
+        foreach (RecentGame g in games) RecentGamesPanel.Children.Add(BuildGameTile(g));
+
+        if (RecentGamesStatus is not null)
+            RecentGamesStatus.Text = games.Count == 0
+                ? "No recent games found yet — join one in Roblox, then hit Refresh."
+                : "";
+    }
+
+    private FrameworkElement BuildGameTile(RecentGame game)
+    {
+        var thumb = new Border
+        {
+            Width = 76,
+            Height = 76,
+            CornerRadius = new CornerRadius(10),
+            Background = (Brush)FindResource("Sidebar"),
+            ClipToBounds = true
+        };
+        if (!string.IsNullOrEmpty(game.IconUrl))
+        {
+            try
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(game.IconUrl);
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.DecodePixelWidth = 152;
+                bmp.EndInit();
+                thumb.Background = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+            }
+            catch { /* leave the placeholder background */ }
+        }
+
+        var name = new TextBlock
+        {
+            Text = game.Name,
+            Foreground = (Brush)FindResource("TextBright"),
+            FontSize = 11,
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxHeight = 30,
+            Margin = new Thickness(0, 6, 0, 0)
+        };
+
+        var stack = new StackPanel { Width = 92, Children = { thumb, name } };
+
+        var tile = new Border
+        {
+            Padding = new Thickness(6, 8, 6, 8),
+            Margin = new Thickness(0, 0, 10, 10),
+            CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(1),
+            BorderBrush = (Brush)FindResource("Outline"),
+            Background = (Brush)FindResource("Panel"),
+            Cursor = Cursors.Hand,
+            Child = stack,
+            ToolTip = $"Play {game.Name}"
+        };
+        tile.MouseEnter += (_, _) => tile.BorderBrush = (Brush)FindResource("Accent");
+        tile.MouseLeave += (_, _) => tile.BorderBrush = (Brush)FindResource("Outline");
+        tile.MouseLeftButtonUp += (_, _) =>
+        {
+            if (PlayUrlBox is not null) PlayUrlBox.Text = game.PlaceId.ToString();
+            RunPlay();
+        };
+        return tile;
     }
 
     private void PlayUrl_Changed(object sender, TextChangedEventArgs e) => _settingsDirty = true;
