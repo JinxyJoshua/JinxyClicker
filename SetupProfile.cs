@@ -85,12 +85,11 @@ public static class SetupProfiles
     }
 
     /// <summary>
-    /// Turns the Play "game link" into a launch target. For a place id (typed bare
-    /// or pulled from a game URL) it builds Roblox's own "start" URL, which hands
-    /// off to the desktop app with an auth ticket and joins the game — the raw
-    /// roblox:// scheme isn't reliable on desktop. A roblox:// link the user typed
-    /// is kept as-is; anything with no id falls back to opening the link. Null when
-    /// nothing was typed.
+    /// Turns the Play "game link" into a launch target: Roblox's universal deep
+    /// link, which the desktop client resolves itself (using its own signed-in
+    /// session) and joins the game. Pulls the place id from a bare number or a game
+    /// URL; a roblox:// link the user typed is kept; anything with no id falls back
+    /// to opening the link. Null when nothing was typed.
     /// </summary>
     public static string? ResolvePlayLaunch(string? input)
     {
@@ -107,7 +106,7 @@ public static class SetupProfiles
         }
 
         return id is not null
-            ? "https://www.roblox.com/games/start?placeId=" + id
+            ? "roblox://experiences/start?placeId=" + id
             : ResolvePlayUrl(t);
     }
 }

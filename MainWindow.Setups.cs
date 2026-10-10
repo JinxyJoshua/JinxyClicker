@@ -117,18 +117,27 @@ public partial class MainWindow
         if (active is not null) ApplySetup(active);
 
         // Write the crosshair into Roblox's cursor files (flags already wrote to
-        // disk in ApplySetup). Best-effort — a missing install must not block Play.
+        // disk in ApplySetup). Best-effort — a missing install must not block this.
         try { if (!IsDefaultSelected) ApplyCurrentCrosshair(); } catch { }
 
-        // Launch the game via Roblox's deep link (from a bare id or a game URL),
-        // falling back to Roblox's games page if nothing's set.
-        string target = SetupProfiles.ResolvePlayLaunch(PlayUrlBox?.Text) ?? "https://www.roblox.com/games";
-        try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }
-        catch { SetSetupsStatus("Couldn't launch — check the game link or ID."); return; }
+        // Launch straight into the game via Roblox's universal deep link, which the
+        // desktop client resolves with its own signed-in session. Needs the Roblox
+        // app signed in; no login handling here.
+        string? launch = SetupProfiles.ResolvePlayLaunch(PlayUrlBox?.Text);
+        if (launch is null)
+        {
+            SetSetupsStatus(active is not null
+                ? $"Applied “{active.Name}”. Add your game link or ID above to launch straight in."
+                : "Applied your current look. Add your game link or ID above to launch straight in.");
+            return;
+        }
+
+        try { Process.Start(new ProcessStartInfo(launch) { UseShellExecute = true }); }
+        catch { SetSetupsStatus("Applied your setup, but couldn't launch Roblox — open it yourself."); return; }
 
         SetSetupsStatus(active is not null
-            ? $"Applied “{active.Name}” and opened your game. (Sign into Roblox in your browser and it launches straight in.)"
-            : "Opened your game. (Sign into Roblox in your browser and it launches straight in.)");
+            ? $"Applied “{active.Name}” and launched your game. (Sign into the Roblox app for it to join.)"
+            : "Applied your look and launched your game. (Sign into the Roblox app for it to join.)");
     }
 
     private void RefreshSetupsList()
