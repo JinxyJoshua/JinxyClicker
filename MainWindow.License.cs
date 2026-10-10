@@ -134,6 +134,11 @@ public partial class MainWindow
     // cosmetic, click-through, and cleans itself up after a few seconds.
     private void PlayCelebration()
     {
+        try { PlayCelebrationCore(); } catch { /* cosmetic only; never break activation */ }
+    }
+
+    private void PlayCelebrationCore()
+    {
         if (ProStatusText is not null)
         {
             var scale = new ScaleTransform(1, 1);
