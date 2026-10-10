@@ -584,7 +584,10 @@ public partial class MainWindow
 
     private void CustomTune_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (CustomThicknessSlider is null) return; // page not built yet
+        // Each slider's initial Value fires this during InitializeComponent, before
+        // the later sliders exist — wait until every one is built.
+        if (CustomThicknessSlider is null || CustomGapSlider is null || CustomDotSlider is null
+            || CustomOpacitySlider is null || CustomGlowSlider is null) return;
 
         _customThickness = (int)CustomThicknessSlider.Value;
         _customGap = (int)CustomGapSlider.Value;
