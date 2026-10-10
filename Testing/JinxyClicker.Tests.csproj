@@ -93,6 +93,8 @@
     <Compile Include="../PcTweaks.cs" />
     <Compile Include="../GamingMode.cs" />
     <Compile Include="../GamingMode.Tests.cs" />
+    <Compile Include="../LicenseKeyCodec.cs" />
+    <Compile Include="../LicenseKeyCodec.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />
