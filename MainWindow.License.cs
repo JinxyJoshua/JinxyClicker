@@ -33,7 +33,7 @@ public partial class MainWindow
     private void NavPro_Click(object sender, RoutedEventArgs e)
     {
         RefreshLicense();
-        ShowPage(NavPro, PagePro, "Pro", "Unlock the paid features with a key");
+        ShowPage(NavProCorner, PagePro, "Pro", "Unlock the paid features with a key");
     }
 
     // Evaluates the stored key, updates IsPro and the status line. The first time a
@@ -48,6 +48,11 @@ public partial class MainWindow
             _licenseFirstUseUtc = DateTime.UtcNow;
 
         IsPro = status.IsPro;
+
+        // The bottom-left shortcut reflects the plan: a nudge when free, a badge
+        // when active.
+        if (NavProCorner is not null)
+            NavProCorner.Content = IsPro ? "PRO ★" : "GET PRO";
 
         if (ProStatusText is null) return; // page not built yet
         ProStatusText.Text = status switch

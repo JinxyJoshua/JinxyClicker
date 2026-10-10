@@ -825,7 +825,15 @@
 
         <!-- Sidebar -->
         <Border x:Name="SidebarPanel" Grid.Column="0" Background="{StaticResource Sidebar}">
-            <StackPanel Margin="14">
+            <DockPanel Margin="14">
+                <!-- A PRO shortcut pinned to the bottom-left corner, out of the
+                     tab list so it doesn't take a row up top. It jumps to the
+                     Pro page and its label reflects the current plan. -->
+                <Button x:Name="NavProCorner" DockPanel.Dock="Bottom"
+                        app:NavIcon.Glyph="&#xE735;" Content="GET PRO"
+                        Style="{StaticResource NavButton}" Click="NavPro_Click"
+                        Margin="0,10,0,0"/>
+                <StackPanel>
                 <!-- Wordmark sits against a solid accent block rather than
                      floating over the sidebar. The slab is the mark. -->
                 <StackPanel Orientation="Horizontal" Margin="4,16,8,2">
@@ -842,8 +850,6 @@
 
                 <Button x:Name="NavClicker" app:NavIcon.Glyph="&#xE7C9;" Content="CLICKER" Style="{StaticResource NavButton}"
                         Tag="Selected" Click="NavClicker_Click"/>
-                <Button x:Name="NavPro" app:NavIcon.Glyph="&#xE735;" Content="PRO" Style="{StaticResource NavButton}"
-                        Click="NavPro_Click"/>
                 <Button x:Name="NavPresets" app:NavIcon.Glyph="&#xE734;" Content="PRESETS" Style="{StaticResource NavButton}"
                         Click="NavPresets_Click"/>
                 <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="MACROS" Style="{StaticResource NavButton}"
@@ -870,8 +876,8 @@
                         Click="NavTheme_Click"/>
                 <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
                         Click="NavSettings_Click"/>
-
-            </StackPanel>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
         <!-- Main -->

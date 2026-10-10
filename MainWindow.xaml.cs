@@ -4930,7 +4930,7 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavPro, NavPresets, NavKitWheel, NavCrosshair, NavServer, NavTweaks, NavOptimizations,
+        NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavServer, NavTweaks, NavOptimizations,
         NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
