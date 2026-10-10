@@ -2756,26 +2756,49 @@
                             <TextBlock Text="MAKE A MONTAGE" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="Stitches your ticked clips into one video with music, in the order shown below. Use the arrows to reorder, Trim to keep just the good seconds, and the checkbox to leave a clip out. Clip your moments in-game with your clip hotkey."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <TextBlock Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <Button x:Name="MusicChooseButton" Content="Choose music…" Style="{StaticResource ChipButton}" Padding="12,5" Click="MontagePickMusic_Click"/>
-                                <TextBlock x:Name="MusicChosenText" Text="None (montage will be silent)"
+                            <!-- Music -->
+                            <DockPanel LastChildFill="False" Margin="0,16,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
+                                <Button x:Name="MusicChooseButton" DockPanel.Dock="Left" Content="Choose music…" Style="{StaticResource ChipButton}"
+                                        Padding="12,5" Margin="14,0,0,0" Click="MontagePickMusic_Click"/>
+                                <TextBlock x:Name="MusicChosenText" DockPanel.Dock="Left" Text="None (montage will be silent)"
                                            Foreground="{StaticResource TextMuted}" FontSize="12" VerticalAlignment="Center"
-                                           Margin="10,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
-                            </StackPanel>
-                            <CheckBox x:Name="MontageVerticalCheck" Content="Vertical (TikTok / Shorts)"
-                                      Foreground="{StaticResource TextSoft}" Margin="0,12,0,0"
-                                      Checked="MontageVertical_Changed" Unchecked="MontageVertical_Changed"/>
-                            <CheckBox x:Name="MontageCrossfadeCheck" Content="Crossfade between clips (smooth fades, not hard cuts)"
-                                      Foreground="{StaticResource TextSoft}" Margin="0,10,0,0"
-                                      Checked="MontageCrossfade_Changed" Unchecked="MontageCrossfade_Changed"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <TextBlock Text="Intro title" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="MontageTitleBox" Width="240" MaxLength="40"
-                                         TextChanged="MontageTitle_Changed"
+                                           Margin="10,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="230"/>
+                            </DockPanel>
+
+                            <!-- Vertical -->
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Vertical video" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="For TikTok / Shorts (9:16)" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="MontageVerticalCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                          Checked="MontageVertical_Changed" Unchecked="MontageVertical_Changed"/>
+                            </DockPanel>
+
+                            <!-- Crossfade -->
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Crossfade clips" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="Smooth fades instead of hard cuts" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="MontageCrossfadeCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                          Checked="MontageCrossfade_Changed" Unchecked="MontageCrossfade_Changed"/>
+                            </DockPanel>
+
+                            <!-- Intro title -->
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Intro title card" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="Your text shown for 2s at the start — blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <TextBox x:Name="MontageTitleBox" DockPanel.Dock="Right" Width="200" MaxLength="40"
+                                         TextChanged="MontageTitle_Changed" VerticalAlignment="Center"
                                          VerticalContentAlignment="Center" Padding="8,5"/>
-                                <TextBlock Text="(blank = no intro)" Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
+                            </DockPanel>
                             <Button x:Name="MontageButton" Content="Make montage" Style="{StaticResource AccentButton}"
                                     Padding="20,9" Margin="0,16,0,0" FontWeight="Bold"
                                     HorizontalAlignment="Left" Click="MakeMontage_Click"/>
