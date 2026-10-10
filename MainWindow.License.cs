@@ -25,47 +25,76 @@ public partial class MainWindow
         _license = new License(LicenseKeys.PublicKey(), LicenseKeys.Blocklist, () => DateTime.UtcNow);
         _licenseKey = s.LicenseKey;
         _licenseFirstUseUtc = s.LicenseFirstUseUtc;
-        RefreshLicense(persistStamp: true);
+        RefreshLicense();
+    }
+
+    // Shows the Pro page and refreshes its status, in case a pass expired since
+    // the page was last seen.
+    private void NavPro_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshLicense();
+        ShowPage(NavPro, PagePro, "Pro", "Unlock the paid features with a key");
     }
 
     // Evaluates the stored key, updates IsPro and the status line. The first time a
-    // timed pass is seen it stamps the first-use date so the countdown starts now.
-    private void RefreshLicense(bool persistStamp)
+    // timed pass is seen it stamps the first-use date so the countdown starts now;
+    // that stamp is persisted by the next SaveAppSettings (always after activation).
+    private void RefreshLicense()
     {
-        LicenseStatus status = _license!.Evaluate(_licenseKey, _licenseFirstUseUtc);
+        if (_license is null) return;
 
+        LicenseStatus status = _license.Evaluate(_licenseKey, _licenseFirstUseUtc);
         if (status.NeedsFirstUseStamp)
-        {
             _licenseFirstUseUtc = DateTime.UtcNow;
-            if (persistStamp) SaveAppSettings();
-        }
 
         IsPro = status.IsPro;
+
+        if (ProStatusText is null) return; // page not built yet
         ProStatusText.Text = status switch
         {
             { IsPro: true, Tier: ProTier.Lifetime } => "Pro — lifetime",
-            { IsPro: true, ExpiresUtc: { } e } => $"Pro — {status.Tier}, until {e.ToLocalTime():d}",
+            { IsPro: true, ExpiresUtc: { } exp } => $"Pro — {status.Tier}, until {exp.ToLocalTime():d}",
             _ => "Free version"
         };
     }
 
+    private void ProPaste_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (System.Windows.Clipboard.ContainsText())
+                ProKeyInput.Text = System.Windows.Clipboard.GetText();
+        }
+        catch
+        {
+            // Clipboard can be momentarily locked by another app; just ignore it
+            // and let the user paste by hand.
+        }
+    }
+
     private void ProActivate_Click(object sender, RoutedEventArgs e)
     {
-        string key = ProKeyInput.Text?.Trim() ?? "";
+        if (_license is null) return;
 
-        // A freshly pasted key starts its own clock, so judge it with no prior
-        // first-use date — a leftover one from an earlier key must not apply.
-        LicenseStatus probe = _license!.Evaluate(key, null);
-        if (!probe.IsPro)
+        string pasted = ProKeyInput.Text ?? "";
+
+        // PrepareActivation verifies the key and decides the first-use date:
+        // a new key starts a fresh clock, the SAME key re-pasted keeps its clock,
+        // so an expired pass cannot be renewed just by pasting it again.
+        var prep = _license.PrepareActivation(_licenseKey, _licenseFirstUseUtc, pasted);
+        if (prep is null)
         {
-            ProActivateResult.Text = "That key isn't valid.";
+            ProActivateResult.Text = "That key isn't valid. Make sure you pasted the whole key.";
             return;
         }
 
-        _licenseKey = key;
-        _licenseFirstUseUtc = null;
-        RefreshLicense(persistStamp: false);
-        SaveAppSettings();
-        ProActivateResult.Text = "Activated. Thank you!";
+        _licenseKey = prep.Value.Key;
+        _licenseFirstUseUtc = prep.Value.FirstUseUtc;
+        RefreshLicense();   // stamps a fresh pass if needed
+        SaveAppSettings();  // persists the key and first-use date
+
+        ProActivateResult.Text = IsPro
+            ? "Activated. Thank you!"
+            : "That key has expired.";
     }
 }

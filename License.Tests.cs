@@ -79,4 +79,46 @@ public class LicenseTests
         var (gate, _) = Build(T0);
         Assert.False(gate.Evaluate("JINXY-NOTAREALKEY", null).IsPro);
     }
+
+    [Fact]
+    public void Activating_a_fresh_key_starts_with_no_first_use()
+    {
+        var (gate, minter) = Build(T0);
+        string key = LicenseKeyCodec.Create(new LicensePayload(ProTier.Weekend, 5), minter);
+        var prep = gate.PrepareActivation(currentKey: null, currentFirstUse: null, pastedKey: key);
+        Assert.NotNull(prep);
+        Assert.Equal(key, prep!.Value.Key);
+        Assert.Null(prep.Value.FirstUseUtc);
+    }
+
+    [Fact]
+    public void Re_pasting_the_same_pass_key_keeps_its_original_clock()
+    {
+        var (gate, minter) = Build(T0);
+        string key = LicenseKeyCodec.Create(new LicensePayload(ProTier.Day, 6), minter);
+        // It was first used three days ago and has long since expired.
+        DateTime firstUse = T0.AddDays(-3);
+        var prep = gate.PrepareActivation(currentKey: key, currentFirstUse: firstUse, pastedKey: key);
+        Assert.NotNull(prep);
+        Assert.Equal(firstUse, prep!.Value.FirstUseUtc); // not reset to now
+    }
+
+    [Fact]
+    public void Activating_a_different_key_resets_the_clock()
+    {
+        var (gate, minter) = Build(T0);
+        string oldKey = LicenseKeyCodec.Create(new LicensePayload(ProTier.Day, 7), minter);
+        string newKey = LicenseKeyCodec.Create(new LicensePayload(ProTier.Month, 8), minter);
+        var prep = gate.PrepareActivation(currentKey: oldKey, currentFirstUse: T0.AddDays(-1), pastedKey: newKey);
+        Assert.NotNull(prep);
+        Assert.Equal(newKey, prep!.Value.Key);
+        Assert.Null(prep.Value.FirstUseUtc); // a different key starts fresh
+    }
+
+    [Fact]
+    public void Activating_an_invalid_key_is_rejected()
+    {
+        var (gate, _) = Build(T0);
+        Assert.Null(gate.PrepareActivation(null, null, "JINXY-NOTAREALKEY"));
+    }
 }

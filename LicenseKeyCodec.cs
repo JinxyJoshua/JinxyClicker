@@ -69,7 +69,9 @@ public static partial class LicenseKeyCodec
         foreach (char raw in s)
         {
             char c = char.ToUpperInvariant(raw);
-            if (c is '-' or ' ') continue;
+            // Dashes are cosmetic; whitespace (spaces, tabs, line breaks) can ride
+            // along when a long key is copied out of chat. Skip both.
+            if (c == '-' || char.IsWhiteSpace(c)) continue;
             c = c switch { 'I' or 'L' => '1', 'O' => '0', _ => c };
             int index = Alphabet.IndexOf(c);
             if (index < 0) return null;

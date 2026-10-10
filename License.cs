@@ -41,6 +41,25 @@ public sealed class License
         _ => throw new ArgumentOutOfRangeException(nameof(tier), "Lifetime has no day count")
     };
 
+    /// <summary>
+    /// Decides what to store when a key is pasted in. Returns null if the key is
+    /// invalid. A genuinely different key starts a fresh clock (null first-use);
+    /// the SAME key re-pasted keeps its existing first-use, so an expired pass
+    /// cannot be renewed just by pasting it again.
+    /// </summary>
+    public (string Key, DateTime? FirstUseUtc)? PrepareActivation(
+        string? currentKey, DateTime? currentFirstUse, string pastedKey)
+    {
+        LicensePayload? pasted = LicenseKeyCodec.Verify(pastedKey, _publicKey);
+        if (pasted is not { } p) return null;
+
+        LicensePayload? current =
+            currentKey is null ? null : LicenseKeyCodec.Verify(currentKey, _publicKey);
+        bool sameKey = current is { } c && c.KeyId == p.KeyId;
+
+        return (pastedKey, sameKey ? currentFirstUse : null);
+    }
+
     public LicenseStatus Evaluate(string? key, DateTime? firstUseUtc)
     {
         if (string.IsNullOrWhiteSpace(key)) return LicenseStatus.Free;

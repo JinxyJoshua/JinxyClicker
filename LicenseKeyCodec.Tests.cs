@@ -96,4 +96,14 @@ public class LicenseKeyCodecSigningTests
         using ECDsa key = NewKey();
         Assert.Null(LicenseKeyCodec.Verify(junk, key));
     }
+
+    [Fact]
+    public void Verify_tolerates_stray_whitespace_in_a_pasted_key()
+    {
+        using ECDsa key = NewKey();
+        string text = LicenseKeyCodec.Create(new LicensePayload(ProTier.Lifetime, 11), key);
+        // A key copied out of chat can arrive with line breaks, tabs and spaces.
+        string messy = "  " + text.Substring(0, 20) + "\n\t " + text.Substring(20) + "  ";
+        Assert.Equal(new LicensePayload(ProTier.Lifetime, 11), LicenseKeyCodec.Verify(messy, key));
+    }
 }

@@ -842,6 +842,8 @@
 
                 <Button x:Name="NavClicker" app:NavIcon.Glyph="&#xE7C9;" Content="CLICKER" Style="{StaticResource NavButton}"
                         Tag="Selected" Click="NavClicker_Click"/>
+                <Button x:Name="NavPro" app:NavIcon.Glyph="&#xE735;" Content="PRO" Style="{StaticResource NavButton}"
+                        Click="NavPro_Click"/>
                 <Button x:Name="NavPresets" app:NavIcon.Glyph="&#xE734;" Content="PRESETS" Style="{StaticResource NavButton}"
                         Click="NavPresets_Click"/>
                 <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="MACROS" Style="{StaticResource NavButton}"
@@ -3109,29 +3111,62 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel x:Name="PageSettings" Visibility="Collapsed">
+                <StackPanel x:Name="PagePro" Visibility="Collapsed">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel x:Name="ProBox">
-                            <TextBlock Text="PRO" Foreground="{StaticResource TextMuted}"
+                        <StackPanel>
+                            <TextBlock Text="YOUR PLAN" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
                             <TextBlock x:Name="ProStatusText" Text="Free version"
-                                       Foreground="{StaticResource TextSoft}" FontSize="11"
-                                       FontWeight="Bold" Margin="0,10,0,0"/>
-                            <TextBlock Text="Paste a Pro key to unlock the paid features. A lifetime key and the day, weekend and month passes all work here."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,3,0,0"/>
-                            <TextBox x:Name="ProKeyInput" Margin="0,12,0,0" Padding="6" FontSize="12"/>
-                            <DockPanel LastChildFill="False" Margin="0,8,0,0">
-                                <Button x:Name="ProActivateButton" Content="Activate key"
-                                        DockPanel.Dock="Left" Padding="14,6"
-                                        Click="ProActivate_Click"/>
-                            </DockPanel>
-                            <TextBlock x:Name="ProActivateResult" Text=""
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                       Foreground="{StaticResource TextSoft}" FontSize="18"
+                                       FontWeight="Bold" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="ACTIVATE A KEY" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Paste your Pro key below and click Activate. Lifetime keys and day, weekend and month passes all work here. Use Paste so the whole key goes in."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <TextBox x:Name="ProKeyInput" Margin="0,12,0,0" Padding="8" FontSize="12"
+                                     MinHeight="66" AcceptsReturn="True" TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto" FontFamily="Consolas"/>
+                            <DockPanel LastChildFill="False" Margin="0,10,0,0">
+                                <Button x:Name="ProPasteButton" Content="Paste" DockPanel.Dock="Left"
+                                        Padding="14,6" Margin="0,0,8,0" Click="ProPaste_Click"/>
+                                <Button x:Name="ProActivateButton" Content="Activate key"
+                                        DockPanel.Dock="Left" Padding="14,6" Click="ProActivate_Click"/>
+                            </DockPanel>
+                            <TextBlock x:Name="ProActivateResult" Text=""
+                                       Foreground="{StaticResource TextMuted}" FontSize="12"
+                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="WHAT PRO UNLOCKS" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="&#8226;  Clip Studio &#8212; auto-montage of your best moments, auto-clip and export"
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                            <TextBlock Text="&#8226;  BedWars timer overlay &#8212; generator and event countdowns"
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock Text="&#8226;  App themes, custom colours and animated backgrounds"
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock Text="&#8226;  Personal stats &#8212; your hours, clips and favourite kit"
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock Text="&#8226;  Unlimited presets and custom crosshairs"
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <Border Height="1" Background="{StaticResource Divider}" Margin="0,14,0,0"/>
+                            <TextBlock Text="Don't have a key yet? Keys are a one-time $20 for lifetime, or a short pass. Where to buy will be linked here."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PageSettings" Visibility="Collapsed">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
