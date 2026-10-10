@@ -1927,6 +1927,7 @@ public partial class MainWindow : Window
         ServerRegionCheck.IsChecked = s.ServerRegionOverlayOn;
         LoadServerRegion(s);
         LoadLicense(s);
+        LoadClipStudio(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2087,6 +2088,8 @@ public partial class MainWindow : Window
             GamingModeSetPriority = _gamingSetPriority,
             LicenseKey = _licenseKey,
             LicenseFirstUseUtc = _licenseFirstUseUtc,
+            MontageVertical = _montageVertical,
+            MontageMusic = _montageMusic,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
@@ -4946,13 +4949,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavMod, NavRecorder, NavHistory, NavTheme, NavSettings
+        NavMacros, NavSwitcher, NavMod, NavRecorder, NavClipStudio, NavHistory, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageMod, PageRecorder, PageHistory, PageTheme, PageSettings
+        PageMacros, PageSwitcher, PageMod, PageRecorder, PageClipStudio, PageHistory, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
