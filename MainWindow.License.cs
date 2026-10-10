@@ -52,7 +52,7 @@ public partial class MainWindow
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.
         if (NavProCorner is not null)
-            NavProCorner.Content = IsPro ? "PRO ★" : "GET PRO";
+            NavProCorner.Content = IsPro ? "★ PRO" : "★ GET PRO";
 
         if (ProStatusText is null) return; // page not built yet
         ProStatusText.Text = status switch
