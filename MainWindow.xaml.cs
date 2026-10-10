@@ -1926,6 +1926,7 @@ public partial class MainWindow : Window
         OverlayCheck.IsChecked = s.OverlayOn;
         ServerRegionCheck.IsChecked = s.ServerRegionOverlayOn;
         LoadServerRegion(s);
+        LoadLicense(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2084,6 +2085,8 @@ public partial class MainWindow : Window
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,
+            LicenseKey = _licenseKey,
+            LicenseFirstUseUtc = _licenseFirstUseUtc,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has

@@ -3112,6 +3112,28 @@
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel x:Name="ProBox">
+                            <TextBlock Text="PRO" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock x:Name="ProStatusText" Text="Free version"
+                                       Foreground="{StaticResource TextSoft}" FontSize="11"
+                                       FontWeight="Bold" Margin="0,10,0,0"/>
+                            <TextBlock Text="Paste a Pro key to unlock the paid features. A lifetime key and the day, weekend and month passes all work here."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,3,0,0"/>
+                            <TextBox x:Name="ProKeyInput" Margin="0,12,0,0" Padding="6" FontSize="12"/>
+                            <DockPanel LastChildFill="False" Margin="0,8,0,0">
+                                <Button x:Name="ProActivateButton" Content="Activate key"
+                                        DockPanel.Dock="Left" Padding="14,6"
+                                        Click="ProActivate_Click"/>
+                            </DockPanel>
+                            <TextBlock x:Name="ProActivateResult" Text=""
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="STREAMING" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>

@@ -9,5 +9,6 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../LicenseKeyCodec.cs" />
+    <Compile Include="../LicenseKeys.cs" />
   </ItemGroup>
 </Project>

@@ -21,8 +21,11 @@ switch (command)
     case "make":
         Make(args.Length > 2 && args[1] == "--tier" ? args[2] : "");
         break;
+    case "verify":
+        Verify(args.Length > 1 ? args[1] : "");
+        break;
     default:
-        Console.WriteLine("Usage: keygen init   |   keygen make --tier (day|weekend|month|lifetime)");
+        Console.WriteLine("Usage: keygen init   |   keygen make --tier (day|weekend|month|lifetime)   |   keygen verify <key>");
         break;
 }
 
@@ -63,6 +66,18 @@ void Make(string tierName)
     File.AppendAllText(logFile, $"{DateTime.UtcNow:o},{tier},{id},{keyString}\n");
     Console.WriteLine($"\n{tier} key (logged to {logFile}):\n");
     Console.WriteLine(keyString);
+}
+
+// Checks a key against the SAME public key the shipped app carries, so you can
+// confirm a key you are about to send will actually unlock Pro for the buyer.
+void Verify(string key)
+{
+    using var pub = LicenseKeys.PublicKey();
+    LicensePayload? p = LicenseKeyCodec.Verify(key, pub);
+    if (p is { } payload)
+        Console.WriteLine($"VALID — tier {payload.Tier}, id {payload.KeyId}");
+    else
+        Console.WriteLine("INVALID — the shipped app would reject this key.");
 }
 
 static bool TryTier(string name, out ProTier tier)
