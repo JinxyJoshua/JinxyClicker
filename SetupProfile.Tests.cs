@@ -86,11 +86,12 @@ public class SetupProfileTests
         => Assert.Null(SetupProfiles.ResolvePlayUrl(input));
 
     [Theory]
-    [InlineData("6872265039", "roblox://experiences/start?placeId=6872265039")]                                  // bare id -> launch
-    [InlineData("https://www.roblox.com/games/6872265039/BedWars", "roblox://experiences/start?placeId=6872265039")] // id pulled from url
-    [InlineData("www.roblox.com/games/6872265039", "roblox://experiences/start?placeId=6872265039")]
-    [InlineData("roblox://experiences/start?placeId=6872265039", "roblox://experiences/start?placeId=6872265039")] // deep link kept
-    public void ResolvePlayLaunchBuildsADeepLink(string input, string expected)
+    [InlineData("6872265039", "https://www.roblox.com/games/start?placeId=6872265039")]                                  // bare id -> start url
+    [InlineData("https://www.roblox.com/games/6872265039/BedWars", "https://www.roblox.com/games/start?placeId=6872265039")] // id pulled from url
+    [InlineData("www.roblox.com/games/6872265039", "https://www.roblox.com/games/start?placeId=6872265039")]
+    [InlineData("https://www.roblox.com/games/start?placeId=6872265039", "https://www.roblox.com/games/start?placeId=6872265039")] // start url normalizes to itself
+    [InlineData("roblox://experiences/start?placeId=6872265039", "roblox://experiences/start?placeId=6872265039")]        // a roblox:// link the user typed is kept
+    public void ResolvePlayLaunchBuildsAStartUrl(string input, string expected)
         => Assert.Equal(expected, SetupProfiles.ResolvePlayLaunch(input));
 
     [Fact]

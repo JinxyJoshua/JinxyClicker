@@ -85,10 +85,12 @@ public static class SetupProfiles
     }
 
     /// <summary>
-    /// Turns the Play "game link" into a launch target: a Roblox deep link that
-    /// opens the app straight into the game. Pulls the place id from a bare number
-    /// or a game URL; a roblox:// link is kept; anything with no id falls back to
-    /// opening the link itself. Null when nothing was typed.
+    /// Turns the Play "game link" into a launch target. For a place id (typed bare
+    /// or pulled from a game URL) it builds Roblox's own "start" URL, which hands
+    /// off to the desktop app with an auth ticket and joins the game — the raw
+    /// roblox:// scheme isn't reliable on desktop. A roblox:// link the user typed
+    /// is kept as-is; anything with no id falls back to opening the link. Null when
+    /// nothing was typed.
     /// </summary>
     public static string? ResolvePlayLaunch(string? input)
     {
@@ -100,12 +102,12 @@ public static class SetupProfiles
         string? id = t.All(char.IsDigit) ? t : null;
         if (id is null)
         {
-            Match m = Regex.Match(t, @"(?:games/|placeId=)(\d+)", RegexOptions.IgnoreCase);
+            Match m = Regex.Match(t, @"(?:games/(?:start\?placeId=)?|placeId=)(\d+)", RegexOptions.IgnoreCase);
             if (m.Success) id = m.Groups[1].Value;
         }
 
         return id is not null
-            ? "roblox://experiences/start?placeId=" + id
+            ? "https://www.roblox.com/games/start?placeId=" + id
             : ResolvePlayUrl(t);
     }
 }

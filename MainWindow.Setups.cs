@@ -126,7 +126,8 @@ public partial class MainWindow
         try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }
         catch { SetSetupsStatus("Couldn't launch — check the game link or ID."); return; }
 
-        bool launched = target.StartsWith("roblox://", StringComparison.OrdinalIgnoreCase);
+        bool launched = target.StartsWith("roblox://", StringComparison.OrdinalIgnoreCase)
+            || target.Contains("games/start", StringComparison.OrdinalIgnoreCase);
         SetSetupsStatus(active is not null
             ? $"Applied “{active.Name}” and {(launched ? "launched your game" : "opened your game link")}."
             : (launched ? "Launched your game." : "Opened your game link."));
