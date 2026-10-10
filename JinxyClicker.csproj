@@ -85,6 +85,12 @@
     <!-- A nested project's obj/ would otherwise be globbed into this one. -->
     <Compile Remove="Testing/**" />
     <None Remove="Testing/**" />
+    <!--
+      KeyGen is the private key-minting tool. It must never be compiled into or
+      shipped with the app, so its sources are removed from the app's glob.
+    -->
+    <Compile Remove="KeyGen/**" />
+    <None Remove="KeyGen/**" />
   </ItemGroup>
 
   <ItemGroup>
