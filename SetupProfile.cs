@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace JinxyClicker;
 
@@ -61,4 +63,49 @@ public static class SetupProfiles
 
     private static bool Same(string? a, string? b)
         => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Turns what the user typed in the Play "game link" box into something openable:
+    /// a bare place id becomes the game's page, a scheme-less link gets https://, and
+    /// a full URL or roblox:// deep link is kept as-is. Null when nothing was typed.
+    /// </summary>
+    public static string? ResolvePlayUrl(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        string t = input.Trim();
+
+        if (t.All(char.IsDigit)) return "https://www.roblox.com/games/" + t;
+
+        if (t.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || t.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || t.StartsWith("roblox://", StringComparison.OrdinalIgnoreCase))
+            return t;
+
+        return "https://" + t;
+    }
+
+    /// <summary>
+    /// Turns the Play "game link" into a launch target: a Roblox deep link that
+    /// opens the app straight into the game. Pulls the place id from a bare number
+    /// or a game URL; a roblox:// link is kept; anything with no id falls back to
+    /// opening the link itself. Null when nothing was typed.
+    /// </summary>
+    public static string? ResolvePlayLaunch(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        string t = input.Trim();
+
+        if (t.StartsWith("roblox://", StringComparison.OrdinalIgnoreCase)) return t;
+
+        string? id = t.All(char.IsDigit) ? t : null;
+        if (id is null)
+        {
+            Match m = Regex.Match(t, @"(?:games/|placeId=)(\d+)", RegexOptions.IgnoreCase);
+            if (m.Success) id = m.Groups[1].Value;
+        }
+
+        return id is not null
+            ? "roblox://experiences/start?placeId=" + id
+            : ResolvePlayUrl(t);
+    }
 }

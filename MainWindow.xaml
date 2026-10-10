@@ -3141,7 +3141,7 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel x:Name="SetupsProPanel">
                             <TextBlock Text="PLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then opens your game. One click to match-ready."
+                            <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then launches straight into your game. One click to match-ready."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                                 <Button x:Name="PlayButton" Content="▶  PLAY" Style="{StaticResource AccentButton}"
@@ -3156,9 +3156,9 @@
                                 <TextBlock DockPanel.Dock="Left" Text="Game link" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
                                 <TextBox x:Name="PlayUrlBox" DockPanel.Dock="Left" Width="320" Padding="8,5" Margin="12,0,0,0"
                                          VerticalContentAlignment="Center" TextChanged="PlayUrl_Changed"
-                                         ToolTip="Paste your BedWars game link; Play opens it. Blank opens Roblox's games page."/>
+                                         ToolTip="Paste your BedWars game link OR just its game ID. Blank opens Roblox's games page."/>
                             </DockPanel>
-                            <TextBlock Text="Paste your BedWars game link so Play opens straight to it. Leave blank to open Roblox and pick it yourself."
+                            <TextBlock Text="Paste your BedWars game link — or just the game ID number — and Play opens straight to it. Leave blank to open Roblox and pick it yourself."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>

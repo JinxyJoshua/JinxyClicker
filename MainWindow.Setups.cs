@@ -120,15 +120,16 @@ public partial class MainWindow
         // disk in ApplySetup). Best-effort — a missing install must not block Play.
         try { if (!IsDefaultSelected) ApplyCurrentCrosshair(); } catch { }
 
-        string url = string.IsNullOrWhiteSpace(PlayUrlBox?.Text)
-            ? "https://www.roblox.com/games"
-            : PlayUrlBox!.Text.Trim();
-        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch { SetSetupsStatus("Couldn't open that game link — check it's a valid URL."); return; }
+        // Launch the game via Roblox's deep link (from a bare id or a game URL),
+        // falling back to Roblox's games page if nothing's set.
+        string target = SetupProfiles.ResolvePlayLaunch(PlayUrlBox?.Text) ?? "https://www.roblox.com/games";
+        try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }
+        catch { SetSetupsStatus("Couldn't launch — check the game link or ID."); return; }
 
+        bool launched = target.StartsWith("roblox://", StringComparison.OrdinalIgnoreCase);
         SetSetupsStatus(active is not null
-            ? $"Applied “{active.Name}” and opened your game. If Roblox was already open, fully close and relaunch it."
-            : "Applied your current look and opened your game.");
+            ? $"Applied “{active.Name}” and {(launched ? "launched your game" : "opened your game link")}."
+            : (launched ? "Launched your game." : "Opened your game link."));
     }
 
     private void RefreshSetupsList()
