@@ -966,6 +966,8 @@
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; APP"
                         Tag="{Binding ElementName=GroupApp}" Click="NavGroup_Click"/>
                 <StackPanel x:Name="GroupApp">
+                    <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
+                            Click="NavSetups_Click"/>
                     <Button x:Name="NavTheme" app:NavIcon.Glyph="&#xE790;" Content="THEME" Style="{StaticResource NavButton}"
                             Click="NavTheme_Click"/>
                     <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
@@ -3128,6 +3130,50 @@
                         </StackPanel>
                     </Border>
 
+                </StackPanel>
+
+                <StackPanel x:Name="PageSetups" Visibility="Collapsed">
+
+                    <TextBlock x:Name="SetupsLockNote" Visibility="Collapsed"
+                               Text="Setups are a Pro feature. Unlock them on the PRO page to save and switch your whole configuration in one click."
+                               Foreground="{StaticResource TextSoft}" FontSize="13" Margin="0,0,0,14" TextWrapping="Wrap"/>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel x:Name="SetupsProPanel">
+                            <TextBlock Text="PLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then opens your game. One click to match-ready."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <Button x:Name="PlayButton" Content="▶  PLAY" Style="{StaticResource AccentButton}"
+                                    Padding="26,11" Margin="0,14,0,0" FontWeight="Bold" FontSize="15"
+                                    HorizontalAlignment="Left" Click="Play_Click"/>
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="Game link" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBox x:Name="PlayUrlBox" DockPanel.Dock="Left" Width="320" Padding="8,5" Margin="12,0,0,0"
+                                         VerticalContentAlignment="Center" TextChanged="PlayUrl_Changed"
+                                         ToolTip="Paste your BedWars game link; Play opens it. Blank opens Roblox's games page."/>
+                            </DockPanel>
+                            <TextBlock Text="Paste your BedWars game link so Play opens straight to it. Leave blank to open Roblox and pick it yourself."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="SetupsListCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="YOUR SETUPS" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="A setup remembers your crosshair, click preset, FastFlags, and theme. Save your current look, then switch between setups in one tap."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="Name" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBox x:Name="SetupNameBox" DockPanel.Dock="Left" Width="200" MaxLength="24" Padding="8,5" Margin="12,0,0,0"
+                                         VerticalContentAlignment="Center"/>
+                                <Button x:Name="SetupSaveButton" DockPanel.Dock="Left" Content="Save current" Style="{StaticResource ChipButton}"
+                                        Padding="14,6" Margin="10,0,0,0" Click="SetupSave_Click"/>
+                            </DockPanel>
+                            <ItemsControl x:Name="SetupsList" Margin="0,12,0,0"/>
+                            <TextBlock x:Name="SetupsStatus" Text="" Foreground="{StaticResource TextMuted}"
+                                       FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <StackPanel x:Name="PageTheme" Visibility="Collapsed">

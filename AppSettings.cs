@@ -196,6 +196,9 @@ public sealed class AppSettings
     /// <summary>Pro: the name of the setup last applied, if any.</summary>
     public string? ActiveSetup { get; set; }
 
+    /// <summary>Pro: the game link the Play button opens, or null for Roblox's games page.</summary>
+    public string? PlayGameUrl { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

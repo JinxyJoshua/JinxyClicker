@@ -1928,6 +1928,7 @@ public partial class MainWindow : Window
         LoadServerRegion(s);
         LoadLicense(s);
         LoadClipStudio(s);
+        LoadSetups(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2092,6 +2093,9 @@ public partial class MainWindow : Window
             MontageMusic = _montageMusic,
             MontageTitle = _montageTitle,
             MontageCrossfade = _montageCrossfade,
+            SetupProfiles = _setups,
+            ActiveSetup = _activeSetup,
+            PlayGameUrl = string.IsNullOrWhiteSpace(PlayUrlBox?.Text) ? null : PlayUrlBox.Text.Trim(),
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has

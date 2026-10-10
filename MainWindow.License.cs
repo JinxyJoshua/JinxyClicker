@@ -84,6 +84,7 @@ public partial class MainWindow
         // Per-page Pro gating that should react the moment a key activates, even
         // if the user is sitting on that page (null-guarded for early calls).
         ApplyCrosshairPro();
+        ApplySetupsPro();
 
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.
