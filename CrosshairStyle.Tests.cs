@@ -186,6 +186,58 @@ public class CrosshairStyleTests
         Assert.Equal(expected, new CrosshairStyle(OpacityPercent: percent).Opacity, 3);
     }
 
+    // ---- glow (Pro) ----
+
+    [Fact]
+    public void NoGlowByDefault()
+    {
+        var c = new CrosshairStyle();
+        Assert.Equal(0, c.GlowPercent);
+        Assert.False(c.HasGlow);
+    }
+
+    [Fact]
+    public void GlowIsOnWhenSet()
+    {
+        Assert.True(new CrosshairStyle(GlowPercent: 40).HasGlow);
+    }
+
+    [Theory]
+    [InlineData(-10, 0.0)]
+    [InlineData(200, 1.0)]
+    [InlineData(50, 0.5)]
+    public void GlowStrengthIsAClampedFraction(int percent, double expected)
+    {
+        Assert.Equal(expected, new CrosshairStyle(GlowPercent: percent).GlowStrength, 3);
+    }
+
+    // ---- hex normalisation for the custom-colour picker (Pro) ----
+
+    [Theory]
+    [InlineData("#1a2b3c", "#1A2B3C")]
+    [InlineData("1a2b3c", "#1A2B3C")]
+    [InlineData("#abc", "#AABBCC")]
+    [InlineData("ABC", "#AABBCC")]
+    [InlineData("  #FFaa00  ", "#FFAA00")]
+    public void TryNormalizeHexAcceptsValid(string input, string expected)
+    {
+        Assert.True(CrosshairStyle.TryNormalizeHex(input, out string hex));
+        Assert.Equal(expected, hex);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("#12")]
+    [InlineData("xyz")]
+    [InlineData("#12345")]
+    [InlineData("#1234567")]
+    [InlineData("#gggggg")]
+    public void TryNormalizeHexRejectsInvalid(string? input)
+    {
+        Assert.False(CrosshairStyle.TryNormalizeHex(input, out _));
+    }
+
     // ---- the gallery is all usable ----
 
     [Fact]

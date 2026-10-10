@@ -51,6 +51,7 @@
     <Compile Include="../CrosshairStyle.cs" />
     <Compile Include="../CrosshairStyle.Tests.cs" />
     <Compile Include="../CrosshairGallery.cs" />
+    <Compile Include="../CrosshairGallery.Tests.cs" />
     <Compile Include="../RobloxCursors.cs" />
     <Compile Include="../RobloxCursors.Tests.cs" />
     <Compile Include="../ClickButton.cs" />

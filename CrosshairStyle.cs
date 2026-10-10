@@ -60,12 +60,14 @@ public sealed record CrosshairStyle(
     string ColorHex = "#33FF66",
     string? DotColorHex = null,
     int OpacityPercent = 100,
-    bool Outline = true)
+    bool Outline = true,
+    int GlowPercent = 0)
 {
     public const int MinSize = 0, MaxSize = 60;
     public const int MinThickness = 1, MaxThickness = 12;
     public const int MinGap = 0, MaxGap = 40;
     public const int MinDot = 1, MaxDot = 24;
+    public const int MinGlow = 0, MaxGlow = 100;
 
     private int Arm => Math.Clamp(Size, MinSize, MaxSize);
     private int Stroke => Math.Clamp(Thickness, MinThickness, MaxThickness);
@@ -143,4 +145,44 @@ public sealed record CrosshairStyle(
 
     /// <summary>Opacity as a 0–1 fraction, clamped.</summary>
     public double Opacity => Math.Clamp(OpacityPercent, 0, 100) / 100.0;
+
+    /// <summary>Whether a soft glow halo is drawn behind the crosshair (Pro).</summary>
+    public bool HasGlow => GlowPercent > 0;
+
+    /// <summary>Glow intensity as a 0–1 fraction, clamped.</summary>
+    public double GlowStrength => Math.Clamp(GlowPercent, MinGlow, MaxGlow) / 100.0;
+
+    /// <summary>
+    /// Validates and normalizes a user-typed colour to "#RRGGBB" (upper case).
+    /// Accepts 3- or 6-digit hex, with or without a leading '#', any case.
+    /// </summary>
+    public static bool TryNormalizeHex(string? input, out string hex)
+    {
+        hex = "";
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        string t = input.Trim();
+        if (t.StartsWith('#')) t = t[1..];
+
+        if (t.Length == 3)
+        {
+            if (!AllHex(t)) return false;
+            t = $"{t[0]}{t[0]}{t[1]}{t[1]}{t[2]}{t[2]}";
+        }
+        else if (t.Length == 6)
+        {
+            if (!AllHex(t)) return false;
+        }
+        else return false;
+
+        hex = "#" + t.ToUpperInvariant();
+        return true;
+    }
+
+    private static bool AllHex(string s)
+    {
+        foreach (char c in s)
+            if (!Uri.IsHexDigit(c)) return false;
+        return true;
+    }
 }

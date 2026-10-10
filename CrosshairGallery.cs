@@ -114,6 +114,14 @@ public sealed class CustomCrosshair
     public string Color { get; set; } = "#33FF66";
     public string? DotColor { get; set; }
 
+    // Pro fine-tuning. Null means "use the classic default", so crosshairs saved
+    // before these existed still draw exactly as they did.
+    public int? Thickness { get; set; }
+    public int? Gap { get; set; }
+    public int? DotSize { get; set; }
+    public int? Opacity { get; set; }
+    public int? Glow { get; set; }
+
     /// <summary>
     /// The bare file name of an imported image, when this crosshair is a picture
     /// the user chose rather than one built from a shape and colour. Null for a
@@ -128,7 +136,13 @@ public sealed class CustomCrosshair
     public CrosshairStyle ToStyle()
     {
         CrosshairShape shape = Enum.TryParse(Shape, out CrosshairShape s) ? s : CrosshairShape.Cross;
-        return new CrosshairStyle(shape, Size: 9, Thickness: 3, Gap: 4, DotSize: 3,
-            ColorHex: Color, DotColorHex: DotColor);
+        return new CrosshairStyle(shape, Size: 9,
+            Thickness: Thickness ?? 3,
+            Gap: Gap ?? 4,
+            DotSize: DotSize ?? 3,
+            ColorHex: Color,
+            DotColorHex: DotColor,
+            OpacityPercent: Opacity ?? 100,
+            GlowPercent: Glow ?? 0);
     }
 }

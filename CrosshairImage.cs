@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 
 namespace JinxyClicker;
@@ -25,12 +26,29 @@ public static class CrosshairImage
     /// <summary>A frozen bitmap of the crosshair, for tiles and the preview.</summary>
     public static BitmapSource RenderBitmap(CrosshairStyle style, int pixels, double sizeFactor)
     {
-        var visual = new DrawingVisual();
-        using (DrawingContext dc = visual.RenderOpen())
+        var root = new DrawingVisual();
+
+        // Glow (Pro): a blurred copy of the crosshair in its own colour, drawn
+        // under the crisp one so it reads as a halo.
+        if (style.HasGlow)
+        {
+            double radius = Math.Max(2.0, style.GlowStrength * pixels * 0.12);
+            var glow = new DrawingVisual
+            {
+                Effect = new BlurEffect { Radius = radius, KernelType = KernelType.Gaussian }
+            };
+            using (DrawingContext gc = glow.RenderOpen())
+                DrawGlow(gc, style, pixels, sizeFactor);
+            root.Children.Add(glow);
+        }
+
+        var main = new DrawingVisual();
+        using (DrawingContext dc = main.RenderOpen())
             Draw(dc, style, pixels, sizeFactor);
+        root.Children.Add(main);
 
         var bmp = new RenderTargetBitmap(pixels, pixels, 96, 96, PixelFormats.Pbgra32);
-        bmp.Render(visual);
+        bmp.Render(root);
         bmp.Freeze();
         return bmp;
     }
@@ -215,6 +233,38 @@ public static class CrosshairImage
 
             if (style.Outline) dc.DrawEllipse(dotEdge, null, c, r + Math.Max(1.0, s), r + Math.Max(1.0, s));
             dc.DrawEllipse(dotColour, null, c, r, r);
+        }
+    }
+
+    // The halo: the same shape in the crosshair's colour, drawn thicker and
+    // solid so the Gaussian blur above spreads it into a soft glow.
+    private static void DrawGlow(DrawingContext dc, CrosshairStyle style, int pixels, double sizeFactor)
+    {
+        double centre = pixels / 2.0;
+        double s = pixels / BaseImage * sizeFactor;
+
+        Brush glow = Frozen(Parse(style.ColorHex), Math.Min(1.0, 0.55 + style.GlowStrength * 0.45));
+        double stroke = Math.Max(2.0, style.StrokeWidth * s + 2.0 * s);
+
+        foreach (CrosshairArm a in style.Arms())
+        {
+            var p1 = new Point(centre + a.X1 * s, centre + a.Y1 * s);
+            var p2 = new Point(centre + a.X2 * s, centre + a.Y2 * s);
+            dc.DrawLine(RoundPen(glow, stroke), p1, p2);
+        }
+
+        if (style.HasRing)
+        {
+            var c = new Point(centre, centre);
+            double r = style.RingRadius * s;
+            dc.DrawEllipse(null, RoundPen(glow, stroke), c, r, r);
+        }
+
+        if (style.HasDot)
+        {
+            var c = new Point(centre, centre);
+            double r = Math.Max(1.0, style.DotRadius * s) + stroke * 0.5;
+            dc.DrawEllipse(glow, null, c, r, r);
         }
     }
 
