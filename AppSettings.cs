@@ -175,6 +175,15 @@ public sealed class AppSettings
     /// </summary>
     public DateTime? LicenseFirstUseUtc { get; set; }
 
+    /// <summary>Clip Studio: export montages vertically (9:16) for TikTok/Shorts.</summary>
+    public bool MontageVertical { get; set; }
+
+    /// <summary>
+    /// Clip Studio: the chosen montage music — a bundled track's file name, or a
+    /// full path to the user's own file. Null uses the first bundled track.
+    /// </summary>
+    public string? MontageMusic { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

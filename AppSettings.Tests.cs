@@ -60,6 +60,15 @@ public class AppSettingsDefaultsTests
         Assert.Equal(s.LicenseFirstUseUtc, back.LicenseFirstUseUtc);
     }
 
+    [Fact]
+    public void Montage_settings_round_trip()
+    {
+        var s = new AppSettings { MontageVertical = true, MontageMusic = "upbeat-loop.mp3" };
+        var back = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(s))!;
+        Assert.True(back.MontageVertical);
+        Assert.Equal("upbeat-loop.mp3", back.MontageMusic);
+    }
+
     /// <summary>And a file that does say so is honoured.</summary>
     [Fact]
     public void AChoiceToTurnItOnIsKept()
