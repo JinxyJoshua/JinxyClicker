@@ -111,35 +111,45 @@ public partial class MainWindow
 
     private FrameworkElement BuildClipRow(EditClip ec)
     {
-        var row = new DockPanel { Margin = new Thickness(0, 0, 0, 6), LastChildFill = false };
+        var dock = new DockPanel { LastChildFill = false };
 
-        var pick = new CheckBox { IsChecked = ec.Include, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        var pick = new CheckBox { IsChecked = ec.Include, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
         pick.Checked += (_, _) => ec.Include = true;
         pick.Unchecked += (_, _) => ec.Include = false;
-        row.Children.Add(pick);
+        dock.Children.Add(pick);
 
-        string trimNote = (ec.Start.HasValue || ec.End.HasValue)
-            ? $"   [trim {Mmss(ec.Start ?? 0)}–{(ec.End.HasValue ? Mmss(ec.End.Value) : "end")}]"
-            : "";
-        row.Children.Add(new TextBlock
+        bool trimmed = ec.Start.HasValue || ec.End.HasValue;
+        var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        info.Children.Add(new TextBlock { Text = ec.Info.Name, Foreground = Brush("TextBright"), FontSize = 12 });
+        string sub = ec.Info.SavedUtc.ToLocalTime().ToString("g");
+        if (trimmed) sub += $"      trim {Mmss(ec.Start ?? 0)}–{(ec.End.HasValue ? Mmss(ec.End.Value) : "end")}";
+        info.Children.Add(new TextBlock { Text = sub, Foreground = trimmed ? Brush("Accent") : Brush("TextMuted"), FontSize = 10, Margin = new Thickness(0, 2, 0, 0) });
+        dock.Children.Add(info);
+
+        // Right-docked actions, added right-to-left.
+        AddChip(dock, "Delete", (_, _) => { ClipLibrary.Delete(ec.Info.Path); RefreshClipList(); });
+        AddChip(dock, "Play", (_, _) => OpenWithShell(ec.Info.Path));
+        AddChip(dock, "Trim…", async (_, _) => await TrimClipAsync(ec));
+        AddChip(dock, "▼", (_, _) => Move(ec, +1));
+        AddChip(dock, "▲", (_, _) => Move(ec, -1));
+
+        return new Border
         {
-            Text = $"{ec.Info.Name}   ({ec.Info.SavedUtc.ToLocalTime():g}){trimNote}",
-            VerticalAlignment = VerticalAlignment.Center
-        });
-
-        // Right-docked controls, added right-to-left.
-        AddRight(row, "Delete", (_, _) => { ClipLibrary.Delete(ec.Info.Path); RefreshClipList(); });
-        AddRight(row, "Play", (_, _) => OpenWithShell(ec.Info.Path));
-        AddRight(row, "Trim…", async (_, _) => await TrimClipAsync(ec));
-        AddRight(row, "▼", (_, _) => Move(ec, +1));
-        AddRight(row, "▲", (_, _) => Move(ec, -1));
-
-        return row;
+            Background = Brush("Panel"),
+            BorderBrush = Brush("Outline"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8, 12, 8),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = dock
+        };
     }
 
-    private static void AddRight(DockPanel row, string content, RoutedEventHandler onClick)
+    private Brush Brush(string key) => (Brush)FindResource(key);
+
+    private void AddChip(DockPanel row, string content, RoutedEventHandler onClick)
     {
-        var b = new Button { Content = content, Padding = new Thickness(8, 2, 8, 2), Margin = new Thickness(6, 0, 0, 0) };
+        var b = new Button { Content = content, Style = (Style)FindResource("ChipButton"), Margin = new Thickness(6, 0, 0, 0) };
         DockPanel.SetDock(b, Dock.Right);
         b.Click += onClick;
         row.Children.Add(b);
@@ -168,14 +178,17 @@ public partial class MainWindow
         ClipStudioStatus.Text = "";
         if (dur <= 0) { ClipStudioStatus.Text = "Couldn't read that clip."; return; }
 
-        double start = Math.Clamp(ec.Start ?? 0, 0, dur);
-        double end = Math.Clamp(ec.End ?? dur, 0, dur);
+        double startSec = Math.Clamp(ec.Start ?? 0, 0, dur);
+        double endSec = Math.Clamp(ec.End ?? dur, 0, dur);
 
-        var panel = new StackPanel { Margin = new Thickness(16) };
-        panel.Children.Add(new TextBlock { Text = $"Trim — {ec.Info.Name}  ({Mmss(dur)} long)", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 10) });
+        var panel = new StackPanel { Margin = new Thickness(18) };
+        panel.Children.Add(new TextBlock { Text = $"Trim — {ec.Info.Name}", FontWeight = FontWeights.Bold, FontSize = 15, Foreground = Brush("TextBright") });
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Drag the bar to move through the clip, then click “Set start here” and “Set end here” to mark the part you want to keep.",
+            Foreground = Brush("TextMuted"), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 12)
+        });
 
-        // Video preview: scrubs to the in/out frame as you drag; silent while
-        // scrubbing, with sound only while previewing the selection.
         var media = new MediaElement
         {
             Source = new Uri(ec.Info.Path),
@@ -184,77 +197,109 @@ public partial class MainWindow
             Stretch = Stretch.Uniform,
             Height = 230,
             Volume = 0,
-            Margin = new Thickness(0, 0, 0, 10)
+            Margin = new Thickness(0, 0, 0, 8)
         };
-        var previewNote = new TextBlock { Visibility = Visibility.Collapsed, Foreground = Brushes.Silver, Margin = new Thickness(0, 0, 0, 10) };
+        var previewNote = new TextBlock { Visibility = Visibility.Collapsed, Foreground = Brush("TextMuted"), FontSize = 11, Margin = new Thickness(0, 0, 0, 8) };
         media.MediaFailed += (_, _) =>
         {
             media.Visibility = Visibility.Collapsed;
-            previewNote.Text = "(Preview unavailable for this clip — trim by the sliders and times below.)";
+            previewNote.Text = "(Preview won't play for this clip — use the bar and the times below to trim.)";
             previewNote.Visibility = Visibility.Visible;
         };
-        panel.Children.Add(media);
+        panel.Children.Add(new Border
+        {
+            Background = Brushes.Black,
+            BorderBrush = Brush("Outline"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Margin = new Thickness(0, 0, 0, 10),
+            Child = media
+        });
         panel.Children.Add(previewNote);
 
-        // Nudge the player to render the frame at a seeked position while paused.
+        bool playing = false, syncing = false;
+
+        // The playhead bar: one slider for the whole clip.
+        var bar = new Slider { Minimum = 0, Maximum = dur, Value = startSec };
+        var timeLabel = new TextBlock { Foreground = Brush("TextMuted"), FontSize = 11, Margin = new Thickness(0, 2, 0, 8) };
+        void UpdateTime() => timeLabel.Text = $"Position {Mmss(bar.Value)} / {Mmss(dur)}";
+
         var nudge = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
-        nudge.Tick += (_, _) => { nudge.Stop(); media.Pause(); };
+        nudge.Tick += (_, _) => { nudge.Stop(); if (!playing) media.Pause(); };
         void ShowFrame(double pos)
         {
             try { media.Position = TimeSpan.FromSeconds(Math.Clamp(pos, 0, dur)); media.Play(); nudge.Stop(); nudge.Start(); } catch { }
         }
 
-        var readout = new TextBlock { Margin = new Thickness(0, 10, 0, 10) };
-        var startSlider = new Slider { Minimum = 0, Maximum = dur, Value = start };
-        var endSlider = new Slider { Minimum = 0, Maximum = dur, Value = end, Margin = new Thickness(0, 4, 0, 0) };
-        void Sync() => readout.Text = $"Keep {Mmss(startSlider.Value)} → {Mmss(endSlider.Value)}  ({Mmss(Math.Max(0, endSlider.Value - startSlider.Value))} long)";
-        startSlider.ValueChanged += (_, _) => { if (startSlider.Value > endSlider.Value) startSlider.Value = endSlider.Value; Sync(); ShowFrame(startSlider.Value); };
-        endSlider.ValueChanged += (_, _) => { if (endSlider.Value < startSlider.Value) endSlider.Value = startSlider.Value; Sync(); ShowFrame(endSlider.Value); };
-        Sync();
-
-        panel.Children.Add(new TextBlock { Text = "Start" });
-        panel.Children.Add(startSlider);
-        panel.Children.Add(new TextBlock { Text = "End", Margin = new Thickness(0, 8, 0, 0) });
-        panel.Children.Add(endSlider);
-        panel.Children.Add(readout);
-
-        // Preview the selection (start -> end) with sound.
-        var playSel = new Button { Content = "▶ Preview selection", Padding = new Thickness(12, 4, 12, 4), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 10) };
-        var selTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-        selTimer.Tick += (_, _) =>
+        bar.ValueChanged += (_, _) =>
         {
-            if (media.Position.TotalSeconds >= endSlider.Value) { selTimer.Stop(); media.Pause(); media.Volume = 0; }
+            UpdateTime();
+            if (syncing) return;                 // the play timer moved it, not the user
+            if (playing) { try { media.Position = TimeSpan.FromSeconds(bar.Value); } catch { } }
+            else ShowFrame(bar.Value);
         };
-        playSel.Click += (_, _) =>
-        {
-            try { media.Volume = 0.6; media.Position = TimeSpan.FromSeconds(startSlider.Value); media.Play(); selTimer.Start(); } catch { }
-        };
-        panel.Children.Add(playSel);
+        UpdateTime();
 
-        var ok = new Button { Content = "Save trim", Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(0, 0, 8, 0) };
-        var reset = new Button { Content = "Use whole clip", Padding = new Thickness(14, 4, 14, 4) };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        buttons.Children.Add(ok);
+        var playBtn = new Button { Content = "▶ Play", Style = (Style)FindResource("ChipButton"), Padding = new Thickness(14, 5, 14, 5), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 12) };
+        var playTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        void StopPlaying() { playing = false; playTimer.Stop(); try { media.Pause(); } catch { } media.Volume = 0; playBtn.Content = "▶ Play"; }
+        playTimer.Tick += (_, _) =>
+        {
+            double pos = media.Position.TotalSeconds;
+            if (pos >= dur - 0.1) { StopPlaying(); return; }
+            syncing = true; bar.Value = pos; syncing = false;
+        };
+        playBtn.Click += (_, _) =>
+        {
+            if (playing) { StopPlaying(); return; }
+            try { media.Volume = 0.6; media.Position = TimeSpan.FromSeconds(bar.Value); media.Play(); playing = true; playTimer.Start(); playBtn.Content = "⏸ Pause"; } catch { }
+        };
+
+        panel.Children.Add(bar);
+        panel.Children.Add(timeLabel);
+        panel.Children.Add(playBtn);
+
+        // Set start / set end at the current playhead.
+        var selLabel = new TextBlock { FontWeight = FontWeights.Bold, FontSize = 13, Foreground = Brush("TextBright"), Margin = new Thickness(0, 6, 0, 12) };
+        void UpdateSel() => selLabel.Text = $"Keeping {Mmss(startSec)} → {Mmss(endSec)}   ({Mmss(Math.Max(0, endSec - startSec))} long)";
+
+        var setStart = new Button { Content = "⮜ Set start here", Style = (Style)FindResource("ChipButton"), Padding = new Thickness(14, 6, 14, 6), Margin = new Thickness(0, 0, 8, 0) };
+        var setEnd = new Button { Content = "Set end here ⮞", Style = (Style)FindResource("ChipButton"), Padding = new Thickness(14, 6, 14, 6) };
+        setStart.Click += (_, _) => { startSec = bar.Value; if (startSec > endSec) endSec = startSec; UpdateSel(); };
+        setEnd.Click += (_, _) => { endSec = bar.Value; if (endSec < startSec) startSec = endSec; UpdateSel(); };
+        var setRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 2) };
+        setRow.Children.Add(setStart);
+        setRow.Children.Add(setEnd);
+        panel.Children.Add(setRow);
+
+        UpdateSel();
+        panel.Children.Add(selLabel);
+
+        var reset = new Button { Content = "Use whole clip", Style = (Style)FindResource("ChipButton"), Padding = new Thickness(16, 7, 16, 7), Margin = new Thickness(0, 0, 8, 0) };
+        var ok = new Button { Content = "Save trim", Style = (Style)FindResource("AccentButton"), Padding = new Thickness(18, 0, 18, 0), Height = 34, FontWeight = FontWeights.Bold };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 4, 0, 0) };
         buttons.Children.Add(reset);
+        buttons.Children.Add(ok);
         panel.Children.Add(buttons);
 
         var win = new Window
         {
             Title = "Trim clip",
             Content = panel,
-            Width = 460,
+            Background = Brush("Sidebar"),
+            Width = 470,
             SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
             ResizeMode = ResizeMode.NoResize
         };
-        win.Loaded += (_, _) => ShowFrame(startSlider.Value);
-        win.Closed += (_, _) => { try { selTimer.Stop(); nudge.Stop(); media.Close(); } catch { } };
+        win.Loaded += (_, _) => ShowFrame(bar.Value);
+        win.Closed += (_, _) => { try { playTimer.Stop(); nudge.Stop(); media.Close(); } catch { } };
         ok.Click += (_, _) =>
         {
-            bool whole = startSlider.Value <= 0.05 && endSlider.Value >= dur - 0.05;
-            ec.Start = whole ? null : startSlider.Value;
-            ec.End = whole ? null : endSlider.Value;
+            bool whole = startSec <= 0.05 && endSec >= dur - 0.05;
+            ec.Start = whole ? null : startSec;
+            ec.End = whole ? null : endSec;
             win.DialogResult = true;
         };
         reset.Click += (_, _) => { ec.Start = null; ec.End = null; win.DialogResult = true; };

@@ -857,6 +857,40 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- A small flat outlined button for clip-row actions and dialog
+             secondaries, so they read as part of the dark UI, not default chrome. -->
+        <Style x:Key="ChipButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextSoft}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" CornerRadius="5" Background="{TemplateBinding Background}"
+                                BorderBrush="{StaticResource Outline}" BorderThickness="1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{StaticResource Panel}"/>
+                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -2742,7 +2776,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <Button x:Name="MusicChooseButton" Content="Choose music…" Padding="10,4" Click="MontagePickMusic_Click"/>
+                                <Button x:Name="MusicChooseButton" Content="Choose music…" Style="{StaticResource ChipButton}" Padding="12,5" Click="MontagePickMusic_Click"/>
                                 <TextBlock x:Name="MusicChosenText" Text="None (montage will be silent)"
                                            Foreground="{StaticResource TextMuted}" FontSize="12" VerticalAlignment="Center"
                                            Margin="10,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
@@ -2750,7 +2784,8 @@
                             <CheckBox x:Name="MontageVerticalCheck" Content="Vertical (TikTok / Shorts)"
                                       Foreground="{StaticResource TextSoft}" Margin="0,12,0,0"
                                       Checked="MontageVertical_Changed" Unchecked="MontageVertical_Changed"/>
-                            <Button x:Name="MontageButton" Content="Make montage" Padding="16,8" Margin="0,14,0,0"
+                            <Button x:Name="MontageButton" Content="Make montage" Style="{StaticResource AccentButton}"
+                                    Padding="20,9" Margin="0,16,0,0" FontWeight="Bold"
                                     HorizontalAlignment="Left" Click="MakeMontage_Click"/>
                             <TextBlock x:Name="ClipStudioStatus" Text="" Foreground="{StaticResource TextMuted}"
                                        FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"/>
