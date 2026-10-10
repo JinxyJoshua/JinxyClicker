@@ -222,8 +222,9 @@ Clip Studio is a separate spec, built after this and dropped into gate #5.
 ## Open questions for review
 
 1. ~~Safe vs aggressive on Server/globe + Gaming Mode~~ — **decided: stay free.**
-2. ~~Key length~~ — **default: keep the strong scheme** (~40–50 char paste-in).
-   Revisit only if buyers complain it's long.
+2. ~~Key length~~ — **default: keep the strong scheme** (~120-char paste-in; a
+   secure offline signature is 64 bytes, so it can't be much shorter). It's a
+   paste, never typed, so length is acceptable. Revisit only if buyers complain.
 3. ~~Where buyers paste after paying~~ — **default: the unlock box shows a
    configurable "Get a key" link** pointing to wherever you sell (a Discord /
    shop URL you set). Placeholder until you have the sales channel; not blocking.
