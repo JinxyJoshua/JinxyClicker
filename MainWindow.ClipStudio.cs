@@ -133,7 +133,10 @@ public partial class MainWindow
         try
         {
             MontageShape shape = _montageVertical ? MontageShape.Vertical : MontageShape.Landscape;
-            string? outPath = await MontageMaker.RenderAsync(clips, music, shape, ClipFolder);
+            // Montages go to their own subfolder so they are kept apart from source
+            // clips and can't be re-listed, re-montaged, or deleted as if they were clips.
+            string montageFolder = Path.Combine(ClipFolder, "montages");
+            string? outPath = await MontageMaker.RenderAsync(clips, music, shape, montageFolder);
             ClipStudioStatus.Text = outPath != null
                 ? "Montage ready: " + Path.GetFileName(outPath)
                 : "Montage failed. Make sure your clips still exist and try again.";

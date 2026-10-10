@@ -20,6 +20,9 @@ public static class ClipLibrary
 
             return new DirectoryInfo(folder)
                 .GetFiles("*.mp4")
+                // Montage exports live here too; they are not source clips, so the
+                // library never lists them (and they never feed back into a montage).
+                .Where(f => !f.Name.StartsWith("montage-", StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(f => f.LastWriteTimeUtc)
                 .Select(f => new ClipInfo(f.FullName, f.Name, f.LastWriteTimeUtc, f.Length))
                 .ToList();

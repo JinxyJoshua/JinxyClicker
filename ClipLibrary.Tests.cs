@@ -39,6 +39,21 @@ public class ClipLibraryTests
     }
 
     [Fact]
+    public void List_excludes_montage_outputs()
+    {
+        string d = TempDir();
+        try
+        {
+            File.WriteAllText(Path.Combine(d, "replay-a.mp4"), "x");
+            File.WriteAllText(Path.Combine(d, "montage-x.mp4"), "x");
+            var list = ClipLibrary.List(d);
+            Assert.Single(list);
+            Assert.Equal("replay-a.mp4", list[0].Name);
+        }
+        finally { Directory.Delete(d, true); }
+    }
+
+    [Fact]
     public void Delete_removes_the_file()
     {
         string d = TempDir();
