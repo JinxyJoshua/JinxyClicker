@@ -42,6 +42,14 @@ public partial class MainWindow
     private string _customColor = "#33FF66";
     private string? _customDotColor = "#FFFFFF";
 
+    // Pro fine-tuning of the crosshair being built. Defaults match the classic
+    // look, so a free user (sliders disabled) builds exactly what they did before.
+    private int _customThickness = 3;
+    private int _customGap = 4;
+    private int _customDotSize = 3;
+    private int _customOpacity = 100;
+    private int _customGlow;
+
     private const int DefaultSizePercent = 100;
 
     /// <summary>The gallery entry that means "Roblox's own cursor, no crosshair".</summary>
@@ -55,8 +63,21 @@ public partial class MainWindow
         "#FFE14D", "#FF9C3B", "#A855F7", "#8B5CF6", "#FFFFFF", "#111111"
     };
 
-    private void NavCrosshair_Click(object sender, RoutedEventArgs e) =>
+    private void NavCrosshair_Click(object sender, RoutedEventArgs e)
+    {
         ShowPage(NavCrosshair, PageCrosshair, "Crosshair", "A crosshair in place of the Roblox cursor");
+        ApplyCrosshairPro();
+    }
+
+    // The custom-colour picker, glow, and fine-tune sliders are Pro. Everything
+    // else on the crosshair page (presets, swatches, import, size) stays free.
+    private void ApplyCrosshairPro()
+    {
+        bool pro = IsPro;
+        if (CrosshairProLockNote is not null)
+            CrosshairProLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
+        if (CrosshairProPanel is not null) CrosshairProPanel.IsEnabled = pro;
+    }
 
     /// <summary>Puts the saved crosshair onto the controls, preview and status.</summary>
     private void LoadCrosshair(AppSettings s)
@@ -421,8 +442,10 @@ public partial class MainWindow
     // ---- make your own ----
 
     private CrosshairStyle BuildingStyle() => new(
-        _customShape, Size: 9, Thickness: 3, Gap: 4, DotSize: 3,
-        ColorHex: _customColor, DotColorHex: _customDotColor);
+        _customShape, Size: 9,
+        Thickness: _customThickness, Gap: _customGap, DotSize: _customDotSize,
+        ColorHex: _customColor, DotColorHex: _customDotColor,
+        OpacityPercent: _customOpacity, GlowPercent: _customGlow);
 
     private void BuildCustomSwatches()
     {
@@ -529,6 +552,55 @@ public partial class MainWindow
             CustomPreviewImage.Source = CrosshairImage.RenderBitmap(BuildingStyle(), 96, 1.15);
     }
 
+    // ---- Pro: any colour + fine-tune ----
+
+    private void CustomHex_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (CustomHexBox is null) return;
+        if (CrosshairStyle.TryNormalizeHex(CustomHexBox.Text, out string hex))
+        {
+            _customColor = hex;
+            HighlightSwatches();   // a typed colour matches no swatch, so the ring clears
+            RefreshCustomPreview();
+        }
+    }
+
+    private void CustomDotHex_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (CustomDotHexBox is null) return;
+        if (string.IsNullOrWhiteSpace(CustomDotHexBox.Text))
+        {
+            _customDotColor = null;   // blank centre = share the main colour
+            HighlightSwatches();
+            RefreshCustomPreview();
+        }
+        else if (CrosshairStyle.TryNormalizeHex(CustomDotHexBox.Text, out string hex))
+        {
+            _customDotColor = hex;
+            HighlightSwatches();
+            RefreshCustomPreview();
+        }
+    }
+
+    private void CustomTune_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (CustomThicknessSlider is null) return; // page not built yet
+
+        _customThickness = (int)CustomThicknessSlider.Value;
+        _customGap = (int)CustomGapSlider.Value;
+        _customDotSize = (int)CustomDotSlider.Value;
+        _customOpacity = (int)CustomOpacitySlider.Value;
+        _customGlow = (int)CustomGlowSlider.Value;
+
+        if (CustomThicknessValue is not null) CustomThicknessValue.Text = _customThickness.ToString();
+        if (CustomGapValue is not null) CustomGapValue.Text = _customGap.ToString();
+        if (CustomDotValue is not null) CustomDotValue.Text = _customDotSize.ToString();
+        if (CustomOpacityValue is not null) CustomOpacityValue.Text = _customOpacity + "%";
+        if (CustomGlowValue is not null) CustomGlowValue.Text = _customGlow + "%";
+
+        RefreshCustomPreview();
+    }
+
     private void CustomAdd_Click(object sender, RoutedEventArgs e)
     {
         string name = NextCustomName();
@@ -537,7 +609,12 @@ public partial class MainWindow
             Name = name,
             Shape = _customShape.ToString(),
             Color = _customColor,
-            DotColor = _customDotColor
+            DotColor = _customDotColor,
+            Thickness = _customThickness,
+            Gap = _customGap,
+            DotSize = _customDotSize,
+            Opacity = _customOpacity,
+            Glow = _customGlow
         };
 
         _customCrosshairs.Add(custom);

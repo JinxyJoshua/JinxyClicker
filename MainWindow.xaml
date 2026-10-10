@@ -2353,6 +2353,65 @@
                                            Foreground="{StaticResource TextMuted}"/>
                                 <WrapPanel x:Name="CustomDotColorPanel"/>
 
+                                <!-- Pro: any colour, glow, and fine-tuning -->
+                                <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
+                                <TextBlock Text="PRO — ANY COLOUR, GLOW &amp; FINE-TUNE" FontSize="9" FontWeight="Bold"
+                                           Margin="0,12,0,0" Foreground="{StaticResource Accent}"/>
+                                <TextBlock x:Name="CrosshairProLockNote" Visibility="Collapsed"
+                                           Text="Unlock any colour, a glow, and full fine-tuning on the PRO page."
+                                           Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+                                <StackPanel x:Name="CrosshairProPanel" Margin="0,10,0,0">
+                                    <TextBlock Text="CUSTOM COLOUR (type any hex)" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"
+                                               Foreground="{StaticResource TextMuted}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Main" Foreground="{StaticResource TextSoft}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBox x:Name="CustomHexBox" Width="94" MaxLength="7" Padding="6,4"
+                                                 VerticalContentAlignment="Center" TextChanged="CustomHex_Changed"
+                                                 ToolTip="Any colour, e.g. #FF8800"/>
+                                        <TextBlock Text="Centre" Foreground="{StaticResource TextSoft}" FontSize="11" VerticalAlignment="Center" Margin="16,0,6,0"/>
+                                        <TextBox x:Name="CustomDotHexBox" Width="94" MaxLength="7" Padding="6,4"
+                                                 VerticalContentAlignment="Center" TextChanged="CustomDotHex_Changed"
+                                                 ToolTip="Centre colour, or blank to match the main colour"/>
+                                    </StackPanel>
+
+                                    <Grid Margin="0,14,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="THICK" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                        <Slider Grid.Column="1" x:Name="CustomThicknessSlider" Minimum="1" Maximum="12" Value="3"
+                                                IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="CustomTune_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="CustomThicknessValue" Text="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                                    </Grid>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="GAP" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                        <Slider Grid.Column="1" x:Name="CustomGapSlider" Minimum="0" Maximum="20" Value="4"
+                                                IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="CustomTune_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="CustomGapValue" Text="4" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                                    </Grid>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="DOT" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                        <Slider Grid.Column="1" x:Name="CustomDotSlider" Minimum="1" Maximum="12" Value="3"
+                                                IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="CustomTune_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="CustomDotValue" Text="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                                    </Grid>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="OPACITY" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                        <Slider Grid.Column="1" x:Name="CustomOpacitySlider" Minimum="20" Maximum="100" Value="100"
+                                                IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" ValueChanged="CustomTune_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="CustomOpacityValue" Text="100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                                    </Grid>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="70"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="GLOW" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                        <Slider Grid.Column="1" x:Name="CustomGlowSlider" Minimum="0" Maximum="100" Value="0"
+                                                IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" ValueChanged="CustomTune_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="CustomGlowValue" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                                    </Grid>
+                                </StackPanel>
+
                                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                                     <Button x:Name="CustomAddButton" Content="+  Add to gallery" Click="CustomAdd_Click"
                                             Style="{StaticResource AccentButton}" Height="36" MinWidth="150" Padding="16,0"/>
