@@ -63,10 +63,18 @@ public class AppSettingsDefaultsTests
     [Fact]
     public void Montage_settings_round_trip()
     {
-        var s = new AppSettings { MontageVertical = true, MontageMusic = "upbeat-loop.mp3" };
+        var s = new AppSettings
+        {
+            MontageVertical = true,
+            MontageMusic = "upbeat-loop.mp3",
+            MontageTitle = "JinxyFX",
+            MontageCrossfade = true
+        };
         var back = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(s))!;
         Assert.True(back.MontageVertical);
         Assert.Equal("upbeat-loop.mp3", back.MontageMusic);
+        Assert.Equal("JinxyFX", back.MontageTitle);
+        Assert.True(back.MontageCrossfade);
     }
 
     /// <summary>And a file that does say so is honoured.</summary>

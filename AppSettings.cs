@@ -184,6 +184,12 @@ public sealed class AppSettings
     /// </summary>
     public string? MontageMusic { get; set; }
 
+    /// <summary>Clip Studio (Pro): the intro title-card text, or null/empty for no intro.</summary>
+    public string? MontageTitle { get; set; }
+
+    /// <summary>Clip Studio (Pro): crossfade clips into each other instead of hard cuts.</summary>
+    public bool MontageCrossfade { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 
