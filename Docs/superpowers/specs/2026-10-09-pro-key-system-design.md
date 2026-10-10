@@ -92,18 +92,25 @@ loses your userbase). Keep the free floor, sell the Pro ceiling.
 
 | Feature | Free floor | Pro ceiling |
 |---------|-----------|-------------|
-| Clicker | full speed, always | — (never locked; it's the hook) |
+| Clicker | full speed, always | — (never locked; it's the free hook) |
+| Recorder | short manual clip | **Clip Studio — auto-montage (the headline hook)**, auto-clip, export |
+| BedWars timers | — (new Pro feature) | generator/event timer overlay (smart stopwatch, does not read the game) |
 | Kit Wheel | works as now | saved loadouts / extra slots |
 | Presets | up to 3 | unlimited |
 | Crosshair | basic presets | custom color/glow, import your own, per-kit |
-| Recorder | short manual clip | Clip Studio (auto-clip, montage, export) |
 | Theme | 1–2 basic | all themes, animated backgrounds, custom colors |
 
-**Open decision (not blocking this spec):** whether to *also* hard-lock the two
-brand-new 1.4.15 features — Server/globe and Gaming Mode — fully behind Pro.
-They're new enough that locking them causes little backlash, and it gives Pro
-two complete features on day one. Recommended, but can be decided when we build
-the feature gates.
+**The headline hook is auto-montage** (inside Clip Studio): you play, it catches
+your best moments and spits out a finished, music-synced montage with no editing.
+That is the feature that creates the *want*; everything else is bundle value
+around it. It gets its own spec and is built after the key system.
+
+**Timer overlay** is a small, distinctive clean aid: an on-screen countdown for
+generator tier upgrades and events, driven by known BedWars timings from match
+start. It never reads game memory (that would be a cheat) — it is a stopwatch
+with presets. Near the edge of "fair," but clean. Its own small spec later.
+
+**Decided:** Server/globe and Gaming Mode stay **free**. They are not locked.
 
 **Not touched by monetization:** the Clicker core, the Kit Wheel core, and the
 Mod page.
@@ -214,8 +221,9 @@ Clip Studio is a separate spec, built after this and dropped into gate #5.
 
 ## Open questions for review
 
-1. Safe vs aggressive on Server/globe + Gaming Mode — lock them now, or leave free?
-2. Key length: the signature makes the key fairly long (~40–50 chars with dashes).
-   Acceptable as a paste-in, or do you want it shorter (weaker scheme)?
-3. Where buyers are told to paste after paying — a link in the unlock box to
-   wherever you sell? (Out of scope to build, but the box should point somewhere.)
+1. ~~Safe vs aggressive on Server/globe + Gaming Mode~~ — **decided: stay free.**
+2. ~~Key length~~ — **default: keep the strong scheme** (~40–50 char paste-in).
+   Revisit only if buyers complain it's long.
+3. ~~Where buyers paste after paying~~ — **default: the unlock box shows a
+   configurable "Get a key" link** pointing to wherever you sell (a Discord /
+   shop URL you set). Placeholder until you have the sales channel; not blocking.
