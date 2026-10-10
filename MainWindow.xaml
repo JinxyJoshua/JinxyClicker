@@ -2766,6 +2766,16 @@
                             <CheckBox x:Name="MontageVerticalCheck" Content="Vertical (TikTok / Shorts)"
                                       Foreground="{StaticResource TextSoft}" Margin="0,12,0,0"
                                       Checked="MontageVertical_Changed" Unchecked="MontageVertical_Changed"/>
+                            <CheckBox x:Name="MontageCrossfadeCheck" Content="Crossfade between clips (smooth fades, not hard cuts)"
+                                      Foreground="{StaticResource TextSoft}" Margin="0,10,0,0"
+                                      Checked="MontageCrossfade_Changed" Unchecked="MontageCrossfade_Changed"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <TextBlock Text="Intro title" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="MontageTitleBox" Width="240" MaxLength="40"
+                                         TextChanged="MontageTitle_Changed"
+                                         VerticalContentAlignment="Center" Padding="8,5"/>
+                                <TextBlock Text="(blank = no intro)" Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
                             <Button x:Name="MontageButton" Content="Make montage" Style="{StaticResource AccentButton}"
                                     Padding="20,9" Margin="0,16,0,0" FontWeight="Bold"
                                     HorizontalAlignment="Left" Click="MakeMontage_Click"/>

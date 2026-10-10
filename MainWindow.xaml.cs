@@ -2090,6 +2090,8 @@ public partial class MainWindow : Window
             LicenseFirstUseUtc = _licenseFirstUseUtc,
             MontageVertical = _montageVertical,
             MontageMusic = _montageMusic,
+            MontageTitle = _montageTitle,
+            MontageCrossfade = _montageCrossfade,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has

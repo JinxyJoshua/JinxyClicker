@@ -23,6 +23,8 @@ public partial class MainWindow
 {
     private bool _montageVertical;
     private string? _montageMusic;
+    private string? _montageTitle;
+    private bool _montageCrossfade;
 
     // One editable entry per clip: whether it's in the montage, and its trim window.
     // Order in this list IS the montage order (top to bottom).
@@ -40,7 +42,11 @@ public partial class MainWindow
     {
         _montageVertical = s.MontageVertical;
         _montageMusic = s.MontageMusic;
+        _montageTitle = s.MontageTitle;
+        _montageCrossfade = s.MontageCrossfade;
         if (MontageVerticalCheck is not null) MontageVerticalCheck.IsChecked = _montageVertical;
+        if (MontageCrossfadeCheck is not null) MontageCrossfadeCheck.IsChecked = _montageCrossfade;
+        if (MontageTitleBox is not null) MontageTitleBox.Text = _montageTitle ?? "";
         UpdateMusicLabel();
     }
 
@@ -59,7 +65,21 @@ public partial class MainWindow
         if (MontageButton is not null) MontageButton.IsEnabled = pro;
         if (MusicChooseButton is not null) MusicChooseButton.IsEnabled = pro;
         if (MontageVerticalCheck is not null) MontageVerticalCheck.IsEnabled = pro;
+        if (MontageCrossfadeCheck is not null) MontageCrossfadeCheck.IsEnabled = pro;
+        if (MontageTitleBox is not null) MontageTitleBox.IsEnabled = pro;
         if (ClipList is not null) ClipList.IsEnabled = pro;   // greys out trim/reorder/delete behind the lock
+    }
+
+    private void MontageCrossfade_Changed(object sender, RoutedEventArgs e)
+    {
+        _montageCrossfade = MontageCrossfadeCheck.IsChecked == true;
+        _settingsDirty = true;
+    }
+
+    private void MontageTitle_Changed(object sender, RoutedEventArgs e)
+    {
+        _montageTitle = string.IsNullOrWhiteSpace(MontageTitleBox.Text) ? null : MontageTitleBox.Text.Trim();
+        _settingsDirty = true;
     }
 
     // ---- music ----
@@ -167,6 +187,13 @@ public partial class MainWindow
         (_editClips[i], _editClips[j]) = (_editClips[j], _editClips[i]);
         ClipList.Items.Clear();
         foreach (EditClip e in _editClips) ClipList.Items.Add(BuildClipRow(e));
+    }
+
+    // The live accent colour, for the title card's underline bar.
+    private Color AccentColorValue()
+    {
+        try { if (TryFindResource("AccentColor") is Color c) return c; } catch { }
+        return Color.FromRgb(0xFF, 0x4B, 0x52);
     }
 
     private static string Mmss(double seconds)
@@ -357,7 +384,19 @@ public partial class MainWindow
         try
         {
             MontageShape shape = _montageVertical ? MontageShape.Vertical : MontageShape.Landscape;
-            var options = new MontageOptions(shape);
+
+            // Intro title card: render it now, on the UI thread, at the montage's
+            // frame size. Blank text means no card (Render returns null).
+            string? titlePath = null;
+            if (!string.IsNullOrWhiteSpace(_montageTitle))
+            {
+                int tw = shape == MontageShape.Vertical ? 1080 : 1920;
+                int th = shape == MontageShape.Vertical ? 1920 : 1080;
+                string tmp = Path.Combine(Path.GetTempPath(), "jinxy-montage-title.png");
+                titlePath = TitleCard.Render(_montageTitle!, tw, th, AccentColorValue(), tmp);
+            }
+
+            var options = new MontageOptions(shape, _montageCrossfade, titlePath);
             // Montages go to their own subfolder so they're kept apart from clips.
             string montageFolder = Path.Combine(ClipFolder, "montages");
             string? outPath = await MontageMaker.RenderAsync(chosen, music, options, montageFolder);
