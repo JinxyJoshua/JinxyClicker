@@ -45,23 +45,18 @@ public sealed class SocdHook : IDisposable
         public bool NegDown, PosDown, LastWasPos;   // physical + which was last pressed
         public bool NegOut, PosOut;                 // what we currently hold down for the game
     }
-    private readonly Pair _horizontal = new() { NegVk = VK_A, PosVk = VK_D };
-    private readonly Pair _vertical = new() { NegVk = VK_S, PosVk = VK_W };
+    // One opposing pair, e.g. A vs D.
+    private readonly Pair _pair = new() { NegVk = VK_A, PosVk = VK_D };
 
     public bool IsRunning => _thread is { IsAlive: true };
 
-    /// <summary>
-    /// Sets the two opposing pairs. A key of 0 (unset) disables that pair. Horizontal
-    /// is left/right, vertical is up/down.
-    /// </summary>
-    public void Configure(int leftVk, int rightVk, int upVk, int downVk)
+    /// <summary>Sets the two opposing keys. A key of 0 (unset) turns SOCD off.</summary>
+    public void Configure(int key1Vk, int key2Vk)
     {
         lock (_gate)
         {
-            _horizontal.NegVk = leftVk;
-            _horizontal.PosVk = rightVk;
-            _vertical.NegVk = downVk;
-            _vertical.PosVk = upVk;
+            _pair.NegVk = key1Vk;
+            _pair.PosVk = key2Vk;
         }
     }
 
@@ -103,9 +98,8 @@ public sealed class SocdHook : IDisposable
         lock (_gate)
         {
             if (Mode != SocdMode.Strafe) return;
-            foreach (Pair p in new[] { _horizontal, _vertical })
-                if (p.NegVk != 0 && p.PosVk != 0 && p.NegDown && p.PosDown)
-                    SetOutput(p, p.PosOut, !p.PosOut);   // toggle to the other side
+            if (_pair.NegVk != 0 && _pair.PosVk != 0 && _pair.NegDown && _pair.PosDown)
+                SetOutput(_pair, _pair.PosOut, !_pair.PosOut);   // toggle to the other side
         }
     }
 
@@ -154,18 +148,10 @@ public sealed class SocdHook : IDisposable
     private Pair? PairFor(int vk, out bool isPos)
     {
         isPos = false;
-        if (vk == 0) return null;
+        if (vk == 0 || _pair.NegVk == 0 || _pair.PosVk == 0) return null;
 
-        if (_horizontal.NegVk != 0 && _horizontal.PosVk != 0)
-        {
-            if (vk == _horizontal.NegVk) return _horizontal;
-            if (vk == _horizontal.PosVk) { isPos = true; return _horizontal; }
-        }
-        if (_vertical.NegVk != 0 && _vertical.PosVk != 0)
-        {
-            if (vk == _vertical.NegVk) return _vertical;
-            if (vk == _vertical.PosVk) { isPos = true; return _vertical; }
-        }
+        if (vk == _pair.NegVk) return _pair;
+        if (vk == _pair.PosVk) { isPos = true; return _pair; }
         return null;
     }
 
@@ -204,12 +190,9 @@ public sealed class SocdHook : IDisposable
     {
         lock (_gate)
         {
-            foreach (Pair p in new[] { _horizontal, _vertical })
-            {
-                if (p.NegOut) { Inject(p.NegVk, false); p.NegOut = false; }
-                if (p.PosOut) { Inject(p.PosVk, false); p.PosOut = false; }
-                p.NegDown = p.PosDown = false;
-            }
+            if (_pair.NegOut) { Inject(_pair.NegVk, false); _pair.NegOut = false; }
+            if (_pair.PosOut) { Inject(_pair.PosVk, false); _pair.PosOut = false; }
+            _pair.NegDown = _pair.PosDown = false;
         }
     }
 

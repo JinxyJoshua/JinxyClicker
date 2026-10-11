@@ -15,7 +15,7 @@ public partial class MainWindow
     private bool _socdEnabled;
     private SocdMode _socdMode = SocdMode.Strafe;
     private int _socdSpeedMs = 40;
-    private string _socdLeft = "A", _socdRight = "D", _socdUp = "W", _socdDown = "S";
+    private string _socdLeft = "A", _socdRight = "D";
     // True from construction so the controls' own TextChanged/Checked events, which
     // fire while the XAML is still loading, don't run before LoadSocd sets things up.
     private bool _loadingSocd = true;
@@ -29,8 +29,6 @@ public partial class MainWindow
         _socdSpeedMs = s.SocdSpeedMs is >= SocdHook.MinStrafeMs and <= SocdHook.MaxStrafeMs ? s.SocdSpeedMs : 40;
         _socdLeft = KeyOr(s.SocdLeft, "A");
         _socdRight = KeyOr(s.SocdRight, "D");
-        _socdUp = KeyOr(s.SocdUp, "W");
-        _socdDown = KeyOr(s.SocdDown, "S");
 
         if (SocdEnabledCheck is not null) SocdEnabledCheck.IsChecked = _socdEnabled;
         if (SocdModeStrafe is not null) SocdModeStrafe.IsChecked = _socdMode == SocdMode.Strafe;
@@ -39,8 +37,6 @@ public partial class MainWindow
         if (SocdSpeedBox is not null) SocdSpeedBox.Text = _socdSpeedMs.ToString();
         if (SocdLeftKey is not null) SocdLeftKey.Text = _socdLeft;
         if (SocdRightKey is not null) SocdRightKey.Text = _socdRight;
-        if (SocdUpKey is not null) SocdUpKey.Text = _socdUp;
-        if (SocdDownKey is not null) SocdDownKey.Text = _socdDown;
 
         _loadingSocd = false;
         ApplySocdPro();
@@ -90,7 +86,7 @@ public partial class MainWindow
     {
         _socd.Mode = _socdMode;
         _socd.SetStrafeInterval(_socdSpeedMs);
-        _socd.Configure(Vk(_socdLeft), Vk(_socdRight), Vk(_socdUp), Vk(_socdDown));
+        _socd.Configure(Vk(_socdLeft), Vk(_socdRight));
 
         bool shouldRun = IsPro && _socdEnabled;
         if (shouldRun && !_socd.IsRunning) _socd.Start();
@@ -126,11 +122,9 @@ public partial class MainWindow
 
     private void SocdKeys_Changed(object sender, TextChangedEventArgs e)
     {
-        if (_loadingSocd || SocdLeftKey is null) return;
+        if (_loadingSocd || SocdLeftKey is null || SocdRightKey is null) return;
         _socdLeft = SocdLeftKey.Text.Trim();
         _socdRight = SocdRightKey.Text.Trim();
-        _socdUp = SocdUpKey.Text.Trim();
-        _socdDown = SocdDownKey.Text.Trim();
         _settingsDirty = true;
         ApplySocdState();
     }

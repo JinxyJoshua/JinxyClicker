@@ -1919,23 +1919,15 @@
                                 </DockPanel>
 
                                 <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
-                                <TextBlock Text="KEYS  (blank turns a pair off)" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Text="THE TWO KEYS" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
                                 <WrapPanel>
                                     <StackPanel Margin="0,0,16,0">
                                         <TextBox x:Name="SocdLeftKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="A" TextChanged="SocdKeys_Changed"/>
-                                        <TextBlock Text="LEFT" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,16,0">
-                                        <TextBox x:Name="SocdRightKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="D" TextChanged="SocdKeys_Changed"/>
-                                        <TextBlock Text="RIGHT" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,16,0">
-                                        <TextBox x:Name="SocdUpKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="W" TextChanged="SocdKeys_Changed"/>
-                                        <TextBlock Text="UP" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBlock Text="KEY 1" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
                                     </StackPanel>
                                     <StackPanel>
-                                        <TextBox x:Name="SocdDownKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="S" TextChanged="SocdKeys_Changed"/>
-                                        <TextBlock Text="DOWN" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="SocdRightKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="D" TextChanged="SocdKeys_Changed"/>
+                                        <TextBlock Text="KEY 2" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
                                     </StackPanel>
                                 </WrapPanel>
                             </StackPanel>

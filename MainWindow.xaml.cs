@@ -2118,8 +2118,6 @@ public partial class MainWindow : Window
             SocdSpeedMs = _socdSpeedMs,
             SocdLeft = _socdLeft,
             SocdRight = _socdRight,
-            SocdUp = _socdUp,
-            SocdDown = _socdDown,
             KeystrokesOverlay = _keystrokesEnabled,
             KeystrokesX = _keystrokesX,
             KeystrokesY = _keystrokesY,

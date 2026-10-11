@@ -208,11 +208,9 @@ public sealed class AppSettings
     /// <summary>Pro: how fast strafe mode alternates sides, in milliseconds.</summary>
     public int SocdSpeedMs { get; set; } = 40;
 
-    /// <summary>Pro: the four movement keys (single characters). Blank = that pair off.</summary>
+    /// <summary>Pro: the two opposing SOCD keys (single characters).</summary>
     public string? SocdLeft { get; set; } = "A";
     public string? SocdRight { get; set; } = "D";
-    public string? SocdUp { get; set; } = "W";
-    public string? SocdDown { get; set; } = "S";
 
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }
