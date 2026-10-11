@@ -83,6 +83,8 @@
     <Compile Include="../SwitcherProfile.Tests.cs" />
     <Compile Include="../Socd.cs" />
     <Compile Include="../Socd.Tests.cs" />
+    <Compile Include="../Feedback.cs" />
+    <Compile Include="../Feedback.Tests.cs" />
     <Compile Include="../KeyNames.cs" />
     <Compile Include="../KeyNames.Tests.cs" />
     <Compile Include="../HotkeyClaims.cs" />

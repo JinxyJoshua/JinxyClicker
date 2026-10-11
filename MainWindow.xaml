@@ -544,6 +544,41 @@
             <Setter Property="Padding" Value="10,0"/>
         </Style>
 
+        <!-- A multi-line field: top-aligned, wraps, scrolls, with a visible resting
+             border. The ValueBox template centres its one line, which reads wrong in
+             a tall box, so this carries its own template. -->
+        <Style x:Key="TextArea" TargetType="TextBox" BasedOn="{StaticResource FieldBox}">
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Height" Value="132"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Outline}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Root" CornerRadius="1"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Top"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Auto"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Track}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!--
             The default for any TextBox that does not name a style.
 
@@ -983,6 +1018,8 @@
                             Click="NavTheme_Click"/>
                     <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
                             Click="NavSettings_Click"/>
+                    <Button x:Name="NavFeedback" app:NavIcon.Glyph="&#xE939;" Content="FEEDBACK" Style="{StaticResource NavButton}"
+                            Click="NavFeedback_Click"/>
                 </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
@@ -1963,6 +2000,53 @@
                                                VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" MaxWidth="380"/>
                                 </StackPanel>
                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PageFeedback" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Text="SEND FEEDBACK" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock DockPanel.Dock="Right" Text="STRAIGHT TO THE DEV" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="Found a bug, want a feature, or have an idea to make Jinxy better? Send it right here — no GitHub, no account, no sign-in."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <TextBlock Text="WHAT'S THIS ABOUT" FontSize="9" FontWeight="Bold" Margin="0,16,0,6" Foreground="{StaticResource TextMuted}"/>
+                            <WrapPanel>
+                                <RadioButton x:Name="FeedbackTypeFeature" Content="New feature" GroupName="FeedbackType" Tag="feature"
+                                             Style="{StaticResource SegmentButton}" MinWidth="116" IsChecked="True" Checked="FeedbackType_Checked"/>
+                                <RadioButton x:Name="FeedbackTypeImprovement" Content="Improvement" GroupName="FeedbackType" Tag="improvement"
+                                             Style="{StaticResource SegmentButton}" MinWidth="116" Checked="FeedbackType_Checked"/>
+                                <RadioButton x:Name="FeedbackTypeBug" Content="Something's broken" GroupName="FeedbackType" Tag="bug"
+                                             Style="{StaticResource SegmentButton}" MinWidth="150" Checked="FeedbackType_Checked"/>
+                            </WrapPanel>
+
+                            <TextBlock Text="SUMMARY" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="One line — what should change?" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBox x:Name="FeedbackSummary" Style="{StaticResource InputField}" MaxLength="120"
+                                     HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
+
+                            <TextBlock Text="DETAILS" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="What you'd like it to do, and why. For a bug: what you did, what happened, and what you expected instead."
+                                       Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                            <TextBox x:Name="FeedbackDetails" Style="{StaticResource TextArea}" MaxLength="4000"
+                                     HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
+                            <TextBlock x:Name="FeedbackCount" Text="0 / 4000" HorizontalAlignment="Right" Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextMuted}" FontSize="10"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <Button x:Name="FeedbackSubmit" DockPanel.Dock="Left" Content="Send suggestion" Style="{StaticResource AccentButton}"
+                                        Padding="18,9" Click="FeedbackSubmit_Click"/>
+                                <TextBlock x:Name="FeedbackStatus" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="14,0,0,0"
+                                           Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap"/>
+                            </DockPanel>
+
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
+                            <TextBlock Text="What gets included: your message, the type, and the app version — nothing else. No settings, no profiles, no personal details, and nothing leaves your PC until you press Send."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

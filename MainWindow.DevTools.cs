@@ -143,6 +143,7 @@ public partial class MainWindow
         _devPage = new StackPanel { Visibility = Visibility.Collapsed };
         _devPage.Children.Add(BuildTimingPanel());
         _devPage.Children.Add(BuildDevPanel());
+        _devPage.Children.Add(BuildFeedbackInboxPanel());
         _devPage.Children.Add(BuildBreakdownPanel());
         _devPage.Children.Add(BuildBuildInfoPanel());
 
@@ -172,6 +173,7 @@ public partial class MainWindow
             // are current whenever the tab is actually looked at.
             _ = RefreshDevStatsAsync();
             _ = LoadDownloadCountsAsync();
+            _ = RefreshFeedbackInboxAsync();
         };
 
         sidebar.Children.Add(nav);

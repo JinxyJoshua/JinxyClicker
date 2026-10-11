@@ -1,0 +1,9 @@
+name = "jinxy-feedback"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# The inbox store. Create it once, then paste the id it prints below:
+#   npx wrangler kv namespace create FEEDBACK
+[[kv_namespaces]]
+binding = "FEEDBACK"
+id = "4c1bee438905406d943ec6c071f7cccb"
