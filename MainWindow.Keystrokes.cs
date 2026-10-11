@@ -57,6 +57,9 @@ public partial class MainWindow
             if (_keystrokes is null)
             {
                 _keystrokes = new KeystrokeOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
+                // Show keys SOCD is swallowing: a blocked key doesn't register in
+                // GetAsyncKeyState, so ask the SOCD hook for its physical state too.
+                _keystrokes.KeyStateProbe = _socd.IsDown;
                 if (_keystrokesX is { } x && _keystrokesY is { } y
                     && OnVirtualScreen(x, y, _keystrokes.Width, _keystrokes.Height))
                 { _keystrokes.Left = x; _keystrokes.Top = y; }

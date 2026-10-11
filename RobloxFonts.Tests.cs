@@ -35,7 +35,7 @@ public class RobloxFontsTests
             // An unrelated font (emoji) must be left alone.
             Assert.Equal("EMOJI-should-not-change", File.ReadAllText(Path.Combine(dir, "RobloxEmoji.ttf")));
         }
-        finally { Directory.Delete(dir, true); }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class RobloxFontsTests
             RobloxFonts.Reset(dir);
             Assert.False(RobloxFonts.IsApplied(dir));
         }
-        finally { Directory.Delete(dir, true); }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class RobloxFontsTests
             Assert.Equal("ORIGINAL-source-regular", File.ReadAllText(Path.Combine(dir, "SourceSansPro-Regular.ttf")));
             Assert.False(File.Exists(Path.Combine(dir, "BuilderSans-Regular.otf.jinxybak")));
         }
-        finally { Directory.Delete(dir, true); }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class RobloxFontsTests
             Assert.False(File.Exists(target + ".jinxybak"));
             Assert.False(RobloxFonts.IsApplied(dir));
         }
-        finally { Directory.Delete(dir, true); }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
     [Fact]
@@ -109,6 +109,6 @@ public class RobloxFontsTests
             RobloxFonts.Reset(dir);
             Assert.Equal("ORIGINAL-builder-regular", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf")));
         }
-        finally { Directory.Delete(dir, true); }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 }

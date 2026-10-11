@@ -217,7 +217,10 @@ public sealed class AppSettings
     /// <summary>Pro: SOCD cleaner on.</summary>
     public bool SocdEnabled { get; set; }
 
-    /// <summary>Pro: the two opposing SOCD keys (single characters).</summary>
+    /// <summary>Pro: SOCD profile — "WASD" (cleans A/D and W/S) or "Custom".</summary>
+    public string? SocdProfile { get; set; } = "Custom";
+
+    /// <summary>Pro: the two opposing SOCD keys for the Custom profile (single characters).</summary>
     public string? SocdLeft { get; set; } = "A";
     public string? SocdRight { get; set; } = "D";
 

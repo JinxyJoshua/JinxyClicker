@@ -237,6 +237,30 @@ public static class FastFlagStore
             JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
     }
 
+    // The gray-sky flag, offered as its own one-tap toggle for people who don't
+    // want the whole FPS-boost bundle (it's in that bundle too). On adds the flag;
+    // off removes it so the sky returns to normal. A game that ships its own skybox
+    // overrides it.
+    public const string SkyGrayFlag = "FFlagDebugSkyGray";
+
+    public static bool IsGraySkyOn() =>
+        Read().TryGetValue(SkyGrayFlag, out string? v) && v == "True";
+
+    /// <summary>Turns the gray sky on (adds the flag) or off (removes it).</summary>
+    public static void SetGraySky(bool on)
+    {
+        string folder = FindClientSettingsFolder()
+            ?? throw new DirectoryNotFoundException("Roblox does not appear to be installed.");
+        Directory.CreateDirectory(folder);
+
+        Dictionary<string, string> settings = Read();
+        if (on) settings[SkyGrayFlag] = "True";
+        else settings.Remove(SkyGrayFlag);
+
+        File.WriteAllText(Path.Combine(folder, SettingsFileName),
+            JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
     private const string BackupFileName = "ClientAppSettings.jinxy-backup.json";
 
     /// <summary>

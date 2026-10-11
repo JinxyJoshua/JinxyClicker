@@ -57,20 +57,18 @@ public sealed class KeystrokeOverlay : Window
 
         // ---- keyboard cluster: Shift / W / A S D / Space + Ctrl, then the mouse ----
         var keys = new StackPanel();
-        keys.Children.Add(Row(MakeCap("Shift", VK_SHIFT, 86)));
-        keys.Children.Add(Row(MakeCap("W", VK_W, 46)));
-        keys.Children.Add(Row(MakeCap("A", VK_A, 46), MakeCap("S", VK_S, 46), MakeCap("D", VK_D, 46)));
-        keys.Children.Add(Row(MakeCap("Space", VK_SPACE, 108), MakeCap("Ctrl", VK_CONTROL, 52)));
+        keys.Children.Add(Row(MakeCap("W", VK_W, 38)));
+        keys.Children.Add(Row(MakeCap("A", VK_A, 38), MakeCap("S", VK_S, 38), MakeCap("D", VK_D, 38)));
 
-        StackPanel mouseRow = Row(MakeCap("LMB", VK_LBUTTON, 70), MakeCap("RMB", VK_RBUTTON, 70));
-        mouseRow.Margin = new Thickness(0, 5, 0, 0);
+        StackPanel mouseRow = Row(MakeCap("LMB", VK_LBUTTON, 58), MakeCap("RMB", VK_RBUTTON, 58));
+        mouseRow.Margin = new Thickness(0, 4, 0, 0);
         keys.Children.Add(mouseRow);
 
         // ---- CPS row ----
         var divider = new Border
         {
             Height = 2,
-            Margin = new Thickness(6, 12, 6, 10),
+            Margin = new Thickness(5, 8, 5, 7),
             CornerRadius = new CornerRadius(1),
             Background = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF))
         };
@@ -78,7 +76,7 @@ public sealed class KeystrokeOverlay : Window
         var cpsLabel = new TextBlock
         {
             Text = "CPS",
-            FontSize = 13,
+            FontSize = 11,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0xA2, 0xB4)),
             VerticalAlignment = VerticalAlignment.Center
@@ -86,7 +84,7 @@ public sealed class KeystrokeOverlay : Window
         _cpsValue = new TextBlock
         {
             Text = "0",
-            FontSize = 20,
+            FontSize = 15,
             FontWeight = FontWeights.Black,
             Foreground = Brushes.White,
             Margin = new Thickness(10, 0, 0, 0),
@@ -103,7 +101,7 @@ public sealed class KeystrokeOverlay : Window
 
         _frame = new Border
         {
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(10),
             Child = body
         };
         ApplyBackground();   // panel look or Medal-style, per _background
@@ -142,7 +140,7 @@ public sealed class KeystrokeOverlay : Window
         var label = new TextBlock
         {
             Text = text,
-            FontSize = text.Length > 1 ? 13 : 17,
+            FontSize = text.Length > 1 ? 11 : 14,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(Color.FromRgb(0xA6, 0xAD, 0xBF)),
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -151,9 +149,9 @@ public sealed class KeystrokeOverlay : Window
         var border = new Border
         {
             Width = w,
-            Height = 40,
-            Margin = new Thickness(3),
-            CornerRadius = new CornerRadius(7),
+            Height = 32,
+            Margin = new Thickness(2),
+            CornerRadius = new CornerRadius(5),
             Background = new SolidColorBrush(Color.FromArgb(0x55, 0x2A, 0x2E, 0x3C)),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
@@ -185,7 +183,7 @@ public sealed class KeystrokeOverlay : Window
 
         if (_background)
         {
-            _frame.Padding = new Thickness(16);
+            _frame.Padding = new Thickness(10);
             _frame.Background = new LinearGradientBrush(
                 Color.FromArgb(0xE6, 0x16, 0x16, 0x20),
                 Color.FromArgb(0xE6, 0x0C, 0x0C, 0x12),
@@ -232,11 +230,20 @@ public sealed class KeystrokeOverlay : Window
         base.Hide();
     }
 
+    /// <summary>
+    /// Optional second opinion on whether a key is down, for a key another hook is
+    /// swallowing. SOCD blocks its pair while both are held, and a blocked key no
+    /// longer registers in GetAsyncKeyState — so without this the overlay would show
+    /// the keys you're holding as up.
+    /// </summary>
+    public Func<int, bool>? KeyStateProbe { get; set; }
+
     private void PollKeys()
     {
         foreach (Cap cap in _caps)
         {
-            bool down = (GetAsyncKeyState(cap.Vk) & 0x8000) != 0;
+            bool down = (GetAsyncKeyState(cap.Vk) & 0x8000) != 0
+                        || (KeyStateProbe?.Invoke(cap.Vk) ?? false);
             if (down == cap.Down) continue;
             cap.Down = down;
             Paint(cap, down);

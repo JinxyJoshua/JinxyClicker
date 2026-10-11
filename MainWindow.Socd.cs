@@ -4,16 +4,17 @@ using System.Windows.Controls;
 namespace JinxyClicker;
 
 /// <summary>
-/// SOCD cleaner (Pro): a global keyboard hook on one opposing key pair. While
-/// both keys are held it releases them so they don't fight the game; a single key
-/// moves you as normal. This is the resolution Roblox honours from an external
-/// app — the "move as the last key" variants need releasing a key you are still
-/// holding, which the game rejects, so the cleaner does the one that works.
+/// SOCD cleaner (Plus): a global keyboard hook on one or two opposing key pairs —
+/// a Custom pair, or the WASD profile that cleans A/D and W/S together. While both
+/// keys in a pair are held it releases the one pressed first and keeps the most
+/// recent, so you snap to the latest direction instead of standing still; a single
+/// key moves you as normal. It only acts while Roblox is the foreground window.
 /// </summary>
 public partial class MainWindow
 {
     private readonly SocdHook _socd = new();
     private bool _socdEnabled;
+    private string _socdProfile = "Custom";   // "WASD" (cleans A/D and W/S) or "Custom"
     private string _socdLeft = "A", _socdRight = "D";
     // True from construction so the controls' own TextChanged events, which fire
     // while the XAML is still loading, don't run before LoadSocd sets things up.
@@ -24,12 +25,16 @@ public partial class MainWindow
         _loadingSocd = true;
 
         _socdEnabled = s.SocdEnabled;
+        _socdProfile = KeyOr(s.SocdProfile, "Custom") == "WASD" ? "WASD" : "Custom";
         _socdLeft = KeyOr(s.SocdLeft, "A");
         _socdRight = KeyOr(s.SocdRight, "D");
 
         if (SocdEnabledCheck is not null) SocdEnabledCheck.IsChecked = _socdEnabled;
+        if (SocdProfileWasd is not null) SocdProfileWasd.IsChecked = _socdProfile == "WASD";
+        if (SocdProfileCustom is not null) SocdProfileCustom.IsChecked = _socdProfile != "WASD";
         if (SocdLeftKey is not null) SocdLeftKey.Text = _socdLeft;
         if (SocdRightKey is not null) SocdRightKey.Text = _socdRight;
+        UpdateSocdProfileUi();
 
         _loadingSocd = false;
         ApplySocdPro();
@@ -68,11 +73,14 @@ public partial class MainWindow
         ApplySocdState();
     }
 
-    // Pushes the current keys into the hook and starts/stops it to match
-    // "Pro and enabled".
+    // Pushes the current pair(s) into the hook and starts/stops it to match
+    // "Pro and enabled". WASD cleans both strafe axes; Custom cleans one pair.
     private void ApplySocdState()
     {
-        _socd.Configure(Vk(_socdLeft), Vk(_socdRight));
+        if (_socdProfile == "WASD")
+            _socd.Configure((Vk("A"), Vk("D")), (Vk("W"), Vk("S")));
+        else
+            _socd.Configure((Vk(_socdLeft), Vk(_socdRight)));
 
         bool shouldRun = IsPro && _socdEnabled;
         if (shouldRun && !_socd.IsRunning) _socd.Start();
@@ -85,6 +93,22 @@ public partial class MainWindow
         _socdEnabled = SocdEnabledCheck.IsChecked == true;
         _settingsDirty = true;
         ApplySocdState();
+    }
+
+    private void SocdProfile_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loadingSocd) return;
+        if (sender is RadioButton { Tag: string tag }) _socdProfile = tag == "WASD" ? "WASD" : "Custom";
+        _settingsDirty = true;
+        UpdateSocdProfileUi();
+        ApplySocdState();
+    }
+
+    // The custom key pickers only matter for the Custom profile.
+    private void UpdateSocdProfileUi()
+    {
+        if (SocdCustomKeys is not null)
+            SocdCustomKeys.Visibility = _socdProfile == "WASD" ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void SocdKeys_Changed(object sender, TextChangedEventArgs e)

@@ -2117,6 +2117,7 @@ public partial class MainWindow : Window
             ActiveSetup = _activeSetup,
             PlayGameUrl = string.IsNullOrWhiteSpace(PlayUrlBox?.Text) ? null : PlayUrlBox.Text.Trim(),
             SocdEnabled = _socdEnabled,
+            SocdProfile = _socdProfile,
             SocdLeft = _socdLeft,
             SocdRight = _socdRight,
             KeystrokesOverlay = _keystrokesEnabled,
@@ -3620,6 +3621,7 @@ public partial class MainWindow : Window
     {
         if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         RefreshFlags();
+        RefreshGraySky();
         ShowPage(NavMod, PageMod, "Mod", "Roblox client settings");
         RefreshFontsOnShow();   // catch a mid-session Roblox update and sync the status
     }
@@ -3631,6 +3633,37 @@ public partial class MainWindow : Window
     {
         if (!IsPro && PageMod is { Visibility: Visibility.Visible })
             ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
+    }
+
+    private bool _loadingGraySky;
+
+    private void RefreshGraySky()
+    {
+        if (GraySkyCheck is null) return;
+        _loadingGraySky = true;
+        try { GraySkyCheck.IsChecked = FastFlagStore.IsGraySkyOn(); } catch { /* no Roblox yet */ }
+        _loadingGraySky = false;
+    }
+
+    private void GraySky_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loadingGraySky || GraySkyCheck is null) return;
+        bool on = GraySkyCheck.IsChecked == true;
+        try
+        {
+            FastFlagStore.Backup();
+            FastFlagStore.SetGraySky(on);
+            if (GraySkyStatus is not null)
+                GraySkyStatus.Text = on
+                    ? "Gray sky on — restart Roblox to see it."
+                    : "Gray sky off — restart Roblox to see it.";
+        }
+        catch (Exception ex)
+        {
+            if (GraySkyStatus is not null)
+                GraySkyStatus.Text = "Couldn't change it — is Roblox installed? (" + ex.Message + ")";
+            RefreshGraySky();   // put the checkbox back to the real state
+        }
     }
 
     // ---- FastFlags ----

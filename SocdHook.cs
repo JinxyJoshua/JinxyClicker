@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -49,27 +51,49 @@ public sealed class SocdHook : IDisposable
         public bool SupNeg, SupPos;                 // which side we want hidden from the game (set in hook)
         public bool UpNeg, UpPos;                   // whether we have injected an UP to release that side
     }
-    // One opposing pair, e.g. A vs D.
-    private readonly Pair _pair = new() { NegVk = VK_A, PosVk = VK_D };
+    // The opposing pairs to clean. A/D by default; the WASD profile adds W/S.
+    private List<Pair> _pairs = new() { new Pair { NegVk = VK_A, PosVk = VK_D } };
 
     public bool IsRunning => _thread is { IsAlive: true };
 
-    /// <summary>Sets the two opposing keys. A key of 0 (unset) turns SOCD off.</summary>
-    public void Configure(int key1Vk, int key2Vk)
+    /// <summary>
+    /// Whether a key in the cleaned pair is physically held right now, by the
+    /// hook's own tracking. A key SOCD is swallowing no longer registers in
+    /// GetAsyncKeyState, so the keystrokes overlay asks here to show it correctly.
+    /// </summary>
+    public bool IsDown(int vk)
+    {
+        if (_thread is not { IsAlive: true } || vk == 0) return false;
+        lock (_gate)
+        {
+            foreach (Pair p in _pairs)
+            {
+                if (vk == p.NegVk) return p.NegDown;
+                if (vk == p.PosVk) return p.PosDown;
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Sets the opposing pairs to clean — one for a custom pair, two for a WASD
+    /// profile (A/D and W/S). A pair with a 0 key is dropped. Called every minute
+    /// by RefreshLicense, so it early-outs when the set is unchanged rather than
+    /// resetting the live key state.
+    /// </summary>
+    public void Configure(params (int Neg, int Pos)[] pairs)
     {
         lock (_gate)
         {
-            // RefreshLicense calls this every minute; when the keys are unchanged
-            // there is nothing to set up, and resetting the state here would
-            // briefly drop tracking of keys you happen to be holding at that
-            // instant (both would read as up until the next press).
-            if (key1Vk == _pair.NegVk && key2Vk == _pair.PosVk) return;
+            var wanted = pairs.Where(p => p.Neg != 0 && p.Pos != 0).ToList();
 
-            RestoreHidden(_pair);
-            _pair.NegVk = key1Vk;
-            _pair.PosVk = key2Vk;
-            _pair.NegDown = _pair.PosDown = false;
-            _pair.SupNeg = _pair.SupPos = false;
+            bool same = wanted.Count == _pairs.Count;
+            for (int i = 0; same && i < wanted.Count; i++)
+                if (_pairs[i].NegVk != wanted[i].Neg || _pairs[i].PosVk != wanted[i].Pos) same = false;
+            if (same) return;
+
+            foreach (Pair p in _pairs) RestoreHidden(p);
+            _pairs = wanted.Select(p => new Pair { NegVk = p.Neg, PosVk = p.Pos }).ToList();
         }
     }
 
@@ -102,11 +126,15 @@ public sealed class SocdHook : IDisposable
     {
         lock (_gate)
         {
-            if (_pair.NegVk == 0 || _pair.PosVk == 0) return;
             // If Roblox isn't the active window, stop suppressing so any key we
             // were hiding is let go — keys must work normally in every other app.
-            if (!IsRobloxForeground()) { _pair.SupNeg = _pair.SupPos = false; }
-            Reconcile(_pair);
+            bool roblox = IsRobloxForeground();
+            foreach (Pair p in _pairs)
+            {
+                if (p.NegVk == 0 || p.PosVk == 0) continue;
+                if (!roblox) { p.SupNeg = p.SupPos = false; }
+                Reconcile(p);
+            }
         }
     }
 
@@ -152,14 +180,18 @@ public sealed class SocdHook : IDisposable
         return CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
-    // Only pairs with both keys set are cleaned; a pair with an unset key is off.
+    // Finds the pair a key belongs to; pairs with an unset key are skipped.
     private Pair? PairFor(int vk, out bool isPos)
     {
         isPos = false;
-        if (vk == 0 || _pair.NegVk == 0 || _pair.PosVk == 0) return null;
+        if (vk == 0) return null;
 
-        if (vk == _pair.NegVk) return _pair;
-        if (vk == _pair.PosVk) { isPos = true; return _pair; }
+        foreach (Pair p in _pairs)
+        {
+            if (p.NegVk == 0 || p.PosVk == 0) continue;
+            if (vk == p.NegVk) return p;
+            if (vk == p.PosVk) { isPos = true; return p; }
+        }
         return null;
     }
 
@@ -220,17 +252,25 @@ public sealed class SocdHook : IDisposable
         return _fgIsRoblox;
     }
 
-    // Sets which side(s) to hide. No injection — the timer does that.
+    // Sets which side to hide. No injection — the timer does that.
     //
-    // While both keys are held, both are hidden (released); a single key passes
-    // through as the real key. This is the one resolution Roblox actually honours
-    // from an external app — the "release a key you're still holding" that the
-    // other modes need is rejected by the game, so this is what the feature does.
+    // Last input wins: while both keys are held, the one pressed most recently
+    // keeps moving you and the other is hidden (released by an injected key-up), so
+    // you snap to the latest direction instead of standing still. A single key
+    // passes straight through.
     private void Resolve(Pair p)
     {
-        bool both = p.NegDown && p.PosDown;
-        p.SupNeg = both;
-        p.SupPos = both;
+        if (p.NegDown && p.PosDown)
+        {
+            // LastWasPos == true means the positive key was pressed last, so it
+            // wins and the negative side is the loser to hide (and vice versa).
+            p.SupNeg = p.LastWasPos;
+            p.SupPos = !p.LastWasPos;
+        }
+        else
+        {
+            p.SupNeg = p.SupPos = false;
+        }
     }
 
     // Caller holds _gate. Brings the game's view in line with the hidden state.
@@ -260,8 +300,11 @@ public sealed class SocdHook : IDisposable
     {
         lock (_gate)
         {
-            RestoreHidden(_pair);
-            _pair.NegDown = _pair.PosDown = false;
+            foreach (Pair p in _pairs)
+            {
+                RestoreHidden(p);
+                p.NegDown = p.PosDown = false;
+            }
         }
     }
 
@@ -293,8 +336,21 @@ public sealed class SocdHook : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT { public uint type; public InputUnion u; }
 
+    // The union MUST carry MOUSEINPUT as well, even though SOCD only sends keys.
+    // On x64 SendInput checks cbSize against sizeof(INPUT)==40, and that size comes
+    // from the largest union member (MOUSEINPUT). With only KEYBDINPUT the struct is
+    // 32 bytes, SendInput rejects the size, returns 0, and nothing is ever injected —
+    // which is exactly what left SOCD unable to release a key and standing still.
+    // (Load-bearing; mirrors KeyMacro.cs.)
     [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion { [FieldOffset(0)] public KEYBDINPUT ki; }
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+        [FieldOffset(0)] public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr dwExtraInfo; }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public IntPtr dwExtraInfo; }

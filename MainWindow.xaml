@@ -1928,7 +1928,7 @@
                                 <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="Cleans your two opposing movement keys so holding both at once doesn't fight — tap the opposite key and you stop clean instead of drifting, like Snap Tap keyboards. A single key moves you as normal. It's a keyboard input tool and doesn't read the game."
+                            <TextBlock Text="Cleans opposing movement keys so holding both doesn't fight — tap the opposite key and you snap straight to it instead of standing still, like Snap Tap keyboards. Pick WASD to clean both strafe axes, or Custom for one pair you choose. A single key moves you as normal; it's a keyboard input tool and doesn't read the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <TextBlock x:Name="SocdLockNote" Visibility="Collapsed"
                                        Text="SOCD is a Plus feature. Unlock it on the PLUS page."
@@ -1944,17 +1944,30 @@
                                 </DockPanel>
 
                                 <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
-                                <TextBlock Text="THE TWO KEYS" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Text="PROFILE" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
                                 <WrapPanel>
-                                    <StackPanel Margin="0,0,16,0">
-                                        <TextBox x:Name="SocdLeftKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="A" TextChanged="SocdKeys_Changed"/>
-                                        <TextBlock Text="KEY 1" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
-                                    </StackPanel>
-                                    <StackPanel>
-                                        <TextBox x:Name="SocdRightKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="D" TextChanged="SocdKeys_Changed"/>
-                                        <TextBlock Text="KEY 2" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
-                                    </StackPanel>
+                                    <RadioButton x:Name="SocdProfileWasd" Content="WASD" GroupName="SocdProfile" Tag="WASD"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="82" Checked="SocdProfile_Checked"/>
+                                    <RadioButton x:Name="SocdProfileCustom" Content="Custom" GroupName="SocdProfile" Tag="Custom"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="82" Checked="SocdProfile_Checked"/>
                                 </WrapPanel>
+                                <TextBlock Text="WASD cleans both strafe axes (A/D and W/S). Custom cleans one pair of keys you pick."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                                <StackPanel x:Name="SocdCustomKeys">
+                                    <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
+                                    <TextBlock Text="THE TWO KEYS" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
+                                    <WrapPanel>
+                                        <StackPanel Margin="0,0,16,0">
+                                            <TextBox x:Name="SocdLeftKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="A" TextChanged="SocdKeys_Changed"/>
+                                            <TextBlock Text="KEY 1" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBox x:Name="SocdRightKey" Style="{StaticResource FieldBox}" MaxLength="1" Width="48" Text="D" TextChanged="SocdKeys_Changed"/>
+                                            <TextBlock Text="KEY 2" FontSize="9" FontWeight="Bold" Margin="0,4,0,0" Foreground="{StaticResource TextMuted}"/>
+                                        </StackPanel>
+                                    </WrapPanel>
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -2860,6 +2873,20 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="10"
                                        TextWrapping="Wrap" Margin="0,10,0,0"/>
                         </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="470">
+                                <TextBlock Text="GRAY SKY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="Replaces the sky with a flat gray — clearer sightlines and a little less to render. One tap, no FastFlags to edit. Takes effect next time you launch Roblox. A game that sets its own skybox overrides it."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                <TextBlock x:Name="GraySkyStatus" Text="" Foreground="{StaticResource TextMuted}"
+                                           FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="GraySkyCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                      Checked="GraySky_Changed" Unchecked="GraySky_Changed"/>
+                        </DockPanel>
                     </Border>
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
