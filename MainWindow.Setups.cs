@@ -165,7 +165,9 @@ public partial class MainWindow
     // (a deleted crosshair or preset) is simply skipped.
     private void ApplySetup(SetupProfile setup)
     {
-        if (!string.IsNullOrWhiteSpace(setup.CrosshairName))
+        // Only switch crosshair if the setup's one still exists — a deleted one is
+        // left alone rather than silently swapped for a fallback.
+        if (CrosshairNameExists(setup.CrosshairName))
             SelectCrosshair(setup.CrosshairName!, switched: false);
 
         if (!string.IsNullOrWhiteSpace(setup.ClickPresetName))
@@ -203,7 +205,7 @@ public partial class MainWindow
 
     private void RunPlay()
     {
-        if (!IsPro) return;
+        if (!IsPro) { SetSetupsStatus("Play is a Pro feature — activate a key on the PRO page."); return; }
 
         SetupProfile? active = SetupProfiles.Find(_setups, _activeSetup);
         if (active is not null) ApplySetup(active);

@@ -135,6 +135,13 @@ public partial class MainWindow
     private CustomCrosshair? CustomByName(string name) =>
         _customCrosshairs.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>Whether a crosshair by this name still exists (Default, built-in, or a saved custom).</summary>
+    private bool CrosshairNameExists(string? name) =>
+        !string.IsNullOrWhiteSpace(name)
+        && (string.Equals(name, DefaultCursorName, StringComparison.OrdinalIgnoreCase)
+            || CrosshairGallery.IsBuiltIn(name)
+            || CustomByName(name) is not null);
+
     /// <summary>The imported image for the current crosshair, or null if it is not one.</summary>
     private string? CurrentImagePath()
     {

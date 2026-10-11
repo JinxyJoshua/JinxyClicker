@@ -131,6 +131,15 @@ public class MontageMakerTests
     }
 
     [Fact]
+    public void Crossfade_falls_back_to_concat_when_a_segment_is_shorter_than_the_fade()
+    {
+        var durs = new List<double> { 0.3, 6 };   // clip a (0.3s) is shorter than the 0.5s fade
+        string args = MontageMaker.BuildArgs(TwoClips, null, Land(crossfade: true), @"C:\out.mp4", durs);
+        Assert.DoesNotContain("xfade", args);      // xfade would fail on a too-short clip
+        Assert.Contains("concat=n=2:v=1:a=0[outv]", args);
+    }
+
+    [Fact]
     public void Crossfade_falls_back_to_concat_without_durations()
     {
         string args = MontageMaker.BuildArgs(TwoClips, null, Land(crossfade: true), @"C:\out.mp4", null);

@@ -37,7 +37,22 @@ public partial class MainWindow
         _licenseFirstUseUtc = s.LicenseFirstUseUtc;
         RefreshLicense();
         SyncPassWithServerAsync();   // fire-and-forget: the server's date wins once online
+
+        // A timed pass expires against the clock, but the app can sit in the tray
+        // for days — re-evaluate every minute so Pro turns off when the pass runs
+        // out, not just at the next restart or Pro-page visit.
+        if (_licenseRecheck is null)
+        {
+            _licenseRecheck = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _licenseRecheck.Tick += (_, _) => RefreshLicense();
+            _licenseRecheck.Start();
+        }
     }
+
+    private System.Windows.Threading.DispatcherTimer? _licenseRecheck;
 
     // For an active pass, pull the authoritative first-use date from the server and
     // let it win over the local one — so deleting local files or reinstalling can't
@@ -81,10 +96,12 @@ public partial class MainWindow
 
         IsPro = status.IsPro;
 
-        // Per-page Pro gating that should react the moment a key activates, even
-        // if the user is sitting on that page (null-guarded for early calls).
+        // Per-page Pro gating that should react the moment a key activates — or a
+        // pass expires — even if the user is sitting on that page (null-guarded
+        // for early calls).
         ApplyCrosshairPro();
         ApplySetupsPro();
+        ApplyClipStudioPro();
 
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.
@@ -178,7 +195,9 @@ public partial class MainWindow
         }
         else
         {
-            ProActivateResult.Text = "That key has expired.";
+            // A valid-but-inactive key is either past its expiry or revoked; the
+            // status doesn't say which, so the message covers both honestly.
+            ProActivateResult.Text = "That key is expired or has been revoked.";
         }
     }
 

@@ -23,7 +23,7 @@ public static class RecentGames
 
     public static async Task<IReadOnlyList<RecentGame>> LoadAsync(int max = 8)
     {
-        List<JoinedGame> joins = ReadRecentJoins(max);
+        List<JoinedGame> joins = await Task.Run(() => ReadRecentJoins(max)).ConfigureAwait(false);
         if (joins.Count == 0) return Array.Empty<RecentGame>();
 
         string ids = string.Join(",", joins.Select(j => j.UniverseId).Distinct());
@@ -57,7 +57,7 @@ public static class RecentGames
 
             var sb = new StringBuilder();
             foreach (FileInfo f in files)
-                try { sb.AppendLine(File.ReadAllText(f.FullName)); } catch { /* skip a locked log */ }
+                try { sb.AppendLine(ReadShared(f.FullName)); } catch { /* skip a locked log */ }
 
             return RobloxJoinLog.ParseRecent(sb.ToString(), max).ToList();
         }
@@ -65,6 +65,17 @@ public static class RecentGames
         {
             return new List<JoinedGame>();
         }
+    }
+
+    // Roblox keeps the current session's log open for writing, so it must be read
+    // with a sharing mode that allows that — otherwise the game you're in now is
+    // the one game the picker misses.
+    private static string ReadShared(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(fs);
+        return reader.ReadToEnd();
     }
 
     private static async Task<Dictionary<long, string>> FetchNamesAsync(string universeIds)

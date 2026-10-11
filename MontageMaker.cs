@@ -75,11 +75,13 @@ public static partial class MontageMaker
             durations.Add(EffectiveDuration(clips[i], clipDurations, i));
         }
 
-        // Crossfade needs each clip's real length; without it, fall back to hard cuts.
+        // Crossfade needs each clip's real length; without it, fall back to hard
+        // cuts. Every segment must also be longer than the fade, or xfade fails.
         bool haveDurations = clipDurations is not null
             && clipDurations.Count == clips.Count
             && clipDurations.All(d => d > 0);
-        bool doCrossfade = options.Crossfade && labels.Count >= 2 && haveDurations;
+        bool doCrossfade = options.Crossfade && labels.Count >= 2 && haveDurations
+            && durations.All(d => d > options.FadeSeconds);
 
         if (doCrossfade)
         {
@@ -179,8 +181,9 @@ public static partial class MontageMaker
         try
         {
             // Crossfade offsets need each clip's real length; probe them up front.
+            // A title card counts as a segment, so probe even for a single clip.
             List<double>? durations = null;
-            if (options.Crossfade && clips.Count > 1)
+            if (options.Crossfade && clips.Count >= 1)
             {
                 durations = new List<double>(clips.Count);
                 foreach (MontageClip clip in clips)
@@ -207,7 +210,9 @@ public static partial class MontageMaker
             p.BeginOutputReadLine();
             await p.WaitForExitAsync().ConfigureAwait(false);
 
-            return File.Exists(output) && new FileInfo(output).Length > 0 ? output : null;
+            // ffmpeg returns non-zero on failure; a file can still be left behind
+            // truncated, so the exit code is what says the render actually worked.
+            return p.ExitCode == 0 && File.Exists(output) && new FileInfo(output).Length > 0 ? output : null;
         }
         catch
         {
