@@ -1947,6 +1947,7 @@ public partial class MainWindow : Window
         LoadSocd(s);
         LoadKeystrokes(s);
         LoadFonts(s);
+        InitDisplay(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2120,6 +2121,10 @@ public partial class MainWindow : Window
             SocdProfile = _socdProfile,
             SocdLeft = _socdLeft,
             SocdRight = _socdRight,
+            DisplayEnabled = _displayEnabled,
+            DisplayWidth = _displayMode?.Width ?? 0,
+            DisplayHeight = _displayMode?.Height ?? 0,
+            DisplayRefresh = _displayMode?.Refresh ?? 0,
             KeystrokesOverlay = _keystrokesEnabled,
             KeystrokesBackground = _keystrokesBackground,
             KeystrokesX = _keystrokesX,
@@ -3623,6 +3628,7 @@ public partial class MainWindow : Window
         RefreshFlags();
         RefreshGraySky();
         RefreshMouseSens();
+        RefreshDisplayOnShow();
         ShowPage(NavMod, PageMod, "Mod", "Roblox client settings");
         RefreshFontsOnShow();   // catch a mid-session Roblox update and sync the status
     }
@@ -6011,6 +6017,7 @@ public partial class MainWindow : Window
         StopClicking();
         _shakeCts.Cancel();
         _statsTimer.Stop();
+        RevertDisplayOnExit();   // never leave the screen on a swapped resolution
 
         // Everything that is not already written the moment it changes gets
         // written here. Presets, hotkeys and tweak state save on edit, so this

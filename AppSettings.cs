@@ -224,6 +224,12 @@ public sealed class AppSettings
     public string? SocdLeft { get; set; } = "A";
     public string? SocdRight { get; set; } = "D";
 
+    /// <summary>Plus: display switcher — apply a resolution/refresh while Roblox is open.</summary>
+    public bool DisplayEnabled { get; set; }
+    public int DisplayWidth { get; set; }
+    public int DisplayHeight { get; set; }
+    public int DisplayRefresh { get; set; }
+
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }
 
