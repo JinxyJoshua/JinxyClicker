@@ -1946,6 +1946,7 @@ public partial class MainWindow : Window
         LoadSetups(s);
         LoadSocd(s);
         LoadKeystrokes(s);
+        LoadFonts(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2087,6 +2088,8 @@ public partial class MainWindow : Window
             ServerOverlaySeconds = _serverOverlaySeconds,
             CrosshairName = _crosshairName,
             CrosshairApplied = _crosshairApplied,
+            CustomFontName = _customFontName,
+            CustomFontApplied = _customFontApplied,
             CrosshairSizes = _crosshairSizes,
             CustomCrosshairs = _customCrosshairs,
             ReplayEnabled = ReplayEnabled.IsChecked == true,
@@ -3615,8 +3618,19 @@ public partial class MainWindow : Window
 
     private void NavMod_Click(object sender, RoutedEventArgs e)
     {
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         RefreshFlags();
         ShowPage(NavMod, PageMod, "Mod", "Roblox client settings");
+        RefreshFontsOnShow();   // catch a mid-session Roblox update and sync the status
+    }
+
+    // The MOD tab stays visible so Free users see it exists, but its content is
+    // never shown — clicking it (or a pass expiring while it's open) sends them to
+    // the key page instead. Called from RefreshLicense.
+    private void ApplyModPro()
+    {
+        if (!IsPro && PageMod is { Visibility: Visibility.Visible })
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
     }
 
     // ---- FastFlags ----

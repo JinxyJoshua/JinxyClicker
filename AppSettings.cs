@@ -116,6 +116,21 @@ public sealed class AppSettings
     public bool CrosshairApplied { get; set; }
 
     /// <summary>
+    /// The display name of the imported custom Roblox font (its original file
+    /// name), or empty when none has been imported. The font's bytes live at a
+    /// fixed path in the app's data folder, so only the name is stored here.
+    /// </summary>
+    public string CustomFontName { get; set; } = "";
+
+    /// <summary>
+    /// Whether the custom font is meant to be applied to Roblox right now. Kept
+    /// for the same reason as <see cref="CrosshairApplied"/>: a Roblox update lays
+    /// down a fresh version folder with the stock fonts, and this is what tells the
+    /// app to re-apply the custom font on the next launch.
+    /// </summary>
+    public bool CustomFontApplied { get; set; }
+
+    /// <summary>
     /// The size, as a percentage, kept per crosshair by name.
     /// </summary>
     /// <remarks>

@@ -1,0 +1,26 @@
+Bundled fonts — licenses
+========================
+
+Every font in this folder is distributed under the SIL Open Font License 1.1
+(OFL), which permits bundling and redistribution, including inside commercial
+software, as long as this notice travels with them. None are sold on their own.
+
+Monocraft       (c) Idrees Hassan    https://github.com/IdreesInc/Monocraft
+Press Start 2P  (c) CodeMan38
+VT323           (c) The VT323 Project Authors
+Silkscreen      (c) Jason Kottke
+Monoton         (c) Vernon Adams
+Orbitron        (c) Matt McInerney
+Audiowide       (c) Astigmatic
+Chakra Petch    (c) Cadson Demak
+Rajdhani        (c) Indian Type Foundry
+Teko            (c) Indian Type Foundry
+Russo One       (c) Jovanny Lemonad
+Bebas Neue      (c) Dharma Type (Ryoichi Tsunekawa)
+Bungee          (c) David Jonathan Ross
+Oswald          (c) Vernon Adams, Kalapi Gajjar, Cyreal
+Creepster       (c) Astigmatic
+Pacifico        (c) Vernon Adams
+Lobster         (c) Pablo Impallari
+
+Full OFL 1.1 text: https://openfontlicense.org

@@ -95,6 +95,20 @@
 
   <ItemGroup>
     <!--
+      Preset fonts (all SIL Open Font License) for the MOD page's custom-font
+      feature. Copied next to the app so they can be previewed and used as the
+      source to swap Roblox's font. FONTS-LICENSE.txt travels with them.
+    -->
+    <Content Include="Fonts\*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Fonts\FONTS-LICENSE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
       Shipped inside the assembly so a fresh install can lay it down as the
       window background on first launch, without dragging along a loose file
       that could go missing between install and run. LogicalName pins the
