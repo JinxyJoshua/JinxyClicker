@@ -50,6 +50,7 @@ async function handleSubmit(request, env) {
   } catch {
     return json({ ok: false, error: "Bad request." }, 400);
   }
+  if (!data || typeof data !== "object") return json({ ok: false, error: "Bad request." }, 400);
 
   const type = String(data.type || "").toLowerCase();
   if (!TYPES.has(type)) return json({ ok: false, error: "Pick a category." }, 400);
@@ -61,7 +62,11 @@ async function handleSubmit(request, env) {
   const version = clean(data.version, MAX_VERSION);
 
   const ts = Date.now();
-  const id = ts + "-" + Math.random().toString(36).slice(2, 8);
+  // Newest-first key: KV lists lexicographically, so an inverted timestamp makes
+  // a plain prefix list return the newest records first (the dev inbox reads the
+  // top N). The id still round-trips to /delete unchanged.
+  const inv = (9999999999999 - ts).toString().padStart(13, "0");
+  const id = inv + "-" + Math.random().toString(36).slice(2, 8);
   const record = {
     id, type, summary, details, version, ts,
     country: (request.cf && request.cf.country) || "",
@@ -100,6 +105,7 @@ async function handleDelete(request, env) {
   } catch {
     return json({ ok: false, error: "Bad request." }, 400);
   }
+  if (!data || typeof data !== "object") return json({ ok: false, error: "Bad request." }, 400);
 
   const id = clean(data.id, 64);
   if (!id) return json({ ok: false, error: "No id." }, 400);

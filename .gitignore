@@ -71,3 +71,10 @@ dev-update.token
 # License signing key — must never be committed (normally lives in %APPDATA%\JinxyKeyGen)
 signing-key.txt
 keys.csv
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example

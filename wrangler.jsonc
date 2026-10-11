@@ -1,0 +1,9 @@
+{
+  "name": "jinxy-site",
+  "compatibility_date": "2024-11-01",
+  "main": "site-worker.js",
+  "assets": {
+    "directory": "./site",
+    "binding": "ASSETS"
+  }
+}

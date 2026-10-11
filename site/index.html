@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jinxy AutoClicker</title>
+<meta name="description" content="A Roblox BedWars autoclicker that clicks with human timing — plus clip studio, crosshairs, strafe and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Jinxy — design tokens
+   Layout: left-aligned, single editorial column that widens to a
+   two-up at the hero and pricing. One bold element: the live
+   human-vs-bot click-timing lane. Everything else stays quiet.
+   Type: Archivo (display, heavy), Hanken Grotesk (body),
+   JetBrains Mono (live numbers only).
+   Color: violet-biased charcoal, one coral-red accent used as
+   meaning (Jinxy's track, actions), grey for the "bot".
+   Committed dark theme by choice.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  color-scheme: dark;
+  --bg:#0d0b12;
+  --bg-2:#141019;
+  --surface:#19131f;
+  --surface-2:#1f1826;
+  --line:rgba(255,255,255,.09);
+  --line-strong:rgba(255,255,255,.16);
+  --fg:#f5f2f7;
+  --muted:#a69fb2;
+  --faint:#756e82;
+  --accent:#ff4b52;
+  --accent-deep:#d4343c;
+  --accent-soft:rgba(255,75,82,.14);
+  --bot:#565065;
+  --good:#54d6a0;
+  --radius:16px;
+  --maxw:1120px;
+  --font-display:"Archivo","Arial Black",system-ui,sans-serif;
+  --font-body:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--font-body);
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  /* ambient jinx glow, not a UI accent */
+  background-image:
+    radial-gradient(60rem 40rem at 78% -8%, rgba(124,92,255,.10), transparent 60%),
+    radial-gradient(50rem 36rem at 8% 2%, rgba(255,75,82,.08), transparent 55%);
+  background-attachment:fixed;
+}
+h1,h2,h3{font-family:var(--font-display);line-height:1.02;text-wrap:balance;margin:0;letter-spacing:-.01em}
+p{margin:0}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:clamp(18px,5vw,40px)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* ── nav ── */
+header.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;
+  background:rgba(13,11,18,.72);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line)}
+.nav-row{display:flex;align-items:center;justify-content:space-between;gap:20px;height:64px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--font-display);font-weight:900;font-size:21px;letter-spacing:-.02em}
+.brand .glyph{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--accent),var(--accent-deep));
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 6px 18px -6px var(--accent);
+  font-size:17px;color:#fff;transform:rotate(-8deg)}
+.brand .glyph span{transform:rotate(8deg)}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{color:var(--muted);font-weight:500;font-size:15px;transition:color .15s}
+.nav-links a:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--font-body);
+  font-weight:700;font-size:15px;border:0;border-radius:11px;padding:11px 20px;cursor:pointer;
+  transition:transform .12s ease, box-shadow .2s ease, background .2s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:linear-gradient(145deg,var(--accent),var(--accent-deep));color:#fff;
+  box-shadow:0 10px 26px -10px var(--accent)}
+.btn-primary:hover{box-shadow:0 14px 34px -10px var(--accent)}
+.btn-ghost{background:transparent;color:var(--fg);border:1px solid var(--line-strong)}
+.btn-ghost:hover{border-color:var(--fg);background:rgba(255,255,255,.03)}
+.nav-cta{display:flex;gap:10px;align-items:center}
+.menu-toggle{display:none}
+
+/* ── hero ── */
+.hero{padding-block:clamp(44px,7vw,84px) clamp(30px,5vw,56px)}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,4vw,56px);align-items:center}
+.tagpill{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;
+  color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 13px;margin-bottom:22px}
+.tagpill .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good)}
+.hero h1{font-size:clamp(42px,6.4vw,74px);font-weight:900}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero-sub{margin-top:20px;font-size:clamp(17px,2.1vw,20px);color:var(--muted);max-width:30ch}
+.hero-actions{margin-top:30px;display:flex;flex-wrap:wrap;gap:13px;align-items:center}
+.hero-note{margin-top:16px;font-size:13.5px;color:var(--faint);display:flex;gap:16px;flex-wrap:wrap}
+.hero-note span{display:inline-flex;align-items:center;gap:7px}
+.chk{color:var(--good)}
+
+/* ── Jinxy-vs-rest scorecard (the one bold element) ── */
+.compare{background:linear-gradient(180deg,var(--surface-2),var(--surface));
+  border:1px solid var(--line-strong);border-radius:var(--radius);
+  box-shadow:0 40px 80px -40px #000, inset 0 1px 0 rgba(255,255,255,.04);
+  padding:22px;min-width:0}
+.console-title{font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.03em}
+.compare-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.best-pill{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#fff;
+  background:linear-gradient(145deg,var(--accent),var(--accent-deep));border-radius:7px;padding:4px 10px;
+  box-shadow:0 8px 18px -6px var(--accent)}
+.compare-grid{display:grid;grid-template-columns:1fr 62px 62px;align-items:center}
+.ch{font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:.03em;
+  text-align:center;padding:9px 0;color:var(--muted)}
+.ch-feat{text-align:left}
+.ch-jinxy{color:#fff;background:var(--accent);border-radius:9px 9px 0 0}
+.cf{font-size:14.5px;color:var(--fg);padding:12px 2px;border-top:1px solid var(--line)}
+.cv{text-align:center;padding:12px 0;border-top:1px solid var(--line)}
+.cv.jinxy{background:var(--accent-soft);border-top:1px solid rgba(255,75,82,.2)}
+.cv.jx-last{border-radius:0 0 9px 9px}
+.cv .yes{color:var(--good);font-weight:700;font-size:17px}
+.cv .no{color:var(--faint);font-size:15px}
+.ch-jinxy+.ch-other,.ch-feat+.ch-jinxy{/* header row: jinxy cell keeps its fill */}
+.compare-grid .ch{border-top:0}
+.compare-foot{margin-top:16px;font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* ── generic section ── */
+section{padding-block:clamp(48px,7vw,92px)}
+.sec-kicker{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px}
+.sec-h{font-size:clamp(28px,4.2vw,42px);font-weight:800}
+.sec-lead{margin-top:16px;color:var(--muted);font-size:clamp(16px,1.9vw,18.5px);max-width:58ch}
+
+/* ── proof strip ── */
+.proof{border-block:1px solid var(--line);background:var(--bg-2)}
+.proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(20px,3vw,40px)}
+.proof-item .num{font-family:var(--font-display);font-weight:900;font-size:clamp(34px,5vw,52px);
+  background:linear-gradient(160deg,#fff,#ffb4b7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.proof-item .lbl{margin-top:8px;color:var(--muted);font-size:15px;max-width:26ch}
+
+/* ── features ── */
+.feat-grid{margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px;display:flex;flex-direction:column;gap:11px;min-width:0;position:relative;
+  transition:border-color .2s, transform .2s}
+.card:hover{border-color:var(--line-strong);transform:translateY(-3px)}
+.card .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent);margin-bottom:4px}
+.card .ic svg{width:21px;height:21px}
+.card h3{font-size:19px;font-weight:700;font-family:var(--font-body);letter-spacing:0}
+.card p{color:var(--muted);font-size:15px;line-height:1.55}
+.pro-chip{position:absolute;top:18px;right:18px;font-family:var(--font-mono);font-size:10.5px;
+  font-weight:700;letter-spacing:.05em;color:var(--accent);border:1px solid rgba(255,75,82,.35);
+  border-radius:6px;padding:3px 7px;background:var(--accent-soft)}
+.card.wide{grid-column:span 2}
+
+/* ── pricing ── */
+.price-grid{margin-top:48px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:stretch}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px 22px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.plan.feature{background:linear-gradient(180deg,var(--surface-2),var(--surface));
+  border-color:rgba(255,75,82,.4);box-shadow:0 30px 60px -40px var(--accent)}
+.plan .pname{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:.02em}
+.plan .pprice{font-family:var(--font-display);font-weight:900;font-size:42px;margin-top:4px}
+.plan .pprice span{font-size:16px;color:var(--muted);font-weight:500;font-family:var(--font-body)}
+.plan .pdur{color:var(--muted);font-size:14px;margin-bottom:12px}
+.plan .best{align-self:flex-start;font-family:var(--font-mono);font-size:10.5px;font-weight:700;
+  letter-spacing:.06em;color:#fff;background:linear-gradient(145deg,var(--accent),var(--accent-deep));
+  border-radius:6px;padding:3px 8px;margin-bottom:8px}
+.plan ul{list-style:none;margin:6px 0 20px;padding:0;display:flex;flex-direction:column;gap:9px}
+.plan li{font-size:14px;color:var(--muted);display:flex;gap:9px;align-items:flex-start}
+.plan li .chk{flex:none;margin-top:2px}
+.plan .btn{margin-top:auto;justify-content:center;width:100%}
+.plan .btn-ghost{color:var(--fg)}
+.buy-flow{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+  color:var(--muted);font-size:14.5px;border:1px solid var(--line);border-radius:14px;
+  padding:16px 20px;background:var(--bg-2)}
+.buy-flow .step{display:inline-flex;gap:9px;align-items:center}
+.buy-flow .n{font-family:var(--font-mono);font-weight:700;color:var(--accent);
+  border:1px solid rgba(255,75,82,.3);border-radius:7px;width:24px;height:24px;display:grid;place-items:center;font-size:12px}
+.buy-flow .arr{color:var(--faint)}
+
+/* ── faq ── */
+.faq-list{margin-top:40px;display:flex;flex-direction:column;gap:12px;max-width:780px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+details[open]{border-color:var(--line-strong)}
+summary{cursor:pointer;list-style:none;padding:18px 20px;font-weight:600;font-size:16.5px;
+  display:flex;justify-content:space-between;align-items:center;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary .plus{flex:none;width:22px;height:22px;position:relative;transition:transform .2s;color:var(--accent)}
+.plus::before,.plus::after{content:"";position:absolute;background:currentColor;border-radius:2px}
+.plus::before{top:50%;left:3px;right:3px;height:2px;transform:translateY(-50%)}
+.plus::after{left:50%;top:3px;bottom:3px;width:2px;transform:translateX(-50%);transition:opacity .2s}
+details[open] .plus::after{opacity:0}
+details .ans{padding:0 20px 20px;color:var(--muted);font-size:15.5px;line-height:1.6}
+
+/* ── final cta ── */
+.cta{text-align:center;background:
+  radial-gradient(40rem 20rem at 50% 120%,rgba(255,75,82,.16),transparent 70%);}
+.cta h2{font-size:clamp(32px,5vw,56px);font-weight:900}
+.cta p{margin:18px auto 30px;color:var(--muted);max-width:46ch;font-size:18px}
+.cta .btn{font-size:17px;padding:15px 30px}
+
+/* ── footer ── */
+footer{border-top:1px solid var(--line);padding-block:30px 40px;color:var(--faint);font-size:13.5px}
+.foot-row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+.foot-links{display:flex;gap:22px}
+.foot-links a:hover{color:var(--fg)}
+.disclaimer{margin-top:18px;max-width:70ch;line-height:1.5;color:#5c5668}
+
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr}
+  .proof-grid{grid-template-columns:1fr;gap:26px}
+  .feat-grid{grid-template-columns:repeat(2,1fr)}
+  .price-grid{grid-template-columns:repeat(2,1fr)}
+  .card.wide{grid-column:span 2}
+}
+@media(max-width:620px){
+  body{font-size:16px}
+  .nav-links{display:none}
+  .nav-links.open{display:flex;position:absolute;top:64px;left:0;right:0;flex-direction:column;
+    gap:0;background:var(--bg-2);border-bottom:1px solid var(--line);padding:8px 0}
+  .nav-links.open a{padding:13px clamp(18px,5vw,40px)}
+  .menu-toggle{display:inline-grid;place-items:center;width:40px;height:40px;background:transparent;
+    border:1px solid var(--line-strong);border-radius:10px;color:var(--fg);cursor:pointer}
+  .feat-grid{grid-template-columns:1fr}
+  .card.wide{grid-column:span 1}
+  .price-grid{grid-template-columns:1fr}
+  .buy-flow .arr{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#top" aria-label="Jinxy home">
+      <span class="glyph"><span>J</span></span> Jinxy
+    </a>
+    <nav class="nav-links" id="navlinks">
+      <a href="#how">How it clicks</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-primary" href="/download">Download</a>
+      <button class="menu-toggle" id="menu" aria-label="Menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="tagpill"><span class="dot"></span> Built for Roblox BedWars</span>
+        <h1>Clicks like a <em>hand</em>, not a script.</h1>
+        <p class="hero-sub">Every autoclicker hits a perfect metronome. Jinxy varies each click the way a real finger does — so your clicks look played, not generated.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+            Download for Windows
+          </a>
+          <a class="btn btn-ghost" href="#how">See how it clicks</a>
+        </div>
+        <div class="hero-note">
+          <span><span class="chk">✓</span> Free to use</span>
+          <span><span class="chk">✓</span> No account needed</span>
+          <span><span class="chk">✓</span> Windows 10 &amp; 11</span>
+        </div>
+      </div>
+
+      <!-- scorecard: Jinxy vs other autoclickers -->
+      <div class="compare" aria-hidden="true">
+        <div class="compare-top">
+          <span class="console-title">JINXY vs THE REST</span>
+          <span class="best-pill">★ Best pick</span>
+        </div>
+        <div class="compare-grid">
+          <div class="ch ch-feat"></div>
+          <div class="ch ch-jinxy">Jinxy</div>
+          <div class="ch ch-other">Others</div>
+
+          <div class="cf">Clicks like a human</div>
+          <div class="cv jinxy"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+
+          <div class="cf">Lands the most hits</div>
+          <div class="cv jinxy"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+
+          <div class="cf">Auto montage maker</div>
+          <div class="cv jinxy"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+
+          <div class="cf">Custom crosshair</div>
+          <div class="cv jinxy"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+
+          <div class="cf">Snap-tap strafe</div>
+          <div class="cv jinxy"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+
+          <div class="cf">Keystrokes overlay</div>
+          <div class="cv jinxy"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+
+          <div class="cf">Free to start</div>
+          <div class="cv jinxy jx-last"><span class="yes">✓</span></div>
+          <div class="cv"><span class="no">✗</span></div>
+        </div>
+        <div class="compare-foot">Everything other clickers charge for — and a few things they just don't have.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROOF -->
+  <section class="proof" id="how">
+    <div class="wrap">
+      <div class="sec-kicker">Why the timing matters</div>
+      <h2 class="sec-h">More clicks isn't more hits.</h2>
+      <p class="sec-lead">Past a point, piling on CPS lands exactly the same number of hits — the extra clicks just make you look like a bot. Jinxy's HitFix holds your output at the rate that actually lands the most, and spreads the timing so no two clicks are identical.</p>
+      <div class="proof-grid" style="margin-top:44px">
+        <div class="proof-item">
+          <div class="num">34</div>
+          <div class="lbl">hits landed at the measured best rate — about 193 CPS landed 33. Faster stopped helping.</div>
+        </div>
+        <div class="proof-item">
+          <div class="num">0</div>
+          <div class="lbl">identical gaps. Jitter and shake move every click and the cursor a little, every time.</div>
+        </div>
+        <div class="proof-item">
+          <div class="num">1</div>
+          <div class="lbl">hotkey. Hold or toggle — set it once and forget the app is even running.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-kicker">Everything in the box</div>
+      <h2 class="sec-h">A clicker, and then some.</h2>
+      <p class="sec-lead">The click engine is free. Plus adds the studio and the overlays that turn a clicker into a full BedWars kit.</p>
+
+      <div class="feat-grid">
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15-7l-3 3M7 17l-3 3m16 0l-3-3M7 7L4 4"/></svg></div>
+          <h3>Human click engine</h3>
+          <p>HitFix caps you at the rate that lands the most hits, with per-click jitter so the pattern never repeats.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="8.5" y="3.5" width="7" height="14" rx="3.5"/><path d="M12 6.5v3"/><path d="M4 10.5l-1.5 1.5L4 13.5M20 10.5l1.5 1.5L20 13.5"/></svg></div>
+          <h3>Cursor shake</h3>
+          <p>A toggle that nudges the mouse in a tight box while you fight, so your aim reads as alive instead of pinned.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5v14l11-7z"/></svg></div>
+          <h3>One-click Play</h3>
+          <p>Drop in a game and Jinxy launches it straight into Roblox — no hunting through the app list.</p>
+        </div>
+        <div class="card">
+          <div class="pro-chip">PLUS</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M17 9l4-2v10l-4-2"/></svg></div>
+          <h3>Clip Studio</h3>
+          <p>A rolling recorder catches your last plays, then auto-stitches them into a montage with transitions — no editor.</p>
+        </div>
+        <div class="card">
+          <div class="pro-chip">PLUS</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></div>
+          <h3>Custom crosshairs</h3>
+          <p>Build your own crosshair — shape, color, dot, gap — and drop it dead-center. It survives Roblox updates.</p>
+        </div>
+        <div class="card">
+          <div class="pro-chip">PLUS</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 8l-4 4 4 4m10-8l4 4-4 4M14 4l-4 16"/></svg></div>
+          <h3>Snap-tap strafe (SOCD)</h3>
+          <p>Tap the opposite key and movement snaps instantly to it — real last-input strafing, on keys you pick.</p>
+        </div>
+        <div class="card">
+          <div class="pro-chip">PLUS</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 11h.01M11 11h.01M15 11h.01M8 15h8"/></svg></div>
+          <h3>Keystrokes overlay</h3>
+          <p>A clean WASD + mouse + live-CPS overlay for your stream, with an accent glow and a draggable spot on screen.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h10M4 12h16M4 17h7"/><circle cx="18" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg></div>
+          <h3>Auto switcher</h3>
+          <p>Cycle hotbar slots on a timer for auto-bridging and fast placing — start from any slot you like.</p>
+        </div>
+        <div class="card">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z"/></svg></div>
+          <h3>Streamer mode</h3>
+          <p>Hides every overlay Jinxy draws from OBS and Discord capture, while you still see it on your own monitor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="sec-kicker">Pricing</div>
+      <h2 class="sec-h">The clicker's free. Unlock the rest.</h2>
+      <p class="sec-lead">One key unlocks every Plus feature for its length. Pay once for Lifetime, or try a day for the price of nothing much.</p>
+
+      <div class="price-grid">
+        <div class="plan">
+          <div class="pname">DAY</div>
+          <div class="pprice">$2<span>/day</span></div>
+          <div class="pdur">1 day of Plus</div>
+          <ul>
+            <li><span class="chk">✓</span> Every Plus feature</li>
+            <li><span class="chk">✓</span> Try before you commit</li>
+          </ul>
+          <a class="btn btn-ghost" href="https://discord.gg/Q3QTvQPEqH" target="_blank" rel="noopener">Get a key</a>
+        </div>
+        <div class="plan">
+          <div class="pname">WEEKEND</div>
+          <div class="pprice">$4<span>/3 days</span></div>
+          <div class="pdur">3 days of Plus</div>
+          <ul>
+            <li><span class="chk">✓</span> Every Plus feature</li>
+            <li><span class="chk">✓</span> Covers a full weekend grind</li>
+          </ul>
+          <a class="btn btn-ghost" href="https://discord.gg/Q3QTvQPEqH" target="_blank" rel="noopener">Get a key</a>
+        </div>
+        <div class="plan">
+          <div class="pname">MONTH</div>
+          <div class="pprice">$8<span>/mo</span></div>
+          <div class="pdur">30 days of Plus</div>
+          <ul>
+            <li><span class="chk">✓</span> Every Plus feature</li>
+            <li><span class="chk">✓</span> Best for a season</li>
+          </ul>
+          <a class="btn btn-ghost" href="https://discord.gg/Q3QTvQPEqH" target="_blank" rel="noopener">Get a key</a>
+        </div>
+        <div class="plan feature">
+          <span class="best">BEST VALUE</span>
+          <div class="pname">LIFETIME</div>
+          <div class="pprice">$20<span>once</span></div>
+          <div class="pdur">Pay once, keep it forever</div>
+          <ul>
+            <li><span class="chk">✓</span> Every Plus feature</li>
+            <li><span class="chk">✓</span> All future updates</li>
+            <li><span class="chk">✓</span> Never expires</li>
+          </ul>
+          <a class="btn btn-primary" href="https://discord.gg/Q3QTvQPEqH" target="_blank" rel="noopener">Get Lifetime</a>
+        </div>
+      </div>
+
+      <div class="buy-flow">
+        <span class="step"><span class="n">1</span> DM on Discord</span>
+        <span class="arr">→</span>
+        <span class="step"><span class="n">2</span> Pay with PayPal</span>
+        <span class="arr">→</span>
+        <span class="step"><span class="n">3</span> Paste your key in the app's PLUS page</span>
+        <span class="arr">→</span>
+        <span class="step"><span class="n">4</span> Unlocked instantly</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-kicker">Questions</div>
+      <h2 class="sec-h">Before you download.</h2>
+      <div class="faq-list">
+        <details open>
+          <summary>Is it safe? My antivirus flagged it.<span class="plus"></span></summary>
+          <div class="ans">Jinxy injects clicks and keystrokes and draws overlays — the same things Windows watches for in malware, so some antivirus flags it on sight even though it's clean. If yours does, you'll need to allow it manually. Only download Jinxy from this site.</div>
+        </details>
+        <details>
+          <summary>Will I get banned?<span class="plus"></span></summary>
+          <div class="ans">No tool can promise that — any automation is against most game rules, and you use it at your own risk. Jinxy's whole design is to not stand out: human-spread click timing instead of a perfect machine-gun pattern. That's the honest version. Decide for yourself.</div>
+        </details>
+        <details>
+          <summary>What's free and what's Plus?<span class="plus"></span></summary>
+          <div class="ans">The click engine, shake, auto switcher and one-click Play are free forever. Plus unlocks Clip Studio, custom crosshairs, the keystrokes overlay and snap-tap strafe. One key covers all of them.</div>
+        </details>
+        <details>
+          <summary>How do I buy Plus?<span class="plus"></span></summary>
+          <div class="ans">DM on Discord, pay the tier you want through PayPal, and once it clears you get a key. Open the app, go to the PLUS page, paste it, and it unlocks on the spot. No refunds once a key is sent.</div>
+        </details>
+        <details>
+          <summary>Does it work on BedWars specifically?<span class="plus"></span></summary>
+          <div class="ans">Yes — Jinxy is tuned for Roblox BedWars, from the single left-click engine to the strafe keys and the hotbar switcher. It works anywhere you click in Roblox, but BedWars is what it's built around.</div>
+        </details>
+        <details>
+          <summary>Do I need to pay for updates?<span class="plus"></span></summary>
+          <div class="ans">No. Updates are free, and Jinxy updates itself. Lifetime keys include every future feature at no extra cost.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD CTA -->
+  <section class="cta" id="download">
+    <div class="wrap">
+      <h2>Download Jinxy.</h2>
+      <p>Free to use, Windows 10 and 11. Grab it, bind a hotkey, and you're clicking.</p>
+      <div class="hero-actions" style="justify-content:center">
+        <a class="btn btn-primary" href="/download" data-download>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn btn-ghost" href="https://discord.gg/Q3QTvQPEqH" target="_blank" rel="noopener">Get a Plus key on Discord</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-row">
+      <div class="brand" style="font-size:18px"><span class="glyph" style="width:26px;height:26px;font-size:14px"><span>J</span></span> Jinxy</div>
+      <div class="foot-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://discord.gg/Q3QTvQPEqH" target="_blank" rel="noopener">Discord</a>
+      </div>
+    </div>
+    <p class="disclaimer">Jinxy is a third-party tool and is not affiliated with, endorsed by, or connected to Roblox Corporation. Automating gameplay may violate a game's terms of service; use it at your own risk. Windows may flag the app because of how clickers work — see the FAQ.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  // mobile menu
+  var menu=document.getElementById('menu'),links=document.getElementById('navlinks');
+  if(menu){menu.addEventListener('click',function(){
+    var open=links.classList.toggle('open');
+    menu.setAttribute('aria-expanded',open?'true':'false');
+  });
+  links.addEventListener('click',function(e){if(e.target.tagName==='A'){links.classList.remove('open');menu.setAttribute('aria-expanded','false');}});}
+})();
+</script>
+</body>
+</html>
