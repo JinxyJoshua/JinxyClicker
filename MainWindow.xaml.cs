@@ -5766,8 +5766,13 @@ public partial class MainWindow : Window
 
     private void RestartAdmin_Click(object sender, RoutedEventArgs e)
     {
+        // Free the single-instance name first, so the elevated copy we launch
+        // becomes the new first instance instead of seeing this one and bailing.
+        SingleInstance.Release();
+
         if (!TweakEnvironment.RestartElevated())
         {
+            SingleInstance.IsFirstInstance();   // restart declined — keep the lock
             ShowTweakStatus("Could not restart as administrator — the prompt was declined.", isError: true);
             return;
         }
