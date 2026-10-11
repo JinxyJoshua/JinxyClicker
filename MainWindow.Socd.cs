@@ -22,11 +22,25 @@ public partial class MainWindow
         ApplySocdPro();
     }
 
+    private void NavSocd_Click(object sender, RoutedEventArgs e)
+    {
+        ShowPage(NavSocd, PageSocd, "SOCD", "Null-cancel opposing movement keys");
+        ApplySocdPro();
+    }
+
     private void ApplySocdPro()
     {
         bool pro = IsPro;
-        if (SocdLockNote is not null) SocdLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
+
+        // The whole tab is Pro-only: it's hidden from the sidebar unless licensed.
+        if (NavSocd is not null) NavSocd.Visibility = pro ? Visibility.Visible : Visibility.Collapsed;
+        if (SocdLockNote is not null) SocdLockNote.Visibility = Visibility.Collapsed;
         if (SocdProPanel is not null) SocdProPanel.IsEnabled = pro;
+
+        // If a pass expired while this page was open, leave it.
+        if (!pro && PageSocd is { Visibility: Visibility.Visible })
+            ShowPage(NavClicker, PageClicker, "Clicker", "Configure your own click engine");
+
         ApplySocdState();   // reconcile the hook with the current Pro + toggle state
     }
 

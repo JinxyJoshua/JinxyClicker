@@ -935,6 +935,8 @@
                             Click="NavMacros_Click"/>
                     <Button x:Name="NavSwitcher" app:NavIcon.Glyph="&#xE8AB;" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
                             Click="NavSwitcher_Click"/>
+                    <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
+                            Visibility="Collapsed" Click="NavSocd_Click"/>
                 </StackPanel>
 
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
@@ -1869,7 +1871,11 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
+                </StackPanel>
+
+                <StackPanel x:Name="PageSocd" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANING" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
