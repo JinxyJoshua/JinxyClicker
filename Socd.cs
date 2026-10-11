@@ -1,8 +1,11 @@
 namespace JinxyClicker;
 
-/// <summary>How an opposing key pair is resolved when both are held.</summary>
+/// <summary>What happens to an opposing key pair when both are held.</summary>
 public enum SocdMode
 {
+    /// <summary>Alternate rapidly between the two — auto-strafe side to side.</summary>
+    Strafe,
+
     /// <summary>The most recently pressed direction wins — instant counter-strafe.</summary>
     LastInputWins,
 

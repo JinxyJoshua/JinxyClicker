@@ -199,11 +199,20 @@ public sealed class AppSettings
     /// <summary>Pro: the game link the Play button opens, or null for Roblox's games page.</summary>
     public string? PlayGameUrl { get; set; }
 
-    /// <summary>Pro: SOCD cleaning on (null-cancel the A/D and W/S pairs).</summary>
+    /// <summary>Pro: SOCD / auto-strafe on.</summary>
     public bool SocdEnabled { get; set; }
 
-    /// <summary>Pro: SOCD neutral mode (both opposing keys cancel) instead of last-input-wins.</summary>
-    public bool SocdNeutral { get; set; }
+    /// <summary>Pro: "Strafe", "LastInputWins", or "Neutral".</summary>
+    public string? SocdMode { get; set; }
+
+    /// <summary>Pro: how fast strafe mode alternates sides, in milliseconds.</summary>
+    public int SocdSpeedMs { get; set; } = 40;
+
+    /// <summary>Pro: the four movement keys (single characters). Blank = that pair off.</summary>
+    public string? SocdLeft { get; set; } = "A";
+    public string? SocdRight { get; set; } = "D";
+    public string? SocdUp { get; set; } = "W";
+    public string? SocdDown { get; set; } = "S";
 
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;

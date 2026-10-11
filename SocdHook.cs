@@ -24,12 +24,18 @@ public sealed class SocdHook : IDisposable
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const int VK_A = 0x41, VK_D = 0x44, VK_W = 0x57, VK_S = 0x53;
 
-    public SocdMode Mode { get; set; } = SocdMode.LastInputWins;
+    public SocdMode Mode { get; set; } = SocdMode.Strafe;
+
+    /// <summary>How fast strafe mode alternates sides, in milliseconds.</summary>
+    public int StrafeIntervalMs { get; set; } = 40;
+
+    public const int MinStrafeMs = 10, MaxStrafeMs = 500;
 
     private IntPtr _hookId = IntPtr.Zero;
     private LowLevelKeyboardProc? _proc;   // kept alive so the GC can't collect the callback
     private Thread? _thread;
     private uint _threadId;
+    private System.Threading.Timer? _strafeTimer;
     private readonly object _gate = new();
 
     private sealed class Pair
@@ -43,9 +49,26 @@ public sealed class SocdHook : IDisposable
 
     public bool IsRunning => _thread is { IsAlive: true };
 
+    /// <summary>
+    /// Sets the two opposing pairs. A key of 0 (unset) disables that pair. Horizontal
+    /// is left/right, vertical is up/down.
+    /// </summary>
+    public void Configure(int leftVk, int rightVk, int upVk, int downVk)
+    {
+        lock (_gate)
+        {
+            _horizontal.NegVk = leftVk;
+            _horizontal.PosVk = rightVk;
+            _vertical.NegVk = downVk;
+            _vertical.PosVk = upVk;
+        }
+    }
+
     public void Start()
     {
         if (_thread != null) return;
+        int period = Math.Clamp(StrafeIntervalMs, MinStrafeMs, MaxStrafeMs);
+        _strafeTimer = new System.Threading.Timer(StrafeTick, null, period, period);
         _thread = new Thread(HookThread) { IsBackground = true, Name = "SocdHook" };
         _thread.Start();
     }
@@ -55,11 +78,34 @@ public sealed class SocdHook : IDisposable
         Thread? thread = _thread;
         if (thread == null) return;
 
+        _strafeTimer?.Dispose();
+        _strafeTimer = null;
+
         ReleaseAll();   // let go of anything held before the hook goes away
         if (_threadId != 0) PostThreadMessage(_threadId, WM_QUIT, UIntPtr.Zero, IntPtr.Zero);
         thread.Join(1000);
         _thread = null;
         _threadId = 0;
+    }
+
+    /// <summary>Updates how fast strafe mode alternates, live.</summary>
+    public void SetStrafeInterval(int ms)
+    {
+        StrafeIntervalMs = Math.Clamp(ms, MinStrafeMs, MaxStrafeMs);
+        _strafeTimer?.Change(StrafeIntervalMs, StrafeIntervalMs);
+    }
+
+    // Every tick, flip the output of any pair that is being held both-down in
+    // strafe mode — that is the side-to-side strafe.
+    private void StrafeTick(object? _)
+    {
+        lock (_gate)
+        {
+            if (Mode != SocdMode.Strafe) return;
+            foreach (Pair p in new[] { _horizontal, _vertical })
+                if (p.NegVk != 0 && p.PosVk != 0 && p.NegDown && p.PosDown)
+                    SetOutput(p, p.PosOut, !p.PosOut);   // toggle to the other side
+        }
     }
 
     private void HookThread()
@@ -103,13 +149,22 @@ public sealed class SocdHook : IDisposable
         return CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
+    // Only pairs with both keys set are cleaned; a pair with an unset key is off.
     private Pair? PairFor(int vk, out bool isPos)
     {
         isPos = false;
-        if (vk == _horizontal.NegVk) return _horizontal;
-        if (vk == _horizontal.PosVk) { isPos = true; return _horizontal; }
-        if (vk == _vertical.NegVk) return _vertical;
-        if (vk == _vertical.PosVk) { isPos = true; return _vertical; }
+        if (vk == 0) return null;
+
+        if (_horizontal.NegVk != 0 && _horizontal.PosVk != 0)
+        {
+            if (vk == _horizontal.NegVk) return _horizontal;
+            if (vk == _horizontal.PosVk) { isPos = true; return _horizontal; }
+        }
+        if (_vertical.NegVk != 0 && _vertical.PosVk != 0)
+        {
+            if (vk == _vertical.NegVk) return _vertical;
+            if (vk == _vertical.PosVk) { isPos = true; return _vertical; }
+        }
         return null;
     }
 
@@ -120,11 +175,28 @@ public sealed class SocdHook : IDisposable
             if (isPos) p.PosDown = isDown; else p.NegDown = isDown;
             if (isDown) p.LastWasPos = isPos;
 
-            (bool neg, bool pos) = Socd.Resolve(p.NegDown, p.PosDown, p.LastWasPos, Mode);
+            bool both = p.NegDown && p.PosDown;
 
-            if (neg != p.NegOut) { Inject(p.NegVk, neg); p.NegOut = neg; }
-            if (pos != p.PosOut) { Inject(p.PosVk, pos); p.PosOut = pos; }
+            if (both && Mode == SocdMode.Strafe)
+            {
+                // Hand over to the strafe timer; just make sure one side is pressed
+                // so the first toggle has somewhere to go.
+                if (!p.NegOut && !p.PosOut) SetOutput(p, false, true);
+                return;
+            }
+
+            (bool neg, bool pos) = both
+                ? Socd.Resolve(p.NegDown, p.PosDown, p.LastWasPos, Mode)
+                : (p.NegDown, p.PosDown);   // one or none held passes straight through
+            SetOutput(p, neg, pos);
         }
+    }
+
+    // Caller holds _gate. Injects only the changes from the current output.
+    private void SetOutput(Pair p, bool neg, bool pos)
+    {
+        if (neg != p.NegOut) { Inject(p.NegVk, neg); p.NegOut = neg; }
+        if (pos != p.PosOut) { Inject(p.PosVk, pos); p.PosOut = pos; }
     }
 
     private void ReleaseAll()

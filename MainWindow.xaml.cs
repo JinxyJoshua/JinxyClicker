@@ -2102,7 +2102,12 @@ public partial class MainWindow : Window
             ActiveSetup = _activeSetup,
             PlayGameUrl = string.IsNullOrWhiteSpace(PlayUrlBox?.Text) ? null : PlayUrlBox.Text.Trim(),
             SocdEnabled = _socdEnabled,
-            SocdNeutral = _socdNeutral,
+            SocdMode = _socdMode.ToString(),
+            SocdSpeedMs = _socdSpeedMs,
+            SocdLeft = _socdLeft,
+            SocdRight = _socdRight,
+            SocdUp = _socdUp,
+            SocdDown = _socdDown,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
