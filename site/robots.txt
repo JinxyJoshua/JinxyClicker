@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jinxy-site.jinxy-server-globe.workers.dev/sitemap.xml
