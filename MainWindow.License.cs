@@ -96,6 +96,11 @@ public partial class MainWindow
 
         IsPro = status.IsPro;
 
+#if DEVTOOLS
+        // Dev-only override for testing the gate without a real key (see the DEV tab).
+        if (_devForceProOverride is { } forced) IsPro = forced;
+#endif
+
         // Per-page Pro gating that should react the moment a key activates — or a
         // pass expires — even if the user is sitting on that page (null-guarded
         // for early calls).
@@ -108,13 +113,13 @@ public partial class MainWindow
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.
         if (NavProCorner is not null)
-            NavProCorner.Content = IsPro ? "★ PRO" : "★ GET PRO";
+            NavProCorner.Content = IsPro ? "★ PLUS" : "★ GET PLUS";
 
         if (ProStatusText is null) return; // page not built yet
         ProStatusText.Text = status switch
         {
-            { IsPro: true, Tier: ProTier.Lifetime } => "Pro — lifetime",
-            { IsPro: true, ExpiresUtc: { } exp } => $"Pro — {status.Tier}, until {exp.ToLocalTime():d}",
+            { IsPro: true, Tier: ProTier.Lifetime } => "Plus — lifetime",
+            { IsPro: true, ExpiresUtc: { } exp } => $"Plus — {status.Tier}, until {exp.ToLocalTime():d}",
             _ => "Free version"
         };
 
@@ -125,7 +130,7 @@ public partial class MainWindow
         if (ProPasteButton is not null) ProPasteButton.IsEnabled = canActivate;
         if (ProActivateButton is not null) ProActivateButton.IsEnabled = canActivate;
         if (ProActivateResult is not null && IsPro)
-            ProActivateResult.Text = "You're already Pro — no need to activate again.";
+            ProActivateResult.Text = "You're already Plus — no need to activate again.";
     }
 
     // One reliable click: read the whole key straight from the clipboard (so a
@@ -282,6 +287,20 @@ public partial class MainWindow
         catch
         {
             return ""; // clipboard momentarily locked by another app
+        }
+    }
+
+    /// <summary>Opens the Discord invite — where keys are sold and the community hangs out.</summary>
+    private void JoinDiscord_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo("https://discord.gg/Q3QTvQPEqH") { UseShellExecute = true });
+        }
+        catch
+        {
+            // No browser, or the shell refused it — nothing worth crashing over.
         }
     }
 }

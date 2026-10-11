@@ -1,23 +1,22 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 
 namespace JinxyClicker;
 
 /// <summary>
-/// SOCD / auto-strafe (Pro): a global keyboard hook on two opposing key pairs.
-/// Strafe mode alternates them side to side while both are held; last-input and
-/// neutral are the standard SOCD resolutions.
+/// SOCD cleaner (Pro): a global keyboard hook on one opposing key pair. While
+/// both keys are held it releases them so they don't fight the game; a single key
+/// moves you as normal. This is the resolution Roblox honours from an external
+/// app — the "move as the last key" variants need releasing a key you are still
+/// holding, which the game rejects, so the cleaner does the one that works.
 /// </summary>
 public partial class MainWindow
 {
     private readonly SocdHook _socd = new();
     private bool _socdEnabled;
-    private SocdMode _socdMode = SocdMode.LastInputWins;
-    private int _socdSpeedMs = 40;
     private string _socdLeft = "A", _socdRight = "D";
-    // True from construction so the controls' own TextChanged/Checked events, which
-    // fire while the XAML is still loading, don't run before LoadSocd sets things up.
+    // True from construction so the controls' own TextChanged events, which fire
+    // while the XAML is still loading, don't run before LoadSocd sets things up.
     private bool _loadingSocd = true;
 
     private void LoadSocd(AppSettings s)
@@ -25,16 +24,10 @@ public partial class MainWindow
         _loadingSocd = true;
 
         _socdEnabled = s.SocdEnabled;
-        _socdMode = ParseMode(s.SocdMode);
-        _socdSpeedMs = s.SocdSpeedMs is >= SocdHook.MinStrafeMs and <= SocdHook.MaxStrafeMs ? s.SocdSpeedMs : 40;
         _socdLeft = KeyOr(s.SocdLeft, "A");
         _socdRight = KeyOr(s.SocdRight, "D");
 
         if (SocdEnabledCheck is not null) SocdEnabledCheck.IsChecked = _socdEnabled;
-        if (SocdModeStrafe is not null) SocdModeStrafe.IsChecked = _socdMode == SocdMode.Strafe;
-        if (SocdModeLast is not null) SocdModeLast.IsChecked = _socdMode == SocdMode.LastInputWins;
-        if (SocdModeNeutral is not null) SocdModeNeutral.IsChecked = _socdMode == SocdMode.Neutral;
-        if (SocdSpeedBox is not null) SocdSpeedBox.Text = _socdSpeedMs.ToString();
         if (SocdLeftKey is not null) SocdLeftKey.Text = _socdLeft;
         if (SocdRightKey is not null) SocdRightKey.Text = _socdRight;
 
@@ -43,13 +36,6 @@ public partial class MainWindow
     }
 
     private static string KeyOr(string? v, string fallback) => string.IsNullOrWhiteSpace(v) ? fallback : v!.Trim();
-
-    private static SocdMode ParseMode(string? m) => m switch
-    {
-        "Strafe" => SocdMode.Strafe,
-        "Neutral" => SocdMode.Neutral,
-        _ => SocdMode.LastInputWins
-    };
 
     // A typed key character to its virtual-key code, or 0 for blank/invalid.
     private static int Vk(string? key)
@@ -61,7 +47,8 @@ public partial class MainWindow
 
     private void NavSocd_Click(object sender, RoutedEventArgs e)
     {
-        ShowPage(NavSocd, PageSocd, "SOCD", "Strafe or null-cancel opposing movement keys");
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
+        ShowPage(NavSocd, PageSocd, "SOCD", "Clean opposing movement keys so holding both doesn't fight");
         ApplySocdPro();
     }
 
@@ -69,23 +56,22 @@ public partial class MainWindow
     {
         bool pro = IsPro;
 
-        // The whole tab is Pro-only: it's hidden from the sidebar unless licensed.
-        if (NavSocd is not null) NavSocd.Visibility = pro ? Visibility.Visible : Visibility.Collapsed;
+        // The tab stays visible so Free users can see the feature exists, but its
+        // content is never shown — clicking it (or a pass expiring here) sends them
+        // to the key page instead.
         if (SocdLockNote is not null) SocdLockNote.Visibility = Visibility.Collapsed;
         if (SocdProPanel is not null) SocdProPanel.IsEnabled = pro;
 
         if (!pro && PageSocd is { Visibility: Visibility.Visible })
-            ShowPage(NavClicker, PageClicker, "Clicker", "Configure your own click engine");
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
 
         ApplySocdState();
     }
 
-    // Pushes the current settings into the hook and starts/stops it to match
+    // Pushes the current keys into the hook and starts/stops it to match
     // "Pro and enabled".
     private void ApplySocdState()
     {
-        _socd.Mode = _socdMode;
-        _socd.SetStrafeInterval(_socdSpeedMs);
         _socd.Configure(Vk(_socdLeft), Vk(_socdRight));
 
         bool shouldRun = IsPro && _socdEnabled;
@@ -99,25 +85,6 @@ public partial class MainWindow
         _socdEnabled = SocdEnabledCheck.IsChecked == true;
         _settingsDirty = true;
         ApplySocdState();
-    }
-
-    private void SocdMode_Checked(object sender, RoutedEventArgs e)
-    {
-        if (_loadingSocd) return;
-        if (sender is RadioButton { Tag: string tag }) _socdMode = ParseMode(tag);
-        _settingsDirty = true;
-        ApplySocdState();
-    }
-
-    private void SocdSpeed_Changed(object sender, TextChangedEventArgs e)
-    {
-        if (_loadingSocd || SocdSpeedBox is null) return;
-        if (int.TryParse(SocdSpeedBox.Text, out int ms))
-        {
-            _socdSpeedMs = Math.Clamp(ms, SocdHook.MinStrafeMs, SocdHook.MaxStrafeMs);
-            _settingsDirty = true;
-            ApplySocdState();
-        }
     }
 
     private void SocdKeys_Changed(object sender, TextChangedEventArgs e)

@@ -199,14 +199,8 @@ public sealed class AppSettings
     /// <summary>Pro: the game link the Play button opens, or null for Roblox's games page.</summary>
     public string? PlayGameUrl { get; set; }
 
-    /// <summary>Pro: SOCD / auto-strafe on.</summary>
+    /// <summary>Pro: SOCD cleaner on.</summary>
     public bool SocdEnabled { get; set; }
-
-    /// <summary>Pro: "Strafe", "LastInputWins", or "Neutral".</summary>
-    public string? SocdMode { get; set; }
-
-    /// <summary>Pro: how fast strafe mode alternates sides, in milliseconds.</summary>
-    public int SocdSpeedMs { get; set; } = 40;
 
     /// <summary>Pro: the two opposing SOCD keys (single characters).</summary>
     public string? SocdLeft { get; set; } = "A";

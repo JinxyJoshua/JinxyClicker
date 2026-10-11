@@ -23,8 +23,17 @@ public static class RecentGames
 
     public static async Task<IReadOnlyList<RecentGame>> LoadAsync(int max = 8)
     {
-        List<JoinedGame> joins = await Task.Run(() => ReadRecentJoins(max)).ConfigureAwait(false);
+        // Read extra joins because dedup-by-universe below can collapse several of
+        // them, and we still want up to `max` distinct games to show.
+        List<JoinedGame> joins = await Task.Run(() => ReadRecentJoins(max * 3)).ConfigureAwait(false);
         if (joins.Count == 0) return Array.Empty<RecentGame>();
+
+        // One game can be joined under more than one place id but shares a universe
+        // id — and the name and icon come from the universe, so those would show as
+        // identical tiles. Keep each universe once (the most recent, since joins are
+        // already most-recent-first), then cap at `max`.
+        var seenUniverse = new HashSet<long>();
+        joins = joins.Where(j => seenUniverse.Add(j.UniverseId)).Take(max).ToList();
 
         string ids = string.Join(",", joins.Select(j => j.UniverseId).Distinct());
         Dictionary<long, string> names = await FetchNamesAsync(ids).ConfigureAwait(false);

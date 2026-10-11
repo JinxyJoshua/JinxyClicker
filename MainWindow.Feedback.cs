@@ -70,15 +70,22 @@ public partial class MainWindow
             if (FeedbackSubmit is not null) FeedbackSubmit.IsEnabled = true;
         }
 
-        SetFeedbackStatus(result.Message, ok: result.Success);
-
         if (result.Success)
         {
-            // Start the next one fresh, back on "New feature".
+            // Start the next one fresh, back on "New feature". Clear the fields
+            // FIRST: clearing them raises FeedbackText_Changed, which wipes the
+            // status line — so set the confirmation LAST, or it vanishes instantly.
             if (FeedbackSummary is not null) FeedbackSummary.Text = string.Empty;
             if (FeedbackDetails is not null) FeedbackDetails.Text = string.Empty;
             if (FeedbackTypeFeature is not null) FeedbackTypeFeature.IsChecked = true;
             _feedbackType = FeedbackType.Feature;
+
+            // Always the same confirmation, whatever the Worker echoes back.
+            SetFeedbackStatus("Your Feedback has been sent", ok: true);
+        }
+        else
+        {
+            SetFeedbackStatus(result.Message, ok: false);
         }
     }
 

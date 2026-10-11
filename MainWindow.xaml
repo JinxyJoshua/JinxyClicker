@@ -940,7 +940,7 @@
                      tab list so it doesn't take a row up top. It jumps to the
                      Pro page and its label reflects the current plan. -->
                 <Button x:Name="NavProCorner" DockPanel.Dock="Bottom"
-                        Content="&#x2605; GET PRO"
+                        Content="&#x2605; GET PLUS"
                         Style="{StaticResource ProCta}" Click="NavPro_Click"
                         Margin="0,12,0,2"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -970,10 +970,22 @@
                             Click="NavMacros_Click"/>
                     <Button x:Name="NavSwitcher" app:NavIcon.Glyph="&#xE8AB;" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
                             Click="NavSwitcher_Click"/>
+                </StackPanel>
+
+                <!-- The paid features, gathered in one group. Each tab stays visible
+                     so Free users can see what Pro unlocks; clicking one when Free
+                     sends them to the key page (see the NavX_Click handlers). -->
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PLUS"
+                        Tag="{Binding ElementName=GroupPro}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupPro">
                     <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
-                            Visibility="Collapsed" Click="NavSocd_Click"/>
+                            Click="NavSocd_Click"/>
                     <Button x:Name="NavKeystrokes" app:NavIcon.Glyph="&#xE765;" Content="KEYSTROKES" Style="{StaticResource NavButton}"
-                            Visibility="Collapsed" Click="NavKeystrokes_Click"/>
+                            Click="NavKeystrokes_Click"/>
+                    <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
+                            Click="NavClipStudio_Click"/>
+                    <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
+                            Click="NavSetups_Click"/>
                 </StackPanel>
 
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
@@ -1003,8 +1015,6 @@
                 <StackPanel x:Name="GroupCapture">
                     <Button x:Name="NavRecorder" app:NavIcon.Glyph="&#xE714;" Content="RECORDER" Style="{StaticResource NavButton}"
                             Click="NavRecorder_Click"/>
-                    <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
-                            Click="NavClipStudio_Click"/>
                     <Button x:Name="NavHistory" app:NavIcon.Glyph="&#xE81C;" Content="HISTORY" Style="{StaticResource NavButton}"
                             Click="NavHistory_Click"/>
                 </StackPanel>
@@ -1012,8 +1022,6 @@
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; APP"
                         Tag="{Binding ElementName=GroupApp}" Click="NavGroup_Click"/>
                 <StackPanel x:Name="GroupApp">
-                    <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
-                            Click="NavSetups_Click"/>
                     <Button x:Name="NavTheme" app:NavIcon.Glyph="&#xE790;" Content="THEME" Style="{StaticResource NavButton}"
                             Click="NavTheme_Click"/>
                     <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
@@ -1917,42 +1925,22 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANING" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBlock DockPanel.Dock="Right" Text="PRO" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="Controls what opposing movement keys do when you hold both. Strafe mode auto-alternates them so you jitter side to side (hold A+D → strafe); or pick last-key-wins (instant counter-strafe) or both-cancel. Works in every game — it's a keyboard input tool and does not read the game."
+                            <TextBlock Text="Cleans your two opposing movement keys so holding both at once doesn't fight — tap the opposite key and you stop clean instead of drifting, like Snap Tap keyboards. A single key moves you as normal. It's a keyboard input tool and doesn't read the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <TextBlock x:Name="SocdLockNote" Visibility="Collapsed"
-                                       Text="SOCD is a Pro feature. Unlock it on the PRO page."
+                                       Text="SOCD is a Plus feature. Unlock it on the PLUS page."
                                        Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <StackPanel x:Name="SocdProPanel" Margin="0,4,0,0">
                                 <DockPanel LastChildFill="False" Margin="0,12,0,0">
                                     <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                         <TextBlock Text="Enable" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                        <TextBlock Text="Turn SOCD / auto-strafe on" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                        <TextBlock Text="Turn the SOCD cleaner on" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
                                     </StackPanel>
                                     <CheckBox x:Name="SocdEnabledCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
                                               Checked="SocdEnabled_Changed" Unchecked="SocdEnabled_Changed"/>
-                                </DockPanel>
-
-                                <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
-                                <TextBlock Text="WHEN BOTH KEYS ARE HELD" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
-                                <WrapPanel>
-                                    <RadioButton x:Name="SocdModeLast" Content="Last key wins (SOCD)" GroupName="SocdMode" Tag="LastInputWins"
-                                                 Style="{StaticResource SegmentButton}" MinWidth="140" IsChecked="True" Checked="SocdMode_Checked"/>
-                                    <RadioButton x:Name="SocdModeStrafe" Content="Strafe side to side" GroupName="SocdMode" Tag="Strafe"
-                                                 Style="{StaticResource SegmentButton}" MinWidth="128" Checked="SocdMode_Checked"/>
-                                    <RadioButton x:Name="SocdModeNeutral" Content="Both cancel" GroupName="SocdMode" Tag="Neutral"
-                                                 Style="{StaticResource SegmentButton}" MinWidth="92" Checked="SocdMode_Checked"/>
-                                </WrapPanel>
-
-                                <DockPanel LastChildFill="False" Margin="0,14,0,0">
-                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                                        <TextBlock Text="Strafe speed (ms)" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                        <TextBlock Text="How fast it flips sides in Strafe mode — lower is faster (10–500)" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
-                                    </StackPanel>
-                                    <TextBox x:Name="SocdSpeedBox" Style="{StaticResource NumericFieldBox}" DockPanel.Dock="Right" Width="72" Text="40"
-                                             VerticalAlignment="Center" TextChanged="SocdSpeed_Changed"/>
                                 </DockPanel>
 
                                 <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
@@ -1978,12 +1966,12 @@
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="KEYSTROKES OVERLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBlock DockPanel.Dock="Right" Text="PRO" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Text="A sleek keyboard + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams. Click-through, so it never blocks the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <TextBlock x:Name="KeystrokesLockNote" Visibility="Collapsed"
-                                       Text="Keystrokes overlay is a Pro feature. Unlock it on the PRO page."
+                                       Text="Keystrokes overlay is a Plus feature. Unlock it on the PLUS page."
                                        Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             <StackPanel x:Name="KeystrokesProPanel" Margin="0,4,0,0">
                                 <DockPanel LastChildFill="False" Margin="0,12,0,0">
@@ -2558,13 +2546,27 @@
                                            Foreground="{StaticResource TextMuted}"/>
                                 <WrapPanel x:Name="CustomDotColorPanel"/>
 
+                                <!-- Add / import live here, above the Pro divider, so they stay
+                                     available to everyone and don't read as Pro-only when the
+                                     Pro panel below is collapsed for Free users. -->
+                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                    <Button x:Name="CustomAddButton" Content="+  Add to gallery" Click="CustomAdd_Click"
+                                            Style="{StaticResource AccentButton}" Height="36" MinWidth="150" Padding="16,0"/>
+                                    <Button x:Name="CrosshairImportButton" Content="Import image…" Click="CrosshairImport_Click"
+                                            Height="36" MinWidth="130" Padding="16,0" Margin="10,0,0,0"
+                                            ToolTip="Use your own crosshair picture as the cursor. A PNG with a transparent background works best."/>
+                                </StackPanel>
+
                                 <!-- Pro: any colour, glow, and fine-tuning -->
                                 <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
-                                <TextBlock Text="PRO — ANY COLOUR, GLOW &amp; FINE-TUNE" FontSize="9" FontWeight="Bold"
+                                <TextBlock Text="PLUS — ANY COLOUR, GLOW &amp; FINE-TUNE" FontSize="9" FontWeight="Bold"
                                            Margin="0,12,0,0" Foreground="{StaticResource Accent}"/>
                                 <TextBlock x:Name="CrosshairProLockNote" Visibility="Collapsed"
-                                           Text="Unlock any colour, a glow, and full fine-tuning on the PRO page."
+                                           Text="Unlock any colour, a glow, and full fine-tuning on the PLUS page."
                                            Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                <Button x:Name="CrosshairProGetKeyButton" Visibility="Collapsed" Content="Get a key"
+                                        Style="{StaticResource AccentButton}" Padding="16,7" HorizontalAlignment="Left"
+                                        Margin="0,10,0,0" Click="NavPro_Click"/>
 
                                 <StackPanel x:Name="CrosshairProPanel" Margin="0,10,0,0">
                                     <TextBlock Text="CUSTOM COLOUR (type any hex)" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"
@@ -2613,14 +2615,6 @@
                                                 IsSnapToTickEnabled="True" TickFrequency="5" VerticalAlignment="Center" ValueChanged="CustomTune_Changed"/>
                                         <TextBlock Grid.Column="2" x:Name="CustomGlowValue" Text="0%" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
                                     </Grid>
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                                    <Button x:Name="CustomAddButton" Content="+  Add to gallery" Click="CustomAdd_Click"
-                                            Style="{StaticResource AccentButton}" Height="36" MinWidth="150" Padding="16,0"/>
-                                    <Button x:Name="CrosshairImportButton" Content="Import image…" Click="CrosshairImport_Click"
-                                            Height="36" MinWidth="130" Padding="16,0" Margin="10,0,0,0"
-                                            ToolTip="Use your own crosshair picture as the cursor. A PNG with a transparent background works best."/>
                                 </StackPanel>
                             </StackPanel>
 
@@ -3010,7 +3004,7 @@
                 <StackPanel x:Name="PageClipStudio" Visibility="Collapsed">
 
                     <TextBlock x:Name="ClipStudioLockNote" Visibility="Collapsed"
-                               Text="Clip Studio is a Pro feature. Unlock it on the PRO page to make montages."
+                               Text="Clip Studio is a Plus feature. Unlock it on the PLUS page to make montages."
                                Foreground="{StaticResource TextSoft}" FontSize="13" Margin="0,0,0,14" TextWrapping="Wrap"/>
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
@@ -3335,7 +3329,7 @@
                 <StackPanel x:Name="PageSetups" Visibility="Collapsed">
 
                     <TextBlock x:Name="SetupsLockNote" Visibility="Collapsed"
-                               Text="Setups are a Pro feature. Unlock them on the PRO page to save and switch your whole configuration in one click."
+                               Text="Setups are a Plus feature. Unlock them on the PLUS page to save and switch your whole configuration in one click."
                                Foreground="{StaticResource TextSoft}" FontSize="13" Margin="0,0,0,14" TextWrapping="Wrap"/>
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
@@ -3370,6 +3364,10 @@
                                 <Button x:Name="RefreshRecentButton" DockPanel.Dock="Right" Content="Refresh" Style="{StaticResource ChipButton}" Padding="12,5" Click="RefreshRecent_Click"/>
                             </DockPanel>
                             <TextBlock Text="Click a game to apply your setup and launch straight into it." Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <TextBlock Text="SEARCH" FontSize="9" FontWeight="Bold" Margin="0,14,0,4" Foreground="{StaticResource TextMuted}"/>
+                            <TextBox x:Name="RecentSearchBox" Style="{StaticResource InputField}" MaxLength="40"
+                                     HorizontalAlignment="Stretch" TextChanged="RecentSearch_Changed"
+                                     ToolTip="Filter your recent games by name"/>
                             <WrapPanel x:Name="RecentGamesPanel" Margin="0,12,0,0"/>
                             <TextBlock x:Name="RecentGamesStatus" Text="" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
@@ -3636,12 +3634,17 @@
                             <TextBlock x:Name="ProActivateResult" Text=""
                                        Foreground="{StaticResource TextMuted}" FontSize="12"
                                        TextWrapping="Wrap" Margin="0,10,0,0"/>
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
+                            <TextBlock Text="Don't have a key yet? Join the Discord to get one — a one-time $20 for lifetime, or a short pass."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,14,0,8"/>
+                            <Button Content="Join the Discord" Style="{StaticResource AccentButton}" Padding="16,8"
+                                    HorizontalAlignment="Left" Click="JoinDiscord_Click"/>
                         </StackPanel>
                     </Border>
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="WHAT PRO UNLOCKS" Foreground="{StaticResource TextMuted}"
+                            <TextBlock Text="WHAT PLUS UNLOCKS" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="&#8226;  Clip Studio &#8212; auto-montage of your best moments, auto-clip and export"
                                        Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"/>
@@ -3654,7 +3657,7 @@
                             <TextBlock Text="&#8226;  Unlimited presets and custom crosshairs"
                                        Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             <Border Height="1" Background="{StaticResource Divider}" Margin="0,14,0,0"/>
-                            <TextBlock Text="Don't have a key yet? Keys are a one-time $20 for lifetime, or a short pass. Where to buy will be linked here."
+                            <TextBlock Text="One key unlocks all of the above for its length. Grab one above."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,14,0,0"/>
                         </StackPanel>
                     </Border>

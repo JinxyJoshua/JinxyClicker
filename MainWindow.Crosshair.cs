@@ -74,9 +74,15 @@ public partial class MainWindow
     private void ApplyCrosshairPro()
     {
         bool pro = IsPro;
+        // When Free, hide the Pro controls entirely and show a prompt to the key
+        // page instead of greyed-out sliders. The rest of the crosshair page
+        // (presets, swatches, size, import) stays free.
         if (CrosshairProLockNote is not null)
             CrosshairProLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
-        if (CrosshairProPanel is not null) CrosshairProPanel.IsEnabled = pro;
+        if (CrosshairProGetKeyButton is not null)
+            CrosshairProGetKeyButton.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
+        if (CrosshairProPanel is not null)
+            CrosshairProPanel.Visibility = pro ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Puts the saved crosshair onto the controls, preview and status.</summary>

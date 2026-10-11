@@ -5,15 +5,24 @@ using System.Threading;
 namespace JinxyClicker;
 
 /// <summary>
-/// A global low-level keyboard hook that SOCD-cleans the A/D and W/S pairs: it
-/// swallows the real presses and injects the single cleaned direction the game
-/// should receive (see <see cref="Socd"/> for the decision).
+/// A global low-level keyboard hook that SOCD-cleans one opposing key pair
+/// (A vs D by default): while both are held it releases them so they don't fight,
+/// and a single key passes through as the real key.
 /// </summary>
 /// <remarks>
-/// Runs on its own thread with a message loop, which is what a WH_KEYBOARD_LL hook
-/// needs to be called. Injected key events carry the OS "injected" flag, so the
-/// hook ignores its own output and can't feed back on itself. On stop it releases
-/// anything it is holding down, so toggling off never leaves a key stuck.
+/// Two design points, both learned the hard way:
+///   1. It never fakes a key you are holding. Your *winning* key stays your real
+///      physical key — the hook just stops hiding it and lets it reach the game.
+///      Only the *losing* key is hidden (its events swallowed) and released with
+///      an injected key-UP. Releasing by injection registers where spoofing a
+///      held-down key did not.
+///   2. All injection happens on a background thread, never inside the hook
+///      callback — the auto-switcher proves injection from a thread registers in
+///      Roblox, while injection from the callback does not.
+/// The hook only tracks which side to hide and swallows that side's events; a
+/// timer reconciles the game's view by injecting the releases. When the winner is
+/// let go, the loser reappears through its own hardware auto-repeat (and an
+/// injected down, as a best-effort for instant snap-back).
 /// </remarks>
 public sealed class SocdHook : IDisposable
 {
@@ -22,28 +31,23 @@ public sealed class SocdHook : IDisposable
     private const uint WM_QUIT = 0x0012;
     private const uint LLKHF_INJECTED = 0x10;
     private const uint KEYEVENTF_KEYUP = 0x0002;
-    private const uint KEYEVENTF_SCANCODE = 0x0008;
-    private const int VK_A = 0x41, VK_D = 0x44, VK_W = 0x57, VK_S = 0x53;
-
-    public SocdMode Mode { get; set; } = SocdMode.LastInputWins;
-
-    /// <summary>How fast strafe mode alternates sides, in milliseconds.</summary>
-    public int StrafeIntervalMs { get; set; } = 40;
-
-    public const int MinStrafeMs = 10, MaxStrafeMs = 500;
+    private const int VK_A = 0x41, VK_D = 0x44;
 
     private IntPtr _hookId = IntPtr.Zero;
     private LowLevelKeyboardProc? _proc;   // kept alive so the GC can't collect the callback
     private Thread? _thread;
     private uint _threadId;
-    private System.Threading.Timer? _strafeTimer;
+    private System.Threading.Timer? _timer;
     private readonly object _gate = new();
+
+    private const int TickMs = 4;   // how often the background thread reconciles / strafes
 
     private sealed class Pair
     {
         public int NegVk, PosVk;
-        public bool NegDown, PosDown, LastWasPos;   // physical + which was last pressed
-        public bool NegOut, PosOut;                 // what we currently hold down for the game
+        public bool NegDown, PosDown, LastWasPos;   // physical state + which was pressed last
+        public bool SupNeg, SupPos;                 // which side we want hidden from the game (set in hook)
+        public bool UpNeg, UpPos;                   // whether we have injected an UP to release that side
     }
     // One opposing pair, e.g. A vs D.
     private readonly Pair _pair = new() { NegVk = VK_A, PosVk = VK_D };
@@ -55,16 +59,24 @@ public sealed class SocdHook : IDisposable
     {
         lock (_gate)
         {
+            // RefreshLicense calls this every minute; when the keys are unchanged
+            // there is nothing to set up, and resetting the state here would
+            // briefly drop tracking of keys you happen to be holding at that
+            // instant (both would read as up until the next press).
+            if (key1Vk == _pair.NegVk && key2Vk == _pair.PosVk) return;
+
+            RestoreHidden(_pair);
             _pair.NegVk = key1Vk;
             _pair.PosVk = key2Vk;
+            _pair.NegDown = _pair.PosDown = false;
+            _pair.SupNeg = _pair.SupPos = false;
         }
     }
 
     public void Start()
     {
         if (_thread != null) return;
-        int period = Math.Clamp(StrafeIntervalMs, MinStrafeMs, MaxStrafeMs);
-        _strafeTimer = new System.Threading.Timer(StrafeTick, null, period, period);
+        _timer = new System.Threading.Timer(Tick, null, TickMs, TickMs);
         _thread = new Thread(HookThread) { IsBackground = true, Name = "SocdHook" };
         _thread.Start();
     }
@@ -74,32 +86,27 @@ public sealed class SocdHook : IDisposable
         Thread? thread = _thread;
         if (thread == null) return;
 
-        _strafeTimer?.Dispose();
-        _strafeTimer = null;
+        _timer?.Dispose();
+        _timer = null;
 
-        ReleaseAll();   // let go of anything held before the hook goes away
+        ReleaseAll();   // stop hiding anything before the hook goes away
         if (_threadId != 0) PostThreadMessage(_threadId, WM_QUIT, UIntPtr.Zero, IntPtr.Zero);
         thread.Join(1000);
         _thread = null;
         _threadId = 0;
     }
 
-    /// <summary>Updates how fast strafe mode alternates, live.</summary>
-    public void SetStrafeInterval(int ms)
-    {
-        StrafeIntervalMs = Math.Clamp(ms, MinStrafeMs, MaxStrafeMs);
-        _strafeTimer?.Change(StrafeIntervalMs, StrafeIntervalMs);
-    }
-
-    // Every tick, flip the output of any pair that is being held both-down in
-    // strafe mode — that is the side-to-side strafe.
-    private void StrafeTick(object? _)
+    // Background thread: reconciles the game's view with the hidden state by
+    // injecting the releases / re-presses. This is the ONLY place keys are injected.
+    private void Tick(object? _)
     {
         lock (_gate)
         {
-            if (Mode != SocdMode.Strafe) return;
-            if (_pair.NegVk != 0 && _pair.PosVk != 0 && _pair.NegDown && _pair.PosDown)
-                SetOutput(_pair, _pair.PosOut, !_pair.PosOut);   // toggle to the other side
+            if (_pair.NegVk == 0 || _pair.PosVk == 0) return;
+            // If Roblox isn't the active window, stop suppressing so any key we
+            // were hiding is let go — keys must work normally in every other app.
+            if (!IsRobloxForeground()) { _pair.SupNeg = _pair.SupPos = false; }
+            Reconcile(_pair);
         }
     }
 
@@ -136,8 +143,9 @@ public sealed class SocdHook : IDisposable
                 Pair? pair = PairFor((int)info.vkCode, out bool isPos);
                 if (pair != null && (isDown || isUp))
                 {
-                    Handle(pair, isPos, isDown);
-                    return (IntPtr)1;   // swallow the real key; the game gets the cleaned injection
+                    // Only the hidden (losing) key is swallowed. The winning/active
+                    // key falls through and reaches the game as the real key.
+                    if (Handle(pair, isPos, isDown)) return (IntPtr)1;
                 }
             }
         }
@@ -155,50 +163,111 @@ public sealed class SocdHook : IDisposable
         return null;
     }
 
-    private void Handle(Pair p, bool isPos, bool isDown)
+    // Runs in the hook callback — fast, no injection. Records physical state,
+    // decides which side to hide, and returns whether THIS event is the hidden
+    // side (and so should be swallowed).
+    private bool Handle(Pair p, bool isPos, bool isDown)
     {
         lock (_gate)
         {
-            if (isPos) p.PosDown = isDown; else p.NegDown = isDown;
-            if (isDown) p.LastWasPos = isPos;
-
-            bool both = p.NegDown && p.PosDown;
-
-            if (both && Mode == SocdMode.Strafe)
+            if (isDown)
             {
-                // Hand over to the strafe timer; just make sure one side is pressed
-                // so the first toggle has somewhere to go.
-                if (!p.NegOut && !p.PosOut) SetOutput(p, false, true);
-                return;
+                bool wasDown = isPos ? p.PosDown : p.NegDown;
+                if (isPos) p.PosDown = true; else p.NegDown = true;
+                if (!wasDown) p.LastWasPos = isPos;   // a fresh press wins; ignore auto-repeat
+            }
+            else
+            {
+                if (isPos) p.PosDown = false; else p.NegDown = false;
             }
 
-            (bool neg, bool pos) = both
-                ? Socd.Resolve(p.NegDown, p.PosDown, p.LastWasPos, Mode)
-                : (p.NegDown, p.PosDown);   // one or none held passes straight through
-            SetOutput(p, neg, pos);
+            Resolve(p);
+
+            // SOCD only cleans while Roblox is the active window. In any other app
+            // (or when nothing is focused) every key passes straight through, so it
+            // can never swallow A/D — or any rebound pair — while you type elsewhere.
+            if (!IsRobloxForeground()) { p.SupNeg = p.SupPos = false; }
+
+            return isPos ? p.SupPos : p.SupNeg;
         }
     }
 
-    // Caller holds _gate. Injects only the changes from the current output.
-    private void SetOutput(Pair p, bool neg, bool pos)
+    // Cached foreground check: resolving a pid to a process name is comparatively
+    // expensive and this runs on every key event and every tick, so the answer is
+    // kept until the foreground pid changes (same approach as MainWindow's shake
+    // gate). Roblox chat is the same process, so typing in chat is unaffected.
+    private uint _fgPid;
+    private bool _fgIsRoblox;
+    private bool IsRobloxForeground()
     {
-        if (neg != p.NegOut) { Inject(p.NegVk, neg); p.NegOut = neg; }
-        if (pos != p.PosOut) { Inject(p.PosVk, pos); p.PosOut = pos; }
+        IntPtr hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) return false;
+
+        GetWindowThreadProcessId(hwnd, out uint pid);
+        if (pid == 0) return false;
+
+        if (pid != _fgPid)
+        {
+            _fgPid = pid;
+            _fgIsRoblox = false;
+            try
+            {
+                using var p = System.Diagnostics.Process.GetProcessById((int)pid);
+                _fgIsRoblox = p.ProcessName.Contains("roblox", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { /* process exited, or not ours to inspect */ }
+        }
+        return _fgIsRoblox;
+    }
+
+    // Sets which side(s) to hide. No injection — the timer does that.
+    //
+    // While both keys are held, both are hidden (released); a single key passes
+    // through as the real key. This is the one resolution Roblox actually honours
+    // from an external app — the "release a key you're still holding" that the
+    // other modes need is rejected by the game, so this is what the feature does.
+    private void Resolve(Pair p)
+    {
+        bool both = p.NegDown && p.PosDown;
+        p.SupNeg = both;
+        p.SupPos = both;
+    }
+
+    // Caller holds _gate. Brings the game's view in line with the hidden state.
+    // Hiding a key => inject an UP so the game releases it. Un-hiding a still-held
+    // key => inject a DOWN to re-press it (its hardware auto-repeat also brings it
+    // back now that it is no longer swallowed, so this is just for an instant snap).
+    private void Reconcile(Pair p)
+    {
+        if (p.SupNeg && !p.UpNeg) { Inject(p.NegVk, false); p.UpNeg = true; }
+        else if (!p.SupNeg && p.UpNeg) { if (p.NegDown) Inject(p.NegVk, true); p.UpNeg = false; }
+
+        if (p.SupPos && !p.UpPos) { Inject(p.PosVk, false); p.UpPos = true; }
+        else if (!p.SupPos && p.UpPos) { if (p.PosDown) Inject(p.PosVk, true); p.UpPos = false; }
+    }
+
+    // Re-press anything we were hiding that is still physically held, so turning
+    // SOCD off or reconfiguring never leaves you unable to move.
+    private void RestoreHidden(Pair p)
+    {
+        if (p.UpNeg && p.NegDown) Inject(p.NegVk, true);
+        if (p.UpPos && p.PosDown) Inject(p.PosVk, true);
+        p.SupNeg = p.SupPos = false;
+        p.UpNeg = p.UpPos = false;
     }
 
     private void ReleaseAll()
     {
         lock (_gate)
         {
-            if (_pair.NegOut) { Inject(_pair.NegVk, false); _pair.NegOut = false; }
-            if (_pair.PosOut) { Inject(_pair.PosVk, false); _pair.PosOut = false; }
+            RestoreHidden(_pair);
             _pair.NegDown = _pair.PosDown = false;
         }
     }
 
     // Sends the virtual key AND its scan code together with no extra flags —
     // exactly how the auto-switcher (KeyMacro) does it, which is proven to move
-    // the character in Roblox. vk-only or scancode-only forms were ignored.
+    // the character in Roblox.
     private static void Inject(int vk, bool down)
     {
         ushort scan = (ushort)MapVirtualKey((uint)vk, 0 /* MAPVK_VK_TO_VSC */);
@@ -265,4 +334,10 @@ public sealed class SocdHook : IDisposable
 
     [DllImport("user32.dll")]
     private static extern IntPtr DispatchMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 }

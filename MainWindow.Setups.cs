@@ -19,6 +19,7 @@ public partial class MainWindow
 {
     private List<SetupProfile> _setups = new();
     private string? _activeSetup;
+    private IReadOnlyList<RecentGame> _recentGames = Array.Empty<RecentGame>();
 
     private void LoadSetups(AppSettings s)
     {
@@ -30,6 +31,7 @@ public partial class MainWindow
 
     private void NavSetups_Click(object sender, RoutedEventArgs e)
     {
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         ShowPage(NavSetups, PageSetups, "Setups", "Save and switch your whole configuration");
         ApplySetupsPro();
         RefreshSetupsList();
@@ -40,6 +42,8 @@ public partial class MainWindow
     private void ApplySetupsPro()
     {
         bool pro = IsPro;
+        if (!pro && PageSetups is { Visibility: Visibility.Visible })
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
         if (SetupsLockNote is not null) SetupsLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
         if (SetupsProPanel is not null) SetupsProPanel.IsEnabled = pro;
         if (SetupsListCard is not null) SetupsListCard.IsEnabled = pro;
@@ -63,14 +67,32 @@ public partial class MainWindow
         try { games = await RecentGames.LoadAsync(); }
         catch { games = Array.Empty<RecentGame>(); }
 
-        RecentGamesPanel.Children.Clear();
-        foreach (RecentGame g in games) RecentGamesPanel.Children.Add(BuildGameTile(g));
+        _recentGames = games;
+        RenderRecentGames(RecentSearchBox?.Text);
 
         if (RecentGamesStatus is not null)
             RecentGamesStatus.Text = games.Count == 0
                 ? "No recent games found yet — join one in Roblox, then hit Refresh."
                 : "";
     }
+
+    // Shows the loaded games, filtered by the search box. Called when the list
+    // loads and whenever the search text changes.
+    private void RenderRecentGames(string? filter)
+    {
+        if (RecentGamesPanel is null) return;
+        RecentGamesPanel.Children.Clear();
+
+        string q = (filter ?? string.Empty).Trim();
+        IEnumerable<RecentGame> shown = q.Length == 0
+            ? _recentGames
+            : _recentGames.Where(g => g.Name.Contains(q, StringComparison.OrdinalIgnoreCase));
+
+        foreach (RecentGame g in shown) RecentGamesPanel.Children.Add(BuildGameTile(g));
+    }
+
+    private void RecentSearch_Changed(object sender, TextChangedEventArgs e) =>
+        RenderRecentGames(RecentSearchBox?.Text);
 
     private FrameworkElement BuildGameTile(RecentGame game)
     {
@@ -205,7 +227,7 @@ public partial class MainWindow
 
     private void RunPlay()
     {
-        if (!IsPro) { SetSetupsStatus("Play is a Pro feature — activate a key on the PRO page."); return; }
+        if (!IsPro) { SetSetupsStatus("Play is a Plus feature — activate a key on the PLUS page."); return; }
 
         SetupProfile? active = SetupProfiles.Find(_setups, _activeSetup);
         if (active is not null) ApplySetup(active);

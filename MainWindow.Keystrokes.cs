@@ -28,6 +28,7 @@ public partial class MainWindow
 
     private void NavKeystrokes_Click(object sender, RoutedEventArgs e)
     {
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         ShowPage(NavKeystrokes, PageKeystrokes, "Keystrokes", "On-screen keys and CPS overlay");
         ApplyKeystrokesPro();
     }
@@ -36,13 +37,14 @@ public partial class MainWindow
     {
         bool pro = IsPro;
 
-        // The whole tab is Pro-only: hidden from the sidebar unless licensed.
-        if (NavKeystrokes is not null) NavKeystrokes.Visibility = pro ? Visibility.Visible : Visibility.Collapsed;
+        // The tab stays visible so Free users see the feature, but its content is
+        // never shown — clicking it (or a pass expiring here) sends them to the key
+        // page instead.
         if (KeystrokesLockNote is not null) KeystrokesLockNote.Visibility = Visibility.Collapsed;
         if (KeystrokesProPanel is not null) KeystrokesProPanel.IsEnabled = pro;
 
         if (!pro && PageKeystrokes is { Visibility: Visibility.Visible })
-            ShowPage(NavClicker, PageClicker, "Clicker", "Configure your own click engine");
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
 
         ApplyKeystrokesState();
     }
@@ -55,16 +57,55 @@ public partial class MainWindow
             if (_keystrokes is null)
             {
                 _keystrokes = new KeystrokeOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
-                if (_keystrokesX is { } x && _keystrokesY is { } y) { _keystrokes.Left = x; _keystrokes.Top = y; }
+                if (_keystrokesX is { } x && _keystrokesY is { } y
+                    && OnVirtualScreen(x, y, _keystrokes.Width, _keystrokes.Height))
+                { _keystrokes.Left = x; _keystrokes.Top = y; }
+
+                // Remember wherever it ends up. Dragging it (even without clicking
+                // "Lock in place") and closing the app keeps it in the same spot
+                // next launch, instead of only the last explicitly-locked position.
+                _keystrokes.LocationChanged += (_, _) =>
+                {
+                    _keystrokesX = _keystrokes.Left;
+                    _keystrokesY = _keystrokes.Top;
+                    _settingsDirty = true;
+                };
             }
             _keystrokes.SetAccent(AccentColorValue());
             _keystrokes.SetBackground(_keystrokesBackground);
-            if (!_keystrokes.IsVisible) _keystrokes.Show();
+            if (!_keystrokes.IsVisible)
+            {
+                _keystrokes.Show();
+                // A SizeToContent window can shift on its first layout, so pin it to
+                // the saved spot once it's actually up — but only if that spot is on
+                // a monitor that still exists.
+                if (_keystrokesX is { } sx && _keystrokesY is { } sy
+                    && OnVirtualScreen(sx, sy, _keystrokes.ActualWidth, _keystrokes.ActualHeight))
+                { _keystrokes.Left = sx; _keystrokes.Top = sy; }
+            }
         }
         else
         {
             _keystrokes?.Hide();
         }
+    }
+
+    // True if a window of this size placed at (left, top) would land at least
+    // partly on a monitor that currently exists. The overlay is click-through, so
+    // a position saved on a monitor that's since been unplugged (or a resolution
+    // that shrank) would otherwise strand it off-screen with no way to grab it —
+    // same guard the main window uses in RestoreWindowPlacement.
+    private static bool OnVirtualScreen(double left, double top, double width, double height)
+    {
+        if (double.IsNaN(width) || width <= 0) width = 160;
+        if (double.IsNaN(height) || height <= 0) height = 90;
+
+        double vl = SystemParameters.VirtualScreenLeft;
+        double vt = SystemParameters.VirtualScreenTop;
+        double vr = vl + SystemParameters.VirtualScreenWidth;
+        double vb = vt + SystemParameters.VirtualScreenHeight;
+
+        return left + width > vl && left < vr && top + height > vt && top < vb;
     }
 
     private void KeystrokesEnabled_Changed(object sender, RoutedEventArgs e)

@@ -52,6 +52,7 @@ public partial class MainWindow
 
     private void NavClipStudio_Click(object sender, RoutedEventArgs e)
     {
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         ShowPage(NavClipStudio, PageClipStudio, "Clip Studio", "Edit your clips into a montage");
         ApplyClipStudioPro();
         RefreshClipList();
@@ -60,6 +61,8 @@ public partial class MainWindow
     private void ApplyClipStudioPro()
     {
         bool pro = IsPro;
+        if (!pro && PageClipStudio is { Visibility: Visibility.Visible })
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
         if (ClipStudioLockNote is not null)
             ClipStudioLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
         if (MontageButton is not null) MontageButton.IsEnabled = pro;
