@@ -4121,7 +4121,7 @@ public partial class MainWindow : Window
         _settingsDirty = true;
     }
 
-    private void ReplayEnabled_Changed(object sender, RoutedEventArgs e)
+    private async void ReplayEnabled_Changed(object sender, RoutedEventArgs e)
     {
         if (ReplayEnabled.IsChecked == true)
         {
@@ -4140,9 +4140,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        _replay.Stop();
+        // Non-blocking: the toggle flips instantly and ffmpeg finalizes in the
+        // background instead of freezing the UI while it quits.
         ShowReplayStatus("Instant replay is off. Nothing is being buffered.", isError: false);
         _settingsDirty = true;
+        await _replay.StopAsync();
     }
 
     private void SaveReplay_Click(object sender, RoutedEventArgs e) => OnReplayHotkey();
@@ -4213,13 +4215,13 @@ public partial class MainWindow : Window
     /// keep capturing the old screen at the old rate while the page claimed
     /// otherwise — and the mismatch would only surface in a saved clip.
     /// </remarks>
-    private void RestartReplayIfRunning()
+    private async void RestartReplayIfRunning()
     {
         if (!_replay.IsRunning) return;
 
         try
         {
-            _replay.Stop();
+            await _replay.StopAsync();   // off the UI thread, so a setting change doesn't freeze it
             _replay.Start(ReplayCapacitySeconds, RecordFps, _captureDisplay);
         }
         catch (Exception ex)

@@ -170,5 +170,40 @@ public sealed class ReplayBuffer : IDisposable
         }
     }
 
+    /// <summary>
+    /// Stops without blocking the caller: the buffer is logically off at once (the
+    /// process handle is cleared synchronously), and ffmpeg is told to quit and
+    /// awaited in the background. Toggling the recorder off no longer freezes the UI
+    /// for the seconds ffmpeg takes to finalize.
+    /// </summary>
+    public async Task StopAsync()
+    {
+        Process? process = _process;
+        _process = null;   // callers see IsRunning == false immediately
+
+        if (process == null) return;
+
+        try
+        {
+            if (!process.HasExited)
+            {
+                await process.StandardInput.WriteLineAsync("q").ConfigureAwait(false);
+                await process.StandardInput.FlushAsync().ConfigureAwait(false);
+
+                using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                try { await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false); }
+                catch (OperationCanceledException) { process.Kill(entireProcessTree: true); }
+            }
+        }
+        catch
+        {
+            // Already gone.
+        }
+        finally
+        {
+            process.Dispose();
+        }
+    }
+
     public void Dispose() => Stop();
 }
