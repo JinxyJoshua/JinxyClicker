@@ -990,6 +990,8 @@
                             Click="NavMod_Click"/>
                     <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
                             Click="NavServer_Click"/>
+                    <Button x:Name="NavTrainer" app:NavIcon.Glyph="&#xE1D2;" Content="AIM TRAINER" Style="{StaticResource NavButton}"
+                            Click="NavTrainer_Click"/>
                 </StackPanel>
 
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
@@ -3770,6 +3772,63 @@
                             <Border Height="1" Background="{StaticResource Divider}" Margin="0,14,0,0"/>
                             <TextBlock Text="One key unlocks all of the above for its length. Grab one above."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PageTrainer" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Text="AIM TRAINER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="Practise your aim and clicking right here — reaction, flick accuracy, tracking and a CPS test. Nothing touches the game."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <StackPanel x:Name="TrainerProPanel" Margin="0,4,0,0">
+                                <WrapPanel Margin="0,12,0,0">
+                                    <RadioButton x:Name="TrainerModeAccuracy" Content="Accuracy" GroupName="TrainerMode" Tag="Accuracy" Style="{StaticResource SegmentButton}" MinWidth="82" IsChecked="True" Checked="TrainerMode_Checked"/>
+                                    <RadioButton x:Name="TrainerModeReaction" Content="Reaction" GroupName="TrainerMode" Tag="Reaction" Style="{StaticResource SegmentButton}" MinWidth="82" Checked="TrainerMode_Checked"/>
+                                    <RadioButton x:Name="TrainerModeTracking" Content="Tracking" GroupName="TrainerMode" Tag="Tracking" Style="{StaticResource SegmentButton}" MinWidth="82" Checked="TrainerMode_Checked"/>
+                                    <RadioButton x:Name="TrainerModeCps" Content="CPS test" GroupName="TrainerMode" Tag="CPS" Style="{StaticResource SegmentButton}" MinWidth="82" Checked="TrainerMode_Checked"/>
+                                </WrapPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="DURATION" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,10,0"/>
+                                    <RadioButton x:Name="TrainerDur15" Content="15s" GroupName="TrainerDur" Tag="15" Style="{StaticResource SegmentButton}" MinWidth="50" Checked="TrainerDur_Checked"/>
+                                    <RadioButton x:Name="TrainerDur30" Content="30s" GroupName="TrainerDur" Tag="30" Style="{StaticResource SegmentButton}" MinWidth="50" IsChecked="True" Checked="TrainerDur_Checked"/>
+                                    <RadioButton x:Name="TrainerDur60" Content="60s" GroupName="TrainerDur" Tag="60" Style="{StaticResource SegmentButton}" MinWidth="50" Checked="TrainerDur_Checked"/>
+                                    <Button x:Name="TrainerStartButton" Content="Start" Style="{StaticResource AccentButton}" Height="34" Padding="22,0" Margin="16,0,0,0" Click="TrainerStart_Click"/>
+                                </StackPanel>
+
+                                <Border Margin="0,14,0,0" CornerRadius="8" Background="#0E0E16" BorderBrush="{StaticResource Outline}" BorderThickness="1" ClipToBounds="True">
+                                    <Canvas x:Name="TrainerCanvas" Height="340" Background="Transparent" MouseLeftButtonDown="TrainerCanvas_Click"/>
+                                </Border>
+
+                                <UniformGrid Columns="5" Margin="0,14,0,0">
+                                    <StackPanel>
+                                        <TextBlock x:Name="TrainerHits" Text="0" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="HITS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock x:Name="TrainerMisses" Text="0" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="MISSED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock x:Name="TrainerAccuracy" Text="—" FontSize="22" FontWeight="Black" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="ACCURACY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock x:Name="TrainerAvg" Text="—" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="AVG TIME" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock x:Name="TrainerTimeLeft" Text="—" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="TIME LEFT" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>
