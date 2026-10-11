@@ -22,6 +22,7 @@ public sealed class SocdHook : IDisposable
     private const uint WM_QUIT = 0x0012;
     private const uint LLKHF_INJECTED = 0x10;
     private const uint KEYEVENTF_KEYUP = 0x0002;
+    private const uint KEYEVENTF_SCANCODE = 0x0008;
     private const int VK_A = 0x41, VK_D = 0x44, VK_W = 0x57, VK_S = 0x53;
 
     public SocdMode Mode { get; set; } = SocdMode.Strafe;
@@ -212,11 +213,16 @@ public sealed class SocdHook : IDisposable
         }
     }
 
+    // Injected as a SCAN CODE, not a virtual key: games (Roblox included) read
+    // movement through raw/scan-code input, and a vk-only SendInput is ignored —
+    // which looked like the character just stopping when both keys were held.
     private static void Inject(int vk, bool down)
     {
+        ushort scan = (ushort)MapVirtualKey((uint)vk, 0 /* MAPVK_VK_TO_VSC */);
         var input = new INPUT { type = 1 /* INPUT_KEYBOARD */ };
-        input.u.ki.wVk = (ushort)vk;
-        input.u.ki.dwFlags = down ? 0u : KEYEVENTF_KEYUP;
+        input.u.ki.wVk = 0;
+        input.u.ki.wScan = scan;
+        input.u.ki.dwFlags = KEYEVENTF_SCANCODE | (down ? 0u : KEYEVENTF_KEYUP);
         SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>());
     }
 
@@ -255,6 +261,9 @@ public sealed class SocdHook : IDisposable
 
     [DllImport("user32.dll")]
     private static extern uint SendInput(uint cInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentThreadId();
