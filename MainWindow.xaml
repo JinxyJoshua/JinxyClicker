@@ -1869,6 +1869,39 @@
                         </StackPanel>
                     </Border>
 
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANING" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock DockPanel.Dock="Right" Text="PRO" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="Opposing movement keys resolve instantly instead of fighting — press A while holding D and you snap left straight away (the counter-strafe / bridging tech). Cleans A/D and W/S in every game. It's a keyboard input tool; it does not read the game."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="SocdLockNote" Visibility="Collapsed"
+                                       Text="SOCD is a Pro feature. Unlock it on the PRO page."
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <StackPanel x:Name="SocdProPanel" Margin="0,4,0,0">
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="Enable SOCD cleaning" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Cleans A/D and W/S while it's on" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="SocdEnabledCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                              Checked="SocdEnabled_Changed" Unchecked="SocdEnabled_Changed"/>
+                                </DockPanel>
+                                <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="Neutral mode" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Both keys cancel to a stop (off = the last key pressed wins)" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="SocdNeutralCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                              Checked="SocdNeutral_Changed" Unchecked="SocdNeutral_Changed"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageKitWheel" Visibility="Collapsed">

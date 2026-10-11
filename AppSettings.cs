@@ -199,6 +199,12 @@ public sealed class AppSettings
     /// <summary>Pro: the game link the Play button opens, or null for Roblox's games page.</summary>
     public string? PlayGameUrl { get; set; }
 
+    /// <summary>Pro: SOCD cleaning on (null-cancel the A/D and W/S pairs).</summary>
+    public bool SocdEnabled { get; set; }
+
+    /// <summary>Pro: SOCD neutral mode (both opposing keys cancel) instead of last-input-wins.</summary>
+    public bool SocdNeutral { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

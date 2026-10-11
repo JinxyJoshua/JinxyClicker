@@ -81,6 +81,8 @@
     <!-- Pulled in as dependencies of KeyMacro, not tested directly. -->
     <Compile Include="../SwitcherProfile.cs" />
     <Compile Include="../SwitcherProfile.Tests.cs" />
+    <Compile Include="../Socd.cs" />
+    <Compile Include="../Socd.Tests.cs" />
     <Compile Include="../KeyNames.cs" />
     <Compile Include="../KeyNames.Tests.cs" />
     <Compile Include="../HotkeyClaims.cs" />

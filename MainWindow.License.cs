@@ -102,6 +102,7 @@ public partial class MainWindow
         ApplyCrosshairPro();
         ApplySetupsPro();
         ApplyClipStudioPro();
+        ApplySocdPro();
 
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.

@@ -1933,6 +1933,7 @@ public partial class MainWindow : Window
         LoadLicense(s);
         LoadClipStudio(s);
         LoadSetups(s);
+        LoadSocd(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2100,6 +2101,8 @@ public partial class MainWindow : Window
             SetupProfiles = _setups,
             ActiveSetup = _activeSetup,
             PlayGameUrl = string.IsNullOrWhiteSpace(PlayUrlBox?.Text) ? null : PlayUrlBox.Text.Trim(),
+            SocdEnabled = _socdEnabled,
+            SocdNeutral = _socdNeutral,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
@@ -5990,6 +5993,7 @@ public partial class MainWindow : Window
         _recorder.StopBlocking();
         _recorder.Dispose();
         _replay.Dispose();
+        _socd.Dispose();   // release any keys it holds and remove the hook
     }
 
     // Below this the interval exceeds a minute and the app is effectively idle.
