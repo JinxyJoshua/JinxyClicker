@@ -3622,6 +3622,7 @@ public partial class MainWindow : Window
         if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         RefreshFlags();
         RefreshGraySky();
+        RefreshMouseSens();
         ShowPage(NavMod, PageMod, "Mod", "Roblox client settings");
         RefreshFontsOnShow();   // catch a mid-session Roblox update and sync the status
     }

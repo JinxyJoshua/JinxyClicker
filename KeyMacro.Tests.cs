@@ -128,7 +128,7 @@ public class KeyMacroTests
     }
 
     [Theory]
-    [InlineData("4")]
+    [InlineData("0")]
     [InlineData("99999")]
     [InlineData("fast")]
     [InlineData("")]

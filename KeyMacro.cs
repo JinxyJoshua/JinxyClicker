@@ -23,7 +23,7 @@ namespace JinxyClicker;
 public sealed class KeyMacro
 {
     /// <summary>Fastest a macro may repeat. Below this it is a key that never comes up.</summary>
-    public const int MinIntervalMs = 5;
+    public const int MinIntervalMs = 1;
 
     /// <summary>Slowest worth offering — beyond this a hotkey is easier.</summary>
     public const int MaxIntervalMs = 10_000;

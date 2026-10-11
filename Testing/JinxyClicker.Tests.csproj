@@ -23,6 +23,8 @@
     <Compile Include="../OverlayReadout.Tests.cs" />
     <Compile Include="../RobloxFonts.cs" />
     <Compile Include="../RobloxFonts.Tests.cs" />
+    <Compile Include="../RobloxSens.cs" />
+    <Compile Include="../RobloxSens.Tests.cs" />
     <Compile Include="../ClickDiagnostics.cs" />
     <Compile Include="../ClickDiagnostics.Tests.cs" />
     <Compile Include="../RemoteConfig.cs" />
