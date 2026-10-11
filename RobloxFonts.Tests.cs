@@ -1,41 +1,66 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace JinxyClicker;
 
 public class RobloxFontsTests
 {
-    // A throwaway folder that mimics Roblox's content\fonts: a few default faces
-    // we replace, one unrelated file we must not touch, and a custom font to apply.
+    // A throwaway folder that mimics Roblox's content\fonts: a families\ dir with
+    // JSON descriptors (some faces local, some cloud assets), plus a custom font
+    // kept OUTSIDE the folder, exactly as it is in the app (it lives in app data).
     private static string MakeFontsDir(out string customFont)
     {
         string dir = Path.Combine(Path.GetTempPath(), "jinxyfonttest-" + Path.GetRandomFileName());
-        Directory.CreateDirectory(dir);
-        File.WriteAllText(Path.Combine(dir, "BuilderSans-Regular.otf"), "ORIGINAL-builder-regular");
-        File.WriteAllText(Path.Combine(dir, "BuilderSans-Bold.otf"), "ORIGINAL-builder-bold");
-        File.WriteAllText(Path.Combine(dir, "SourceSansPro-Regular.ttf"), "ORIGINAL-source-regular");
-        File.WriteAllText(Path.Combine(dir, "RobloxEmoji.ttf"), "EMOJI-should-not-change");
-        customFont = Path.Combine(dir, "my-custom.ttf");
+        string families = Path.Combine(dir, "families");
+        Directory.CreateDirectory(families);
+
+        File.WriteAllText(Path.Combine(families, "BuilderSans.json"),
+            "{\"name\":\"Builder Sans\",\"faces\":[" +
+            "{\"name\":\"Regular\",\"weight\":400,\"assetId\":\"rbxasset://fonts/BuilderSans-Regular.otf\"}," +
+            "{\"name\":\"Thin\",\"weight\":100,\"assetId\":\"rbxassetid://16480735997\"}]}");
+        File.WriteAllText(Path.Combine(families, "Gotham.json"),
+            "{\"name\":\"Gotham\",\"faces\":[{\"name\":\"Regular\",\"weight\":400,\"assetId\":\"rbxassetid://12345\"}]}");
+
+        customFont = Path.Combine(Path.GetTempPath(), "jinxycustom-" + Path.GetRandomFileName() + ".ttf");
         File.WriteAllText(customFont, "CUSTOM-FONT-BYTES");
         return dir;
     }
 
     [Fact]
-    public void Apply_replaces_default_faces_and_backs_up_originals()
+    public void PointFamilyAtFont_repoints_every_assetId_local_and_cloud()
+    {
+        string json = "{\"faces\":[{\"name\":\"Regular\",\"assetId\":\"rbxasset://fonts/X.otf\"}," +
+                      "{\"name\":\"Thin\",\"assetId\":\"rbxassetid://999\"}]}";
+
+        string r = RobloxFonts.PointFamilyAtFont(json, "rbxasset://fonts/JinxyCustom.ttf");
+
+        Assert.DoesNotContain("rbxassetid://999", r);
+        Assert.DoesNotContain("X.otf", r);
+        Assert.Equal(2, Regex.Matches(r, Regex.Escape("rbxasset://fonts/JinxyCustom.ttf")).Count);
+        // Names are left intact.
+        Assert.Contains("\"name\":\"Regular\"", r);
+        Assert.Contains("\"name\":\"Thin\"", r);
+    }
+
+    [Fact]
+    public void Apply_repoints_every_family_including_cloud_faces_and_drops_the_font()
     {
         string dir = MakeFontsDir(out string custom);
         try
         {
             int n = RobloxFonts.Apply(dir, custom);
 
-            Assert.True(n >= 3);
-            Assert.Equal("CUSTOM-FONT-BYTES", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf")));
-            Assert.Equal("CUSTOM-FONT-BYTES", File.ReadAllText(Path.Combine(dir, "SourceSansPro-Regular.ttf")));
-            Assert.Equal("ORIGINAL-builder-regular", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf.jinxybak")));
-            // An unrelated font (emoji) must be left alone.
-            Assert.Equal("EMOJI-should-not-change", File.ReadAllText(Path.Combine(dir, "RobloxEmoji.ttf")));
+            Assert.True(n >= 2);
+            Assert.True(File.Exists(Path.Combine(dir, "JinxyCustom.ttf")));
+
+            string builder = File.ReadAllText(Path.Combine(dir, "families", "BuilderSans.json"));
+            Assert.Contains("rbxasset://fonts/JinxyCustom.ttf", builder);
+            Assert.DoesNotContain("rbxassetid://", builder);          // cloud face repointed too
+            Assert.DoesNotContain("BuilderSans-Regular.otf", builder); // local face repointed
+            Assert.True(File.Exists(Path.Combine(dir, "families", "BuilderSans.json.jinxybak")));
         }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        finally { Cleanup(dir, custom); }
     }
 
     [Fact]
@@ -50,11 +75,11 @@ public class RobloxFontsTests
             RobloxFonts.Reset(dir);
             Assert.False(RobloxFonts.IsApplied(dir));
         }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        finally { Cleanup(dir, custom); }
     }
 
     [Fact]
-    public void Reset_restores_the_original_fonts_and_clears_backups()
+    public void Reset_restores_originals_and_removes_the_custom_font()
     {
         string dir = MakeFontsDir(out string custom);
         try
@@ -62,53 +87,43 @@ public class RobloxFontsTests
             RobloxFonts.Apply(dir, custom);
             int restored = RobloxFonts.Reset(dir);
 
-            Assert.True(restored >= 3);
-            Assert.Equal("ORIGINAL-builder-regular", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf")));
-            Assert.Equal("ORIGINAL-source-regular", File.ReadAllText(Path.Combine(dir, "SourceSansPro-Regular.ttf")));
-            Assert.False(File.Exists(Path.Combine(dir, "BuilderSans-Regular.otf.jinxybak")));
+            Assert.True(restored >= 2);
+            string builder = File.ReadAllText(Path.Combine(dir, "families", "BuilderSans.json"));
+            Assert.Contains("rbxasset://fonts/BuilderSans-Regular.otf", builder);
+            Assert.DoesNotContain("JinxyCustom", builder);
+            Assert.False(File.Exists(Path.Combine(dir, "JinxyCustom.ttf")));
+            Assert.False(File.Exists(Path.Combine(dir, "families", "BuilderSans.json.jinxybak")));
         }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        finally { Cleanup(dir, custom); }
     }
 
     [Fact]
-    public void Apply_cleans_up_its_backup_when_a_face_cannot_be_overwritten()
+    public void Apply_cleans_up_its_backup_when_a_family_cannot_be_written()
     {
-        string dir = MakeFontsDir(out string custom);
-        string target = Path.Combine(dir, "BuilderSans-Regular.otf");
+        // One family only, held open so the rewrite fails after the backup is made.
+        string dir = Path.Combine(Path.GetTempPath(), "jinxyfonttest-" + Path.GetRandomFileName());
+        string families = Path.Combine(dir, "families");
+        Directory.CreateDirectory(families);
+        string only = Path.Combine(families, "BuilderSans.json");
+        File.WriteAllText(only, "{\"faces\":[{\"assetId\":\"rbxassetid://1\"}]}");
+        string custom = Path.Combine(Path.GetTempPath(), "jinxycustom-" + Path.GetRandomFileName() + ".ttf");
+        File.WriteAllText(custom, "CUSTOM");
         try
         {
-            // Hold the face open for reading only: the backup copy can still read
-            // it, but the overwrite needs write access and fails — the way a
-            // running Roblox holds its font files.
-            using (new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (new FileStream(only, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                Assert.ThrowsAny<Exception>(() => RobloxFonts.Apply(dir, custom));
+                Assert.ThrowsAny<System.Exception>(() => RobloxFonts.Apply(dir, custom));
             }
-
-            // The backup it made just before the failed overwrite must be removed,
-            // or IsApplied would lie forever and block every future re-apply.
-            Assert.False(File.Exists(target + ".jinxybak"));
+            // No stray backup, so IsApplied stays false and re-apply isn't blocked.
+            Assert.False(File.Exists(only + ".jinxybak"));
             Assert.False(RobloxFonts.IsApplied(dir));
         }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        finally { Cleanup(dir, custom); }
     }
 
-    [Fact]
-    public void Applying_a_second_font_keeps_the_true_original_in_the_backup()
+    private static void Cleanup(string dir, string customFont)
     {
-        string dir = MakeFontsDir(out string custom);
-        try
-        {
-            RobloxFonts.Apply(dir, custom);
-            string custom2 = Path.Combine(dir, "custom2.ttf");
-            File.WriteAllText(custom2, "CUSTOM-2");
-            RobloxFonts.Apply(dir, custom2);
-
-            // The backup must still hold the pristine original, not the first custom.
-            Assert.Equal("ORIGINAL-builder-regular", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf.jinxybak")));
-            RobloxFonts.Reset(dir);
-            Assert.Equal("ORIGINAL-builder-regular", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf")));
-        }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        try { Directory.Delete(dir, true); } catch { }
+        try { File.Delete(customFont); } catch { }
     }
 }

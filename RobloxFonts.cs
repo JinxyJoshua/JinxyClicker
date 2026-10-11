@@ -1,106 +1,101 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace JinxyClicker;
 
 /// <summary>
-/// Swaps Roblox's default UI font for a custom one by overwriting the default
-/// font faces in a client's <c>content\fonts</c> folder, keeping a one-time
-/// backup of each original so it can be put back.
+/// Swaps Roblox's fonts for a custom one by repointing every font family to it.
 /// </summary>
 /// <remarks>
-/// Roblox renders chat, menus and nametags in BuilderSans (the current default)
-/// with SourceSansPro behind some older UI. Overwriting those faces with one
-/// custom font changes the look almost everywhere text appears. A Roblox update
-/// lays down a fresh version folder with the original fonts, so the swap is
-/// re-applied on launch (see the caller) exactly like the crosshair.
+/// Roblox resolves a Font to a file through the JSON descriptors in
+/// <c>content\fonts\families</c>: each face has an <c>assetId</c> that is either a
+/// local file (<c>rbxasset://fonts/...</c>) or a cloud asset (<c>rbxassetid://...</c>).
+/// Replacing the local .otf files only changes the faces that use them — chat and
+/// some weights point at cloud assets and stay unchanged. So instead we drop the
+/// custom font in beside the stock ones and rewrite every face's assetId to it,
+/// which covers every weight of every family, chat included.
 ///
-/// Anything this touches is a cosmetic content file, never the executable.
+/// Each rewritten JSON keeps a one-time <c>.jinxybak</c> copy of the original so it
+/// can be put back. A Roblox update lays down a fresh folder, so the swap is
+/// re-applied on launch, exactly like the crosshair. Only cosmetic content files
+/// are touched, never the executable.
 /// </remarks>
 public static class RobloxFonts
 {
-    // The default faces we overwrite. Any not present in a given client are
-    // simply skipped, so this stays correct as Roblox adds or renames faces.
-    public static readonly string[] DefaultFaces =
-    {
-        "BuilderSans-Regular.otf", "BuilderSans-Medium.otf",
-        "BuilderSans-Bold.otf", "BuilderSans-ExtraBold.otf",
-        "SourceSansPro-Regular.ttf", "SourceSansPro-Bold.ttf",
-        "SourceSansPro-Semibold.ttf", "SourceSansPro-Light.ttf", "SourceSansPro-It.ttf",
-    };
-
-    // Marks a saved original. "BuilderSans-Regular.otf.jinxybak" sits beside the
-    // face it backs up; its presence is also how IsApplied knows a swap is live.
     private const string BackupSuffix = ".jinxybak";
+    private const string CustomFontFile = "JinxyCustom.ttf";
+    private const string CustomAssetUri = "rbxasset://fonts/" + CustomFontFile;
 
     /// <summary>
-    /// Overwrites each present default face with <paramref name="customFontPath"/>,
-    /// backing up the untouched original once. Returns how many faces were replaced.
+    /// Drops the custom font into the folder and repoints every family at it.
+    /// Returns how many family descriptors were rewritten.
     /// </summary>
     public static int Apply(string fontsDir, string customFontPath)
     {
         if (!Directory.Exists(fontsDir)) throw new DirectoryNotFoundException(fontsDir);
         if (!File.Exists(customFontPath)) throw new FileNotFoundException("Custom font not found", customFontPath);
 
-        int replaced = 0;
-        foreach (string face in DefaultFaces)
+        string familiesDir = Path.Combine(fontsDir, "families");
+        if (!Directory.Exists(familiesDir)) throw new DirectoryNotFoundException(familiesDir);
+
+        File.Copy(customFontPath, Path.Combine(fontsDir, CustomFontFile), overwrite: true);
+
+        int rewritten = 0;
+        foreach (string json in Directory.EnumerateFiles(familiesDir, "*.json"))
         {
-            string target = Path.Combine(fontsDir, face);
-            if (!File.Exists(target)) continue;
-
-            string backup = target + BackupSuffix;
-            // Back up the TRUE original only the first time, so re-applying a
-            // second font never overwrites the real one with a custom one.
+            string backup = json + BackupSuffix;
             bool madeBackup = false;
-            if (!File.Exists(backup)) { File.Copy(target, backup); madeBackup = true; }
+            if (!File.Exists(backup)) { File.Copy(json, backup); madeBackup = true; }
 
-            try
-            {
-                File.Copy(customFontPath, target, overwrite: true);
-            }
+            try { File.WriteAllText(json, PointFamilyAtFont(File.ReadAllText(json), CustomAssetUri)); }
             catch
             {
-                // The overwrite failed (a running Roblox is holding this face). Undo
-                // the backup we just made, so a half-apply never leaves a stray
-                // .jinxybak — that would make IsApplied lie and block every future
-                // re-apply while the face is actually still stock.
+                // Undo the backup we just made so a half-apply doesn't leave a stray
+                // one that would make IsApplied lie.
                 if (madeBackup) { try { File.Delete(backup); } catch { } }
                 throw;
             }
-            replaced++;
+            rewritten++;
         }
-        return replaced;
+        return rewritten;
     }
 
-    /// <summary>
-    /// Restores every backed-up original and removes the backups. Returns how many
-    /// faces were restored.
-    /// </summary>
+    /// <summary>Restores every rewritten family and removes the custom font.</summary>
     public static int Reset(string fontsDir)
     {
         if (!Directory.Exists(fontsDir)) return 0;
 
         int restored = 0;
-        foreach (string face in DefaultFaces)
+        string familiesDir = Path.Combine(fontsDir, "families");
+        if (Directory.Exists(familiesDir))
         {
-            string target = Path.Combine(fontsDir, face);
-            string backup = target + BackupSuffix;
-            if (!File.Exists(backup)) continue;
-
-            File.Copy(backup, target, overwrite: true);
-            File.Delete(backup);
-            restored++;
+            foreach (string backup in Directory.EnumerateFiles(familiesDir, "*" + BackupSuffix).ToList())
+            {
+                string target = backup[..^BackupSuffix.Length];
+                try { File.Copy(backup, target, overwrite: true); File.Delete(backup); restored++; }
+                catch { /* leave it for a retry */ }
+            }
         }
+        try { File.Delete(Path.Combine(fontsDir, CustomFontFile)); } catch { }
         return restored;
     }
 
     /// <summary>True if a custom font is currently applied in this fonts folder.</summary>
     public static bool IsApplied(string fontsDir)
     {
-        if (!Directory.Exists(fontsDir)) return false;
-        return DefaultFaces.Any(face => File.Exists(Path.Combine(fontsDir, face) + BackupSuffix));
+        string familiesDir = Path.Combine(fontsDir, "families");
+        return Directory.Exists(familiesDir)
+               && Directory.EnumerateFiles(familiesDir, "*" + BackupSuffix).Any();
     }
+
+    /// <summary>
+    /// Pure JSON edit: points every face's assetId at <paramref name="assetUri"/>,
+    /// leaving names, weights and styles alone. Exposed for testing.
+    /// </summary>
+    public static string PointFamilyAtFont(string json, string assetUri) =>
+        Regex.Replace(json, "(\"assetId\"\\s*:\\s*\")[^\"]*(\")", "${1}" + assetUri + "${2}");
 
     /// <summary>
     /// The live Roblox client's <c>content\fonts</c> folder, or null if Roblox

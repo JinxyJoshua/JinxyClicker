@@ -216,17 +216,19 @@ public sealed class KeystrokeOverlay : Window
         if (on) RemoveClickThrough(); else MakeClickThrough();
     }
 
-    public void StartPolling() { if (IsVisible) _poll.Start(); }
+    public void StartPolling() { if (IsVisible) { _poll.Start(); InstallMouseHook(); } }
 
     public new void Show()
     {
         base.Show();
         _poll.Start();
+        InstallMouseHook();
     }
 
     public new void Hide()
     {
         _poll.Stop();
+        RemoveMouseHook();
         base.Hide();
     }
 
@@ -247,11 +249,10 @@ public sealed class KeystrokeOverlay : Window
             if (down == cap.Down) continue;
             cap.Down = down;
             Paint(cap, down);
-
-            if (cap.Vk == VK_LBUTTON && down) _clickTimes.Add(Environment.TickCount64);
         }
 
-        // CPS: left-clicks seen in the last second.
+        // CPS: left-clicks seen in the last second (counted by the mouse hook, which
+        // catches fast clicks the 16 ms poll above would miss).
         long cutoff = Environment.TickCount64 - 1000;
         _clickTimes.RemoveAll(t => t < cutoff);
         string cps = _clickTimes.Count.ToString();
@@ -333,4 +334,47 @@ public sealed class KeystrokeOverlay : Window
     [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
     [DllImport("user32.dll", SetLastError = true)] private static extern int GetWindowLong(IntPtr window, int index);
     [DllImport("user32.dll", SetLastError = true)] private static extern int SetWindowLong(IntPtr window, int index, int value);
+
+    // ---- accurate CPS via a low-level mouse hook ----
+    //
+    // Counting clicks by polling GetAsyncKeyState misses anything faster than the
+    // 16 ms poll, so fast clicking (or the autoclicker) read far too low — 6 CPS for
+    // a real 70. A WH_MOUSE_LL hook catches every left-button-down, physical and
+    // injected, so the CPS is the real number the game receives.
+    private const int WH_MOUSE_LL = 14;
+    private const int WM_LBUTTONDOWN = 0x0201;
+    private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+    private LowLevelMouseProc? _mouseProc;   // kept alive so the GC can't collect it
+    private IntPtr _mouseHookId = IntPtr.Zero;
+
+    private void InstallMouseHook()
+    {
+        if (_mouseHookId != IntPtr.Zero) return;
+        _mouseProc = MouseHookCallback;
+        _mouseHookId = SetWindowsHookEx(WH_MOUSE_LL, _mouseProc, GetModuleHandle(null), 0);
+    }
+
+    private void RemoveMouseHook()
+    {
+        if (_mouseHookId == IntPtr.Zero) return;
+        UnhookWindowsHookEx(_mouseHookId);
+        _mouseHookId = IntPtr.Zero;
+        _mouseProc = null;
+    }
+
+    private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 && (int)wParam == WM_LBUTTONDOWN)
+            _clickTimes.Add(Environment.TickCount64);
+        return CallNextHookEx(_mouseHookId, nCode, wParam, lParam);
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr GetModuleHandle(string? name);
 }
