@@ -1980,7 +1980,7 @@
                                 <TextBlock DockPanel.Dock="Left" Text="KEYSTROKES OVERLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PRO" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="A sleek WASD + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams. Click-through, so it never blocks the game."
+                            <TextBlock Text="A sleek keyboard + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams. Click-through, so it never blocks the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <TextBlock x:Name="KeystrokesLockNote" Visibility="Collapsed"
                                        Text="Keystrokes overlay is a Pro feature. Unlock it on the PRO page."
@@ -1993,6 +1993,14 @@
                                     </StackPanel>
                                     <CheckBox x:Name="KeystrokesCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
                                               Checked="KeystrokesEnabled_Changed" Unchecked="KeystrokesEnabled_Changed"/>
+                                </DockPanel>
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="Panel background" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Off = clean Medal-style — just the keys, no card behind them" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="KeystrokesBgCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center" IsChecked="True"
+                                              Checked="KeystrokesBackground_Changed" Unchecked="KeystrokesBackground_Changed"/>
                                 </DockPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                                     <Button x:Name="KeystrokesMoveButton" Content="Move overlay" Style="{StaticResource ChipButton}" Padding="14,7" Click="KeystrokesMove_Click"/>

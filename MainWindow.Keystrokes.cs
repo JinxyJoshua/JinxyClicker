@@ -12,14 +12,17 @@ public partial class MainWindow
     private KeystrokeOverlay? _keystrokes;
     private bool _keystrokesEnabled;
     private bool _keystrokesMoving;
+    private bool _keystrokesBackground = true;
     private double? _keystrokesX, _keystrokesY;
 
     private void LoadKeystrokes(AppSettings s)
     {
         _keystrokesEnabled = s.KeystrokesOverlay;
+        _keystrokesBackground = s.KeystrokesBackground;
         _keystrokesX = s.KeystrokesX;
         _keystrokesY = s.KeystrokesY;
         if (KeystrokesCheck is not null) KeystrokesCheck.IsChecked = _keystrokesEnabled;
+        if (KeystrokesBgCheck is not null) KeystrokesBgCheck.IsChecked = _keystrokesBackground;
         ApplyKeystrokesPro();
     }
 
@@ -55,6 +58,7 @@ public partial class MainWindow
                 if (_keystrokesX is { } x && _keystrokesY is { } y) { _keystrokes.Left = x; _keystrokes.Top = y; }
             }
             _keystrokes.SetAccent(AccentColorValue());
+            _keystrokes.SetBackground(_keystrokesBackground);
             if (!_keystrokes.IsVisible) _keystrokes.Show();
         }
         else
@@ -68,6 +72,13 @@ public partial class MainWindow
         _keystrokesEnabled = KeystrokesCheck.IsChecked == true;
         _settingsDirty = true;
         ApplyKeystrokesState();
+    }
+
+    private void KeystrokesBackground_Changed(object sender, RoutedEventArgs e)
+    {
+        _keystrokesBackground = KeystrokesBgCheck.IsChecked == true;
+        _settingsDirty = true;
+        _keystrokes?.SetBackground(_keystrokesBackground);
     }
 
     // Drops click-through so the overlay can be dragged, then saves where it lands.

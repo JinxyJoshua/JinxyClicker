@@ -22,6 +22,7 @@ public sealed class KeystrokeOverlay : Window
 {
     private const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02;
     private const int VK_A = 0x41, VK_D = 0x44, VK_S = 0x53, VK_W = 0x57;
+    private const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_SPACE = 0x20;
 
     private sealed class Cap
     {
@@ -39,6 +40,8 @@ public sealed class KeystrokeOverlay : Window
     private Color _accent = Color.FromRgb(0xFF, 0x4B, 0x52);
     private bool _streamerMode;
     private bool _moveMode;
+    private Border _frame = null!;
+    private bool _background = true;
 
     public KeystrokeOverlay()
     {
@@ -52,17 +55,16 @@ public sealed class KeystrokeOverlay : Window
         SizeToContent = SizeToContent.WidthAndHeight;
         IsHitTestVisible = false;
 
-        // ---- build the keycap grid: W on top, A S D, then LMB / RMB ----
-        var grid = new Grid();
-        for (int i = 0; i < 3; i++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        for (int i = 0; i < 3; i++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        // ---- keyboard cluster: Shift / W / A S D / Space + Ctrl, then the mouse ----
+        var keys = new StackPanel();
+        keys.Children.Add(Row(MakeCap("Shift", VK_SHIFT, 86)));
+        keys.Children.Add(Row(MakeCap("W", VK_W, 46)));
+        keys.Children.Add(Row(MakeCap("A", VK_A, 46), MakeCap("S", VK_S, 46), MakeCap("D", VK_D, 46)));
+        keys.Children.Add(Row(MakeCap("Space", VK_SPACE, 108), MakeCap("Ctrl", VK_CONTROL, 52)));
 
-        Add(grid, "W", VK_W, row: 0, col: 1, w: 46);
-        Add(grid, "A", VK_A, row: 1, col: 0, w: 46);
-        Add(grid, "S", VK_S, row: 1, col: 1, w: 46);
-        Add(grid, "D", VK_D, row: 1, col: 2, w: 46);
-        Add(grid, "LMB", VK_LBUTTON, row: 2, col: 0, w: 70, colSpan: 2);
-        Add(grid, "RMB", VK_RBUTTON, row: 2, col: 1, w: 70, colSpan: 2, shiftRight: true);
+        StackPanel mouseRow = Row(MakeCap("LMB", VK_LBUTTON, 70), MakeCap("RMB", VK_RBUTTON, 70));
+        mouseRow.Margin = new Thickness(0, 5, 0, 0);
+        keys.Children.Add(mouseRow);
 
         // ---- CPS row ----
         var divider = new Border
@@ -95,25 +97,18 @@ public sealed class KeystrokeOverlay : Window
         cpsRow.Children.Add(_cpsValue);
 
         var body = new StackPanel();
-        body.Children.Add(grid);
+        body.Children.Add(keys);
         body.Children.Add(divider);
         body.Children.Add(cpsRow);
 
-        var frame = new Border
+        _frame = new Border
         {
             CornerRadius = new CornerRadius(14),
-            Padding = new Thickness(16),
-            Background = new LinearGradientBrush(
-                Color.FromArgb(0xE6, 0x16, 0x16, 0x20),
-                Color.FromArgb(0xE6, 0x0C, 0x0C, 0x12),
-                new Point(0, 0), new Point(0, 1)),
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
-            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 24, ShadowDepth = 0, Opacity = 0.55 },
             Child = body
         };
+        ApplyBackground();   // panel look or Medal-style, per _background
 
-        Content = frame;
+        Content = _frame;
 
         Left = 48;
         Top = Math.Max(48, SystemParameters.WorkArea.Height / 2 - 120);
@@ -131,7 +126,17 @@ public sealed class KeystrokeOverlay : Window
         MouseLeftButtonDown += (_, _) => { if (_moveMode) DragMove(); };
     }
 
-    private void Add(Grid grid, string text, int vk, int row, int col, double w, int colSpan = 1, bool shiftRight = false)
+    // One centred row of keycaps.
+    private static StackPanel Row(params Border[] caps)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+        foreach (Border cap in caps) row.Children.Add(cap);
+        return row;
+    }
+
+    // Builds one keycap, registers it for polling, and hands back its Border so
+    // the caller can place it in a row.
+    private Border MakeCap(string text, int vk, double w)
     {
         var scale = new ScaleTransform(1, 1);
         var label = new TextBlock
@@ -154,18 +159,50 @@ public sealed class KeystrokeOverlay : Window
             BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
             Child = label,
             RenderTransformOrigin = new Point(0.5, 0.5),
-            RenderTransform = scale,
-            HorizontalAlignment = shiftRight ? HorizontalAlignment.Right : HorizontalAlignment.Left
+            RenderTransform = scale
         };
-        Grid.SetRow(border, row);
-        Grid.SetColumn(border, col);
-        if (colSpan > 1) Grid.SetColumnSpan(border, colSpan);
 
         _caps.Add(new Cap { Vk = vk, Border = border, Label = label, Scale = scale });
-        grid.Children.Add(border);
+        return border;
     }
 
     public void SetAccent(Color accent) => _accent = accent;
+
+    /// <summary>
+    /// Panel look (the keys sit on a dark card) versus Medal-style, where the card
+    /// is gone and the keys float on their own. The keycaps keep their own fill
+    /// either way, so they stay readable over the game without the card.
+    /// </summary>
+    public void SetBackground(bool on)
+    {
+        _background = on;
+        ApplyBackground();
+    }
+
+    private void ApplyBackground()
+    {
+        if (_frame is null) return;
+
+        if (_background)
+        {
+            _frame.Padding = new Thickness(16);
+            _frame.Background = new LinearGradientBrush(
+                Color.FromArgb(0xE6, 0x16, 0x16, 0x20),
+                Color.FromArgb(0xE6, 0x0C, 0x0C, 0x12),
+                new Point(0, 0), new Point(0, 1));
+            _frame.BorderThickness = new Thickness(1);
+            _frame.BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+            _frame.Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 24, ShadowDepth = 0, Opacity = 0.55 };
+        }
+        else
+        {
+            _frame.Padding = new Thickness(4);
+            _frame.Background = Brushes.Transparent;
+            _frame.BorderThickness = new Thickness(0);
+            _frame.BorderBrush = Brushes.Transparent;
+            _frame.Effect = null;
+        }
+    }
 
     public bool StreamerMode
     {

@@ -219,6 +219,10 @@ public sealed class AppSettings
     public double? KeystrokesX { get; set; }
     public double? KeystrokesY { get; set; }
 
+    /// <summary>Pro: draw the overlay's panel behind the keys, or leave just the keys
+    /// floating (Medal-style) when false. Defaults to the panel look.</summary>
+    public bool KeystrokesBackground { get; set; } = true;
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 
