@@ -1326,7 +1326,7 @@
                                 <StackPanel>
                                     <TextBlock Text="Shaky Tracking" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="ShakeStatusText"
-                                               Text="Nudges your aim a little while clicking, so it looks hand-done"
+                                               Text="Nudges your aim a little while clicking. Only shakes when you start with the AUTOCLICKER + SHAKE hotkey — the plain clicker key never shakes."
                                                Foreground="{StaticResource TextMuted}" FontSize="11"/>
                                     <!-- Travel in each direction in pixels, and how often it moves.
                                          One row per value: label, slider, readout. -->

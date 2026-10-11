@@ -37,6 +37,11 @@ public partial class MainWindow : Window
     private volatile bool _shakeActive;
     // Written by the shake thread, read by the UI thread for the status line.
     private volatile ShakeGate _shakeGate = ShakeGate.NotRoblox;
+
+    // Shake only runs for a click session started by the AUTOCLICKER + SHAKE key.
+    // Every start clears it; only that combo sets it, so the plain click key never
+    // shakes even with Shaky Tracking ticked.
+    private volatile bool _shakeThisRun;
     private uint _cachedForegroundPid;
     private bool _cachedForegroundIsRoblox;
     private volatile int _lastPingMs = -1;
@@ -1028,8 +1033,12 @@ public partial class MainWindow : Window
         {
             if (_holdMode)
             {
-                if (!_running) SetShaky(true);
-                if (!_running) StartClicking();
+                if (!_running)
+                {
+                    SetShaky(true);
+                    StartClicking();
+                    _shakeThisRun = true;   // this run shakes (set after StartClicking clears it)
+                }
                 return;
             }
 
@@ -1042,6 +1051,7 @@ public partial class MainWindow : Window
             {
                 SetShaky(true);
                 StartClicking();
+                _shakeThisRun = true;
             }
 
             return;
@@ -1816,6 +1826,7 @@ public partial class MainWindow : Window
         if (_running) return;
 
         _running = true;
+        _shakeThisRun = false;   // plain by default; the combo key opts this run into shake
         ShowOverlay();
         RefreshStatus();
         UpdateEngineSettings();
@@ -2877,7 +2888,7 @@ public partial class MainWindow : Window
                 // cursor to its origin when the clicker stops mid-offset.
                 ShakeGate gate =
                     !_running ? ShakeGate.ClickerOff
-                    : s.Shaky && !range.IsZero ? ReadShakeGate()
+                    : s.Shaky && _shakeThisRun && !range.IsZero ? ReadShakeGate()
                     : ShakeGate.NotRoblox;
                 bool eligible = gate == ShakeGate.Ready;
 
