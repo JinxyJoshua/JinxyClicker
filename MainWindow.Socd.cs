@@ -13,7 +13,7 @@ public partial class MainWindow
 {
     private readonly SocdHook _socd = new();
     private bool _socdEnabled;
-    private SocdMode _socdMode = SocdMode.Strafe;
+    private SocdMode _socdMode = SocdMode.LastInputWins;
     private int _socdSpeedMs = 40;
     private string _socdLeft = "A", _socdRight = "D";
     // True from construction so the controls' own TextChanged/Checked events, which
@@ -46,9 +46,9 @@ public partial class MainWindow
 
     private static SocdMode ParseMode(string? m) => m switch
     {
-        "LastInputWins" => SocdMode.LastInputWins,
+        "Strafe" => SocdMode.Strafe,
         "Neutral" => SocdMode.Neutral,
-        _ => SocdMode.Strafe
+        _ => SocdMode.LastInputWins
     };
 
     // A typed key character to its virtual-key code, or 0 for blank/invalid.
