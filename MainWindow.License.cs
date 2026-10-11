@@ -103,6 +103,7 @@ public partial class MainWindow
         ApplySetupsPro();
         ApplyClipStudioPro();
         ApplySocdPro();
+        ApplyKeystrokesPro();
 
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.

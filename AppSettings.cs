@@ -214,6 +214,13 @@ public sealed class AppSettings
     public string? SocdUp { get; set; } = "W";
     public string? SocdDown { get; set; } = "S";
 
+    /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
+    public bool KeystrokesOverlay { get; set; }
+
+    /// <summary>Pro: saved overlay position (screen pixels), or null for the default spot.</summary>
+    public double? KeystrokesX { get; set; }
+    public double? KeystrokesY { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

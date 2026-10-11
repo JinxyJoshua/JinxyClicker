@@ -3582,6 +3582,29 @@
                                           Unchecked="Overlay_Changed"/>
                             </DockPanel>
 
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <TextBlock Text="KEYSTROKES OVERLAY" Foreground="{StaticResource TextSoft}" FontSize="11" FontWeight="Bold"/>
+                                <TextBlock Text="PRO" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="A sleek WASD + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                            <TextBlock x:Name="KeystrokesLockNote" Visibility="Collapsed"
+                                       Text="Keystrokes overlay is a Pro feature. Unlock it on the PRO page."
+                                       Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <StackPanel x:Name="KeystrokesProPanel">
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <TextBlock DockPanel.Dock="Left" Text="Show overlay" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
+                                    <CheckBox x:Name="KeystrokesCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                              Checked="KeystrokesEnabled_Changed" Unchecked="KeystrokesEnabled_Changed"/>
+                                </DockPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button x:Name="KeystrokesMoveButton" Content="Move overlay" Style="{StaticResource ChipButton}" Padding="12,6" Click="KeystrokesMove_Click"/>
+                                    <TextBlock x:Name="KeystrokesHint" Text="" Foreground="{StaticResource TextMuted}" FontSize="11"
+                                               VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" MaxWidth="340"/>
+                                </StackPanel>
+                            </StackPanel>
+
                             <TextBlock Text="The badge appears whenever a macro or the auto switcher is running, and names the keys being sent. It is there so a macro left on does not read as the game misbehaving — several kits bind the same keys."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,14,0,0"/>

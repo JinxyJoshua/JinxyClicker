@@ -1945,6 +1945,7 @@ public partial class MainWindow : Window
         LoadClipStudio(s);
         LoadSetups(s);
         LoadSocd(s);
+        LoadKeystrokes(s);
 
         // Falls back rather than trusting the file: a value with no matching
         // button would leave the radio group and the stored length disagreeing.
@@ -2119,6 +2120,9 @@ public partial class MainWindow : Window
             SocdRight = _socdRight,
             SocdUp = _socdUp,
             SocdDown = _socdDown,
+            KeystrokesOverlay = _keystrokesEnabled,
+            KeystrokesX = _keystrokesX,
+            KeystrokesY = _keystrokesY,
             ClipFolder = ClipFolderBox.Text.Trim(),
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
@@ -4696,6 +4700,8 @@ public partial class MainWindow : Window
         Resources["AccentStrongColor"] = Color.FromArgb(0x66, accent.R, accent.G, accent.B);
         Resources["AccentSoftColor"] = Color.FromArgb(0x33, accent.R, accent.G, accent.B);
         Resources["AccentWashColor"] = Color.FromArgb(0x22, accent.R, accent.G, accent.B);
+
+        _keystrokes?.SetAccent(accent);   // keep the overlay's keycaps on the theme
     }
 
     private static bool TryParseColor(string? hex, out Color color)
@@ -5508,6 +5514,7 @@ public partial class MainWindow : Window
         if (_macroBadge != null) _macroBadge.StreamerMode = on;
         if (_overlay != null) _overlay.StreamerMode = on;
         if (_serverOverlay != null) _serverOverlay.StreamerMode = on;
+        if (_keystrokes != null) _keystrokes.StreamerMode = on;
 
         SaveAppSettings();
     }
@@ -6010,6 +6017,7 @@ public partial class MainWindow : Window
         _recorder.Dispose();
         _replay.Dispose();
         _socd.Dispose();   // release any keys it holds and remove the hook
+        _keystrokes?.Close();
     }
 
     // Below this the interval exceeds a minute and the app is effectively idle.
