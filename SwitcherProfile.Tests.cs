@@ -17,8 +17,8 @@ public class SwitcherProfileTests
 {
     private static SwitcherProfile Profile(
         string name = "Sword + bow", string a = "3", string b = "1",
-        int first = 150, int second = 900, bool enabled = true) =>
-        new(name, a, b, first, second, KeyMacro.DefaultEquipMs, HotkeyBinding.Unbound, enabled);
+        int first = 150, int second = 900, bool enabled = true, bool startOnSecond = false) =>
+        new(name, a, b, first, second, KeyMacro.DefaultEquipMs, HotkeyBinding.Unbound, enabled, startOnSecond);
 
     // ---- identity ----
 
@@ -99,6 +99,17 @@ public class SwitcherProfileTests
     public void AnUnusableSwitcherProducesNoMacro()
     {
         Assert.Null(Profile(a: "").ToMacro(clickPeriodMs: 30));
+    }
+
+    [Fact]
+    public void StartOnSecondEquipsTheSecondSlotFirst()
+    {
+        KeyMacro normal = Profile(a: "3", b: "1").ToMacro(30)!;
+        KeyMacro flipped = Profile(a: "3", b: "1", startOnSecond: true).ToMacro(30)!;
+
+        // Normal begins on slot A; flipped begins on slot B, so the order swaps.
+        Assert.Equal(normal.Keys[1], flipped.Keys[0]);
+        Assert.Equal(normal.Keys[0], flipped.Keys[1]);
     }
 
     /// <summary>

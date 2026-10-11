@@ -359,7 +359,8 @@ public partial class MainWindow
             MacroStore.ParseInterval(NewSwitcherHoldA.Text) ?? 0,
             MacroStore.ParseInterval(NewSwitcherHoldB.Text) ?? 0,
             MacroStore.ParseInterval(NewSwitcherEquip.Text) ?? KeyMacro.DefaultEquipMs,
-            _pendingNewSwitcherHotkey);
+            _pendingNewSwitcherHotkey,
+            StartOnSecond: NewSwitcherStartSecond?.IsChecked == true);
 
         string? problem = profile.Problem();
 
@@ -377,6 +378,7 @@ public partial class MainWindow
         NewSwitcherName.Clear();
         NewSwitcherSlotA.Clear();
         NewSwitcherSlotB.Clear();
+        if (NewSwitcherStartSecond is not null) NewSwitcherStartSecond.IsChecked = false;
 
         ApplySwitcherBinding(null, HotkeyBinding.Unbound);
     }

@@ -27,7 +27,8 @@ public sealed record SwitcherProfile(
     int HoldSecondMs,
     int EquipMs,
     HotkeyBinding Hotkey,
-    bool Enabled = true)
+    bool Enabled = true,
+    bool StartOnSecond = false)
 {
     /// <summary>How many clicks a swap waits for before moving on.</summary>
     /// <remarks>
@@ -89,8 +90,12 @@ public sealed record SwitcherProfile(
     {
         if (Problem() != null) return null;
 
+        // Start on whichever slot the profile says; the second slot equips first
+        // when StartOnSecond is set, then it alternates as normal.
+        string firstSlot = StartOnSecond ? SlotB : SlotA;
+        string nextSlot = StartOnSecond ? SlotA : SlotB;
         (int[] Keys, string Text) keys =
-            MacroStore.ParseKeys(SlotA.Trim() + "," + SlotB.Trim())!.Value;
+            MacroStore.ParseKeys(firstSlot.Trim() + "," + nextSlot.Trim())!.Value;
 
         int firstHold = Math.Max(HoldFirstMs, KeyMacro.MinimumDwellMs(clickPeriodMs, EquipMs));
 
@@ -139,6 +144,9 @@ public static class SwitcherStore
         // Stored as "Disabled" so a file written before this existed, where the
         // field is absent and a missing bool reads false, means enabled.
         public bool Disabled { get; set; }
+
+        // Absent in older files reads false — the original start-on-first behaviour.
+        public bool StartOnSecond { get; set; }
     }
 
     /// <summary>Nothing. The list starts empty and is filled by migration or by hand.</summary>
@@ -185,7 +193,8 @@ public static class SwitcherStore
                     s.HotkeyVk == 0
                         ? HotkeyBinding.Unbound
                         : new HotkeyBinding(s.HotkeyVk, HotkeyBinding.Describe(s.HotkeyVk)),
-                    Enabled: !s.Disabled))
+                    Enabled: !s.Disabled,
+                    StartOnSecond: s.StartOnSecond))
                 .ToList();
         }
         catch
@@ -209,7 +218,8 @@ public static class SwitcherStore
                     EquipMs = s.EquipMs,
                     HotkeyVk = s.Hotkey.VirtualKey,
                     HotkeyName = s.Hotkey.Name,
-                    Disabled = !s.Enabled
+                    Disabled = !s.Enabled,
+                    StartOnSecond = s.StartOnSecond
                 }),
                 new JsonSerializerOptions { WriteIndented = true }));
         }
