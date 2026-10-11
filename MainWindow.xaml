@@ -2375,13 +2375,11 @@
                                                Foreground="{StaticResource TextMuted}"/>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="Main" Foreground="{StaticResource TextSoft}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <TextBox x:Name="CustomHexBox" Style="{StaticResource InputField}" Width="94" MaxLength="7" Padding="6,4"
-                                                 VerticalContentAlignment="Center" TextChanged="CustomHex_Changed"
-                                                 ToolTip="Any colour, e.g. #FF8800"/>
+                                        <TextBox x:Name="CustomHexBox" Style="{StaticResource InputField}" Width="94" MaxLength="7"
+                                                 TextChanged="CustomHex_Changed" ToolTip="Any colour, e.g. #FF8800"/>
                                         <TextBlock Text="Centre" Foreground="{StaticResource TextSoft}" FontSize="11" VerticalAlignment="Center" Margin="16,0,6,0"/>
-                                        <TextBox x:Name="CustomDotHexBox" Style="{StaticResource InputField}" Width="94" MaxLength="7" Padding="6,4"
-                                                 VerticalContentAlignment="Center" TextChanged="CustomDotHex_Changed"
-                                                 ToolTip="Centre colour, or blank to match the main colour"/>
+                                        <TextBox x:Name="CustomDotHexBox" Style="{StaticResource InputField}" Width="94" MaxLength="7"
+                                                 TextChanged="CustomDotHex_Changed" ToolTip="Centre colour, or blank to match the main colour"/>
                                     </StackPanel>
 
                                     <Grid Margin="0,14,0,0">
@@ -2864,8 +2862,7 @@
                                     <TextBlock Text="Your text shown for 2s at the start — blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
                                 </StackPanel>
                                 <TextBox x:Name="MontageTitleBox" Style="{StaticResource InputField}" DockPanel.Dock="Right" Width="200" MaxLength="40"
-                                         TextChanged="MontageTitle_Changed" VerticalAlignment="Center"
-                                         VerticalContentAlignment="Center" Padding="8,5"/>
+                                         TextChanged="MontageTitle_Changed" VerticalAlignment="Center"/>
                             </DockPanel>
                             <Button x:Name="MontageButton" Content="Make montage" Style="{StaticResource AccentButton}"
                                     Padding="20,9" Margin="0,16,0,0" FontWeight="Bold"
@@ -3161,8 +3158,8 @@
                             </StackPanel>
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <TextBlock DockPanel.Dock="Left" Text="Game link" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
-                                <TextBox x:Name="PlayUrlBox" Style="{StaticResource InputField}" DockPanel.Dock="Left" Width="320" Padding="8,5" Margin="12,0,0,0"
-                                         VerticalContentAlignment="Center" TextChanged="PlayUrl_Changed"
+                                <TextBox x:Name="PlayUrlBox" Style="{StaticResource InputField}" DockPanel.Dock="Left" Width="320" Margin="12,0,0,0"
+                                         TextChanged="PlayUrl_Changed"
                                          ToolTip="Paste your BedWars game link OR just its game ID. Blank opens Roblox's games page."/>
                             </DockPanel>
                             <TextBlock Text="Paste your BedWars game link — or just the game ID number — and Play opens straight to it. Leave blank to open Roblox and pick it yourself."
@@ -3189,8 +3186,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <TextBlock DockPanel.Dock="Left" Text="Name" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
-                                <TextBox x:Name="SetupNameBox" Style="{StaticResource InputField}" DockPanel.Dock="Left" Width="200" MaxLength="24" Padding="8,5" Margin="12,0,0,0"
-                                         VerticalContentAlignment="Center"/>
+                                <TextBox x:Name="SetupNameBox" Style="{StaticResource InputField}" DockPanel.Dock="Left" Width="200" MaxLength="24" Margin="12,0,0,0"/>
                                 <Button x:Name="SetupSaveButton" DockPanel.Dock="Left" Content="Save current" Style="{StaticResource ChipButton}"
                                         Padding="14,6" Margin="10,0,0,0" Click="SetupSave_Click"/>
                             </DockPanel>
