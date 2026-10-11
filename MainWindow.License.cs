@@ -110,6 +110,7 @@ public partial class MainWindow
         ApplySocdPro();
         ApplyKeystrokesPro();
         ApplyModPro();
+        ApplyServerPro();
 
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.

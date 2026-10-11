@@ -988,6 +988,8 @@
                             Click="NavSetups_Click"/>
                     <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
                             Click="NavMod_Click"/>
+                    <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
+                            Click="NavServer_Click"/>
                 </StackPanel>
 
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
@@ -997,8 +999,6 @@
                             Click="NavKitWheel_Click"/>
                     <Button x:Name="NavCrosshair" app:NavIcon.Glyph="&#xE1D1;" Content="CROSSHAIR" Style="{StaticResource NavButton}"
                             Click="NavCrosshair_Click"/>
-                    <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
-                            Click="NavServer_Click"/>
                 </StackPanel>
 
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PERFORMANCE"
@@ -1086,7 +1086,7 @@
 
             <!-- One page visible at a time. Every page shares the header, the
                  status pill and the start button above. -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
               <Grid>
                 <StackPanel x:Name="PageClicker">
 

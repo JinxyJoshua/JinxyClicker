@@ -76,8 +76,20 @@ public partial class MainWindow
     /// </remarks>
     private static readonly TimeSpan ServerPollInterval = TimeSpan.FromSeconds(2.5);
 
-    private void NavServer_Click(object sender, RoutedEventArgs e) =>
+    private void NavServer_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         ShowPage(NavServer, PageServer, "Server", "Where the server you joined is");
+    }
+
+    // The SERVER tab stays visible so Free users see it, but its content is never
+    // shown — clicking it (or a pass expiring while it's open) sends them to the
+    // key page. Called from RefreshLicense.
+    private void ApplyServerPro()
+    {
+        if (!IsPro && PageServer is { Visibility: Visibility.Visible })
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
+    }
 
     /// <summary>Puts the saved overlay duration onto the field and its preset button.</summary>
     private void LoadServerRegion(AppSettings s)
