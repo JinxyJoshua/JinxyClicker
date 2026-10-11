@@ -16,7 +16,9 @@ public partial class MainWindow
     private SocdMode _socdMode = SocdMode.Strafe;
     private int _socdSpeedMs = 40;
     private string _socdLeft = "A", _socdRight = "D", _socdUp = "W", _socdDown = "S";
-    private bool _loadingSocd;
+    // True from construction so the controls' own TextChanged/Checked events, which
+    // fire while the XAML is still loading, don't run before LoadSocd sets things up.
+    private bool _loadingSocd = true;
 
     private void LoadSocd(AppSettings s)
     {
