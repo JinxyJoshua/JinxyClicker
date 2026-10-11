@@ -23,11 +23,24 @@ public partial class MainWindow
         ApplyKeystrokesPro();
     }
 
+    private void NavKeystrokes_Click(object sender, RoutedEventArgs e)
+    {
+        ShowPage(NavKeystrokes, PageKeystrokes, "Keystrokes", "On-screen keys and CPS overlay");
+        ApplyKeystrokesPro();
+    }
+
     private void ApplyKeystrokesPro()
     {
         bool pro = IsPro;
-        if (KeystrokesLockNote is not null) KeystrokesLockNote.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
+
+        // The whole tab is Pro-only: hidden from the sidebar unless licensed.
+        if (NavKeystrokes is not null) NavKeystrokes.Visibility = pro ? Visibility.Visible : Visibility.Collapsed;
+        if (KeystrokesLockNote is not null) KeystrokesLockNote.Visibility = Visibility.Collapsed;
         if (KeystrokesProPanel is not null) KeystrokesProPanel.IsEnabled = pro;
+
+        if (!pro && PageKeystrokes is { Visibility: Visibility.Visible })
+            ShowPage(NavClicker, PageClicker, "Clicker", "Configure your own click engine");
+
         ApplyKeystrokesState();
     }
 
