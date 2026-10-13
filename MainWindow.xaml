@@ -943,7 +943,7 @@
                         Content="&#x2605; GET PLUS"
                         Style="{StaticResource ProCta}" Click="NavPro_Click"
                         Margin="0,12,0,2"/>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                 <!-- Wordmark sits against a solid accent block rather than
                      floating over the sidebar. The slab is the mark. -->
@@ -2004,6 +2004,14 @@
                                     </StackPanel>
                                     <CheckBox x:Name="KeystrokesBgCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center" IsChecked="True"
                                               Checked="KeystrokesBackground_Changed" Unchecked="KeystrokesBackground_Changed"/>
+                                </DockPanel>
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="440">
+                                        <TextBlock Text="Show in-game FPS" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Shows Roblox's real FPS on the right of the overlay. Needs Jinxy to run as admin — turning this on offers to restart elevated." Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="KeystrokesFpsCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                              Checked="KeystrokesFps_Changed" Unchecked="KeystrokesFps_Changed"/>
                                 </DockPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                                     <Button x:Name="KeystrokesMoveButton" Content="Move overlay" Style="{StaticResource ChipButton}" Padding="14,7" Click="KeystrokesMove_Click"/>

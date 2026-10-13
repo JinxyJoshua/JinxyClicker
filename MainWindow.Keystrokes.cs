@@ -14,17 +14,48 @@ public partial class MainWindow
     private bool _keystrokesEnabled;
     private bool _keystrokesMoving;
     private bool _keystrokesBackground = true;
+    private bool _keystrokesFps;
+    private bool _loadingKeystrokes;
     private double? _keystrokesX, _keystrokesY;
 
     private void LoadKeystrokes(AppSettings s)
     {
+        _loadingKeystrokes = true;
         _keystrokesEnabled = s.KeystrokesOverlay;
         _keystrokesBackground = s.KeystrokesBackground;
+        _keystrokesFps = s.KeystrokesFps;
         _keystrokesX = s.KeystrokesX;
         _keystrokesY = s.KeystrokesY;
         if (KeystrokesCheck is not null) KeystrokesCheck.IsChecked = _keystrokesEnabled;
         if (KeystrokesBgCheck is not null) KeystrokesBgCheck.IsChecked = _keystrokesBackground;
+        if (KeystrokesFpsCheck is not null) KeystrokesFpsCheck.IsChecked = _keystrokesFps;
+        _loadingKeystrokes = false;
         ApplyKeystrokesPro();
+    }
+
+    private void KeystrokesFps_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loadingKeystrokes || KeystrokesFpsCheck is null) return;
+        _keystrokesFps = KeystrokesFpsCheck.IsChecked == true;
+        _settingsDirty = true;
+
+        // FPS needs an elevated process. Offer to restart as admin in one tap.
+        if (_keystrokesFps && !TweakEnvironment.IsElevated)
+        {
+            MessageBoxResult answer = MessageBox.Show(this,
+                "Showing Roblox's in-game FPS needs Jinxy to run as administrator.\n\nRestart Jinxy as admin now?",
+                "FPS needs admin", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Yes)
+            {
+                SaveAppSettings();          // persist the choice so the elevated copy shows FPS
+                SingleInstance.Release();   // let the elevated copy be the new first instance
+                if (TweakEnvironment.RestartElevated()) { Close(); return; }
+                SingleInstance.IsFirstInstance();   // restart declined — keep the lock
+            }
+            // If they decline, the toggle stays on: FPS shows once the app is admin.
+        }
+
+        ApplyKeystrokesState();   // start/stop the FPS monitor
     }
 
     private void NavKeystrokes_Click(object sender, RoutedEventArgs e)
@@ -63,7 +94,7 @@ public partial class MainWindow
                 _keystrokes.KeyStateProbe = _socd.IsDown;
                 // In-game FPS on the overlay (needs the app to run as admin; shows
                 // "—" otherwise). Measured off a real-time ETW session.
-                _keystrokes.FpsProbe = () => _robloxFps.Available ? _robloxFps.Current : (int?)null;
+                _keystrokes.FpsProbe = () => _keystrokesFps && _robloxFps.Available ? _robloxFps.Current : (int?)null;
                 if (_keystrokesX is { } x && _keystrokesY is { } y
                     && OnVirtualScreen(x, y, _keystrokes.Width, _keystrokes.Height))
                 { _keystrokes.Left = x; _keystrokes.Top = y; }
@@ -80,7 +111,7 @@ public partial class MainWindow
             }
             _keystrokes.SetAccent(AccentColorValue());
             _keystrokes.SetBackground(_keystrokesBackground);
-            _robloxFps.Start();   // begin measuring FPS while the overlay is up
+            if (_keystrokesFps && TweakEnvironment.IsElevated) _robloxFps.Start(); else _robloxFps.Stop();
             if (!_keystrokes.IsVisible)
             {
                 _keystrokes.Show();

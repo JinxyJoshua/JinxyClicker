@@ -241,6 +241,9 @@ public sealed class AppSettings
     /// floating (Medal-style) when false. Defaults to the panel look.</summary>
     public bool KeystrokesBackground { get; set; } = true;
 
+    /// <summary>Plus: show Roblox's in-game FPS on the overlay (needs admin).</summary>
+    public bool KeystrokesFps { get; set; }
+
     public bool ReplayEnabled { get; set; }
     public int ReplaySeconds { get; set; } = 30;
 

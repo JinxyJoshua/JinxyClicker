@@ -2127,6 +2127,7 @@ public partial class MainWindow : Window
             DisplayRefresh = _displayMode?.Refresh ?? 0,
             KeystrokesOverlay = _keystrokesEnabled,
             KeystrokesBackground = _keystrokesBackground,
+            KeystrokesFps = _keystrokesFps,
             KeystrokesX = _keystrokesX,
             KeystrokesY = _keystrokesY,
             ClipFolder = ClipFolderBox.Text.Trim(),
