@@ -36,6 +36,7 @@ public sealed class KeystrokeOverlay : Window
     private readonly List<Cap> _caps = new();
     private readonly List<long> _clickTimes = new();   // left-click moments in the last second
     private readonly TextBlock _cpsValue;
+    private readonly TextBlock _fpsValue;
     private readonly DispatcherTimer _poll;
     private Color _accent = Color.FromRgb(0xFF, 0x4B, 0x52);
     private bool _streamerMode;
@@ -90,9 +91,37 @@ public sealed class KeystrokeOverlay : Window
             Margin = new Thickness(10, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
         };
-        var cpsRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-        cpsRow.Children.Add(cpsLabel);
-        cpsRow.Children.Add(_cpsValue);
+        // CPS on the left, FPS on the right.
+        var cpsBlock = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        cpsBlock.Children.Add(cpsLabel);
+        cpsBlock.Children.Add(_cpsValue);
+
+        _fpsValue = new TextBlock
+        {
+            Text = "—",
+            FontSize = 15,
+            FontWeight = FontWeights.Black,
+            Foreground = Brushes.White,
+            Margin = new Thickness(0, 0, 10, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var fpsLabel = new TextBlock
+        {
+            Text = "FPS",
+            FontSize = 11,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0xA2, 0xB4)),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var fpsBlock = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        fpsBlock.Children.Add(_fpsValue);
+        fpsBlock.Children.Add(fpsLabel);
+
+        var cpsRow = new DockPanel { LastChildFill = false };
+        DockPanel.SetDock(cpsBlock, Dock.Left);
+        DockPanel.SetDock(fpsBlock, Dock.Right);
+        cpsRow.Children.Add(cpsBlock);
+        cpsRow.Children.Add(fpsBlock);
 
         var body = new StackPanel();
         body.Children.Add(keys);
@@ -240,6 +269,16 @@ public sealed class KeystrokeOverlay : Window
     /// </summary>
     public Func<int, bool>? KeyStateProbe { get; set; }
 
+    /// <summary>Supplies the in-game FPS each poll; null leaves it as "—".</summary>
+    public Func<int?>? FpsProbe { get; set; }
+
+    /// <summary>Sets the in-game FPS shown on the right of the CPS row (null/0 = "—").</summary>
+    public void SetFps(int? fps)
+    {
+        string t = fps is { } f && f > 0 ? f.ToString() : "—";
+        if (_fpsValue.Text != t) _fpsValue.Text = t;
+    }
+
     private void PollKeys()
     {
         foreach (Cap cap in _caps)
@@ -257,6 +296,8 @@ public sealed class KeystrokeOverlay : Window
         _clickTimes.RemoveAll(t => t < cutoff);
         string cps = _clickTimes.Count.ToString();
         if (_cpsValue.Text != cps) _cpsValue.Text = cps;
+
+        SetFps(FpsProbe?.Invoke());
     }
 
     private void Paint(Cap cap, bool down)

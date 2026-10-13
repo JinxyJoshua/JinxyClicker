@@ -10,6 +10,7 @@ namespace JinxyClicker;
 public partial class MainWindow
 {
     private KeystrokeOverlay? _keystrokes;
+    private readonly RobloxFps _robloxFps = new();
     private bool _keystrokesEnabled;
     private bool _keystrokesMoving;
     private bool _keystrokesBackground = true;
@@ -60,6 +61,9 @@ public partial class MainWindow
                 // Show keys SOCD is swallowing: a blocked key doesn't register in
                 // GetAsyncKeyState, so ask the SOCD hook for its physical state too.
                 _keystrokes.KeyStateProbe = _socd.IsDown;
+                // In-game FPS on the overlay (needs the app to run as admin; shows
+                // "—" otherwise). Measured off a real-time ETW session.
+                _keystrokes.FpsProbe = () => _robloxFps.Available ? _robloxFps.Current : (int?)null;
                 if (_keystrokesX is { } x && _keystrokesY is { } y
                     && OnVirtualScreen(x, y, _keystrokes.Width, _keystrokes.Height))
                 { _keystrokes.Left = x; _keystrokes.Top = y; }
@@ -76,6 +80,7 @@ public partial class MainWindow
             }
             _keystrokes.SetAccent(AccentColorValue());
             _keystrokes.SetBackground(_keystrokesBackground);
+            _robloxFps.Start();   // begin measuring FPS while the overlay is up
             if (!_keystrokes.IsVisible)
             {
                 _keystrokes.Show();
@@ -90,6 +95,7 @@ public partial class MainWindow
         else
         {
             _keystrokes?.Hide();
+            _robloxFps.Stop();
         }
     }
 
