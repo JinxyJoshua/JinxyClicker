@@ -28,6 +28,9 @@ public sealed class RobloxFps : IDisposable
     /// <summary>True once an ETW session is running (requires admin).</summary>
     public bool Available { get; private set; }
 
+    /// <summary>Why Start() failed, for diagnostics.</summary>
+    public string? LastError { get; private set; }
+
     /// <summary>The most recent frames-per-second sample, or 0 if unknown.</summary>
     public int Current => _robloxPid == 0 ? 0 : _fps;
 
@@ -37,7 +40,8 @@ public sealed class RobloxFps : IDisposable
         try
         {
             _robloxPid = FindRobloxPid();
-            _session = new TraceEventSession("JinxyFpsSession");   // throws if not elevated
+            TryStopStaleSession();   // clear a session a crashed run may have left
+            _session = new TraceEventSession("JinxyFpsSession") { StopOnDispose = true };   // throws if not elevated
             _session.EnableProvider(DxgKrnlProvider, TraceEventLevel.Verbose, 0x1 /* Base: present events */);
             _session.Source.Dynamic.All += OnEvent;
 
@@ -47,8 +51,9 @@ public sealed class RobloxFps : IDisposable
             _sampler = new Timer(Sample, null, 1000, 1000);
             Available = true;
         }
-        catch
+        catch (Exception ex)
         {
+            LastError = ex.GetType().Name + ": " + ex.Message;
             Available = false;
             Stop();
         }
@@ -77,6 +82,14 @@ public sealed class RobloxFps : IDisposable
     {
         _robloxPid = FindRobloxPid();
         _fps = Interlocked.Exchange(ref _count, 0);
+    }
+
+    // A real-time ETW session outlives a process that doesn't dispose it, and a
+    // stale one with our name blocks a new one. Attach to any leftover and stop it.
+    private static void TryStopStaleSession()
+    {
+        try { using var stale = new TraceEventSession("JinxyFpsSession", TraceEventSessionOptions.Attach); stale.Stop(); }
+        catch { /* nothing to attach to — fine */ }
     }
 
     private static int FindRobloxPid()

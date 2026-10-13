@@ -19,7 +19,9 @@ public partial class App : Application
         if (e.Args.Any(a => string.Equals(a, "--fps-helper", StringComparison.OrdinalIgnoreCase)))
         {
             FpsHelper.Run();
-            Shutdown();
+            // Force-exit so a stuck ETW pump thread can never leave the helper
+            // lingering (it runs elevated, so a hung copy would need a reboot to kill).
+            Environment.Exit(0);
             return;
         }
 

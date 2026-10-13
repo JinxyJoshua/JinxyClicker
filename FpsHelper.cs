@@ -14,7 +14,8 @@ public static class FpsHelper
     {
         using var fps = new RobloxFps();
         fps.Start();
-        if (!fps.Available) return;   // not actually elevated — nothing we can do
+        FpsShared.WriteDebug($"available={fps.Available} err={fps.LastError}");
+        if (!fps.Available) return;   // not actually elevated / session blocked
 
         while (FpsShared.RecentlyRequested())
         {
