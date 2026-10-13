@@ -6019,6 +6019,7 @@ public partial class MainWindow : Window
         _shakeCts.Cancel();
         _statsTimer.Stop();
         RevertDisplayOnExit();   // never leave the screen on a swapped resolution
+        StopFpsHelper();         // let the elevated FPS helper exit
 
         // Everything that is not already written the moment it changes gets
         // written here. Presets, hotkeys and tweak state save on edit, so this

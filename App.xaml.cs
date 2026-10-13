@@ -14,6 +14,15 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Elevated FPS helper mode (run by the scheduled task): no window, just
+        // measure Roblox's FPS over ETW and write it for the normal app to read.
+        if (e.Args.Any(a => string.Equals(a, "--fps-helper", StringComparison.OrdinalIgnoreCase)))
+        {
+            FpsHelper.Run();
+            Shutdown();
+            return;
+        }
+
         // One running copy only. A second launch hands its intent to the first and
         // exits, so the "Jinxy Play" shortcut focuses the open window (and plays)
         // instead of opening another.

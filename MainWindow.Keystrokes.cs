@@ -1,4 +1,6 @@
+using System;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace JinxyClicker;
 
@@ -10,7 +12,8 @@ namespace JinxyClicker;
 public partial class MainWindow
 {
     private KeystrokeOverlay? _keystrokes;
-    private readonly RobloxFps _robloxFps = new();
+    private readonly DispatcherTimer _fpsHeartbeat = new() { Interval = TimeSpan.FromSeconds(3) };
+    private bool _fpsHeartbeatWired;
     private bool _keystrokesEnabled;
     private bool _keystrokesMoving;
     private bool _keystrokesBackground = true;
@@ -39,23 +42,47 @@ public partial class MainWindow
         _keystrokesFps = KeystrokesFpsCheck.IsChecked == true;
         _settingsDirty = true;
 
-        // FPS needs an elevated process. Offer to restart as admin in one tap.
-        if (_keystrokesFps && !TweakEnvironment.IsElevated)
+        if (_keystrokesFps)
         {
-            MessageBoxResult answer = MessageBox.Show(this,
-                "Showing Roblox's in-game FPS needs Jinxy to run as administrator.\n\nRestart Jinxy as admin now?",
-                "FPS needs admin", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (answer == MessageBoxResult.Yes)
+            // One-time admin prompt to install the helper's scheduled task. After
+            // this the FPS helper runs elevated with no UAC prompt, ever.
+            if (!FpsTask.EnsureCreated())
             {
-                SaveAppSettings();          // persist the choice so the elevated copy shows FPS
-                SingleInstance.Release();   // let the elevated copy be the new first instance
-                if (TweakEnvironment.RestartElevated()) { Close(); return; }
-                SingleInstance.IsFirstInstance();   // restart declined — keep the lock
+                _keystrokesFps = false;
+                KeystrokesFpsCheck.IsChecked = false;
+                _settingsDirty = true;
+                if (KeystrokesHint is not null)
+                    KeystrokesHint.Text = "FPS setup was cancelled — leave it off, or try again to allow it once.";
+                return;
             }
-            // If they decline, the toggle stays on: FPS shows once the app is admin.
+            StartFpsHelper();
+        }
+        else
+        {
+            StopFpsHelper();
         }
 
-        ApplyKeystrokesState();   // start/stop the FPS monitor
+        ApplyKeystrokesState();
+    }
+
+    // Kicks the elevated helper (via its scheduled task) and keeps a heartbeat so it
+    // stays alive while we want FPS and exits on its own when we stop.
+    private void StartFpsHelper()
+    {
+        FpsShared.Ping();
+        FpsTask.Start();
+        if (!_fpsHeartbeatWired)
+        {
+            _fpsHeartbeat.Tick += (_, _) => FpsShared.Ping();
+            _fpsHeartbeatWired = true;
+        }
+        _fpsHeartbeat.Start();
+    }
+
+    private void StopFpsHelper()
+    {
+        _fpsHeartbeat.Stop();
+        FpsTask.Stop();
     }
 
     private void NavKeystrokes_Click(object sender, RoutedEventArgs e)
@@ -94,7 +121,7 @@ public partial class MainWindow
                 _keystrokes.KeyStateProbe = _socd.IsDown;
                 // In-game FPS on the overlay (needs the app to run as admin; shows
                 // "—" otherwise). Measured off a real-time ETW session.
-                _keystrokes.FpsProbe = () => _keystrokesFps && _robloxFps.Available ? _robloxFps.Current : (int?)null;
+                _keystrokes.FpsProbe = () => _keystrokesFps ? FpsShared.ReadFps() : (int?)null;
                 if (_keystrokesX is { } x && _keystrokesY is { } y
                     && OnVirtualScreen(x, y, _keystrokes.Width, _keystrokes.Height))
                 { _keystrokes.Left = x; _keystrokes.Top = y; }
@@ -111,7 +138,7 @@ public partial class MainWindow
             }
             _keystrokes.SetAccent(AccentColorValue());
             _keystrokes.SetBackground(_keystrokesBackground);
-            if (_keystrokesFps && TweakEnvironment.IsElevated) _robloxFps.Start(); else _robloxFps.Stop();
+            if (_keystrokesFps && FpsTask.Exists()) StartFpsHelper(); else StopFpsHelper();
             if (!_keystrokes.IsVisible)
             {
                 _keystrokes.Show();
@@ -126,7 +153,7 @@ public partial class MainWindow
         else
         {
             _keystrokes?.Hide();
-            _robloxFps.Stop();
+            StopFpsHelper();
         }
     }
 

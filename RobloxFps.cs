@@ -62,9 +62,11 @@ public sealed class RobloxFps : IDisposable
 
     private void OnEvent(TraceEvent data)
     {
-        // A frame's present call. "Present" also matches "PresentHistory", which is
-        // the flip-model path, so both windowed and fullscreen are counted.
+        // One present == one frame, but DxgKrnl logs both the Start and the Stop of
+        // each present, so counting every "Present" event double-counts (reads ~2x
+        // the real FPS). Count only the Start of each frame.
         if (data.ProcessID == _robloxPid && _robloxPid != 0
+            && data.Opcode == TraceEventOpcode.Start
             && data.EventName.IndexOf("Present", StringComparison.Ordinal) >= 0)
         {
             Interlocked.Increment(ref _count);
