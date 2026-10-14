@@ -960,6 +960,75 @@
             <Setter Property="Padding" Value="11,5"/>
             <Setter Property="Margin" Value="0"/>
         </Style>
+
+        <!-- Dark dropdowns, so the combo boxes match the app instead of the white
+             Windows default. One row style for the items, one for the box. -->
+        <Style x:Key="DarkComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="bd" Background="{StaticResource Panel2}" BorderBrush="{StaticResource Outline}"
+                                                BorderThickness="1" CornerRadius="3"/>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                              Margin="12,0,30,0" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{StaticResource TextMuted}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" IsHitTestVisible="False"/>
+                            <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Outline}" BorderThickness="1"
+                                        CornerRadius="3" Margin="0,2,0,0"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ScrollViewer MaxHeight="240" SnapsToDevicePixels="True">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -2900,47 +2969,95 @@
 
                 <StackPanel x:Name="PageDisplay" Visibility="Collapsed">
 
-                    <!-- Current screen at a glance. -->
-                    <Border Background="{StaticResource Panel2}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <DockPanel LastChildFill="False">
-                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <!-- Hero: the screen at a glance, with a monitor tile, the live
+                         resolution and a row of stat chips built in code. -->
+                    <Border Background="{StaticResource Panel2}" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="22" Margin="0,0,0,16">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Left" Width="62" Height="62" CornerRadius="4"
+                                    Background="{StaticResource Accent}" Margin="0,0,20,0" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="30"
+                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Button DockPanel.Dock="Right" Click="DisplayRefresh_Click" Height="34" Padding="14,0"
+                                    VerticalAlignment="Top" ToolTip="Re-read your monitor's modes">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                               VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="YOUR DISPLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                                 <TextBlock x:Name="DisplayCurrentText" Text="&#8212;" Foreground="{StaticResource TextBright}"
-                                           FontSize="22" FontWeight="Black" Margin="0,4,0,0"/>
-                                <TextBlock x:Name="DisplayMonitorsText" Text="" Foreground="{StaticResource TextMuted}"
-                                           FontSize="11" Margin="0,2,0,0"/>
+                                           FontSize="27" FontWeight="Black" Margin="0,2,0,0"/>
+                                <WrapPanel x:Name="DisplayChips" Margin="0,11,0,0"/>
                             </StackPanel>
-                            <Button DockPanel.Dock="Right" Content="Refresh" Click="DisplayRefresh_Click"
-                                    Height="34" Padding="16,0" VerticalAlignment="Center"/>
                         </DockPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Switch resolution and refresh rate while Roblox is open, and back to normal when it closes. Lower or stretched resolutions can mean bigger models and more FPS."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextMuted}"
+                               FontSize="10" FontWeight="Bold" Margin="2,2,0,4"/>
+                    <TextBlock Text="Switch resolution and refresh rate the moment Roblox opens, and back to normal when it closes. Lower or stretched resolutions can mean bigger models and more FPS."
+                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,0,0,12"/>
 
-                            <TextBlock Text="RESOLUTION &amp; REFRESH" Foreground="{StaticResource TextSoft}" FontSize="9" FontWeight="Bold" Margin="0,14,0,0"/>
-                            <ComboBox x:Name="DisplayModeBox" Width="260" HorizontalAlignment="Left" Margin="0,8,0,0"
-                                      SelectionChanged="DisplayMode_Changed"/>
-
-                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
-                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="430">
-                                    <TextBlock Text="APPLY WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextSoft}" FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Switches to the mode above when Roblox launches and reverts when it closes."
-                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <CheckBox x:Name="DisplayEnableCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
-                                          Checked="DisplayEnable_Changed" Unchecked="DisplayEnable_Changed"/>
-                            </DockPanel>
-
-                            <TextBlock x:Name="DisplayStatus" Text="" Foreground="{StaticResource TextMuted}"
-                                       FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
-                            <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary — it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
-                                       Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        </StackPanel>
+                    <!-- Resolution -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="3" Background="{StaticResource Panel2}"
+                                    Margin="0,0,14,0" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                           Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ComboBox DockPanel.Dock="Right" x:Name="DisplayResBox" Width="190" VerticalAlignment="Center"
+                                      Style="{StaticResource DarkCombo}" SelectionChanged="DisplayRes_Changed"/>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+                                <TextBlock Text="Resolution" Foreground="{StaticResource TextBright}" FontSize="13" FontWeight="Bold"/>
+                                <TextBlock Text="Pick a 4:3 size like 1440 × 1080 for stretched. Reverts when Roblox closes."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
                     </Border>
+
+                    <!-- Refresh rate -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="3" Background="{StaticResource Panel2}"
+                                    Margin="0,0,14,0" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                           Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ComboBox DockPanel.Dock="Right" x:Name="DisplayRefreshBox" Width="190" VerticalAlignment="Center"
+                                      Style="{StaticResource DarkCombo}" ItemStringFormat="{}{0} Hz" SelectionChanged="DisplayRate_Changed"/>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+                                <TextBlock Text="Refresh rate" Foreground="{StaticResource TextBright}" FontSize="13" FontWeight="Bold"/>
+                                <TextBlock Text="Only rates your monitor reports for the chosen resolution are listed."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Apply toggle -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="3" Background="{StaticResource Panel2}"
+                                    Margin="0,0,14,0" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                           Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <CheckBox DockPanel.Dock="Right" x:Name="DisplayEnableCheck" VerticalAlignment="Center"
+                                      Checked="DisplayEnable_Changed" Unchecked="DisplayEnable_Changed"/>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+                                <TextBlock Text="Apply while Roblox is open" Foreground="{StaticResource TextBright}" FontSize="13" FontWeight="Bold"/>
+                                <TextBlock Text="Switches to your picks when Roblox launches and reverts when it closes."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <TextBlock x:Name="DisplayStatus" Text="" Foreground="{StaticResource Accent}"
+                               FontSize="11" FontWeight="Bold" TextWrapping="Wrap" Margin="2,6,0,0"/>
+                    <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary — it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
+                               Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="2,8,0,0"/>
 
                 </StackPanel>
 

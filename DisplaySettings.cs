@@ -12,6 +12,12 @@ public readonly record struct DisplayMode(int Width, int Height, int Refresh)
     public string Label => $"{Width} x {Height}";
 }
 
+/// <summary>A screen resolution (width × height), without a refresh rate.</summary>
+public readonly record struct Resolution(int Width, int Height)
+{
+    public override string ToString() => $"{Width} × {Height}";
+}
+
 /// <summary>
 /// Reads the monitor's supported modes and switches resolution / refresh rate, via
 /// ChangeDisplaySettingsEx. Changes use CDS_FULLSCREEN, so they are temporary: they
@@ -48,6 +54,35 @@ public static class DisplaySettings
         return EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref dm)
             ? new DisplayMode((int)dm.dmPelsWidth, (int)dm.dmPelsHeight, (int)dm.dmDisplayFrequency)
             : null;
+    }
+
+    /// <summary>Distinct resolutions from a set of modes, widest first. Pure, testable.</summary>
+    public static List<Resolution> ResolutionsOf(IEnumerable<DisplayMode> modes) =>
+        modes.Select(m => new Resolution(m.Width, m.Height))
+             .Distinct()
+             .OrderByDescending(r => r.Width).ThenByDescending(r => r.Height)
+             .ToList();
+
+    /// <summary>The refresh rates a given resolution supports, highest first. Pure, testable.</summary>
+    public static List<int> RefreshesOf(IEnumerable<DisplayMode> modes, int width, int height) =>
+        modes.Where(m => m.Width == width && m.Height == height)
+             .Select(m => m.Refresh)
+             .Distinct()
+             .OrderByDescending(r => r)
+             .ToList();
+
+    /// <summary>The current desktop colour depth in bits per pixel (0 if unknown).</summary>
+    public static int CurrentBits()
+    {
+        var dm = NewDevMode();
+        return EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref dm) ? (int)dm.dmBitsPerPel : 0;
+    }
+
+    /// <summary>System display scaling as a percentage (100 = 1:1), e.g. 125.</summary>
+    public static int ScalingPercent()
+    {
+        try { uint dpi = GetDpiForSystem(); return dpi > 0 ? (int)Math.Round(dpi * 100.0 / 96.0) : 100; }
+        catch { return 100; }
     }
 
     /// <summary>Switches to the mode (temporarily). Returns false if the driver refused it.</summary>
@@ -93,4 +128,7 @@ public static class DisplaySettings
         public uint dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2;
         public uint dmPanningWidth, dmPanningHeight;
     }
+
+    // ---- Scaling (DPI) ----
+    [DllImport("user32.dll")] private static extern uint GetDpiForSystem();
 }

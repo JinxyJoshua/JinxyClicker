@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace JinxyClicker;
@@ -19,6 +21,7 @@ public partial class MainWindow
     private DisplayMode? _displayMode;
     private bool _displayApplied;
     private bool _loadingDisplay;
+    private List<DisplayMode> _supportedModes = new();
     private readonly DispatcherTimer _displayWatch = new() { Interval = TimeSpan.FromSeconds(2) };
 
     private void InitDisplay(AppSettings s)
@@ -34,45 +37,98 @@ public partial class MainWindow
 
     private void RefreshDisplayOnShow()
     {
-        if (DisplayModeBox is null) return;
+        if (DisplayResBox is null || DisplayRefreshBox is null) return;
         _loadingDisplay = true;
         try
         {
-            if (DisplayModeBox.Items.Count == 0)
-                foreach (DisplayMode m in DisplaySettings.SupportedModes())
-                    DisplayModeBox.Items.Add(m);
+            _supportedModes = DisplaySettings.SupportedModes();
 
+            DisplayResBox.Items.Clear();
+            foreach (Resolution r in DisplaySettings.ResolutionsOf(_supportedModes))
+                DisplayResBox.Items.Add(r);
+
+            // Pick the saved resolution, else the current desktop one, else the widest.
             DisplayMode? want = _displayMode ?? DisplaySettings.Current();
-            if (want is { } w)
-                DisplayModeBox.SelectedItem = DisplayModeBox.Items.Cast<DisplayMode>().FirstOrDefault(m => m == w);
-            if (DisplayModeBox.SelectedItem is null && DisplayModeBox.Items.Count > 0)
-                DisplayModeBox.SelectedIndex = 0;
+            Resolution wantRes = want is { } w ? new Resolution(w.Width, w.Height) : default;
+            DisplayResBox.SelectedItem = DisplayResBox.Items.Cast<Resolution>().FirstOrDefault(r => r == wantRes);
+            if (DisplayResBox.SelectedItem is null && DisplayResBox.Items.Count > 0)
+                DisplayResBox.SelectedIndex = 0;
+
+            PopulateRefreshBox(want?.Refresh);
 
             if (DisplayEnableCheck is not null) DisplayEnableCheck.IsChecked = _displayEnabled;
 
-            // "Your display" summary: the current desktop mode and monitor count.
-            DisplayMode? cur = DisplaySettings.Current();
-            if (DisplayCurrentText is not null) DisplayCurrentText.Text = cur?.ToString() ?? "—";
-            if (DisplayMonitorsText is not null)
-            {
-                int monitors = 0;
-                try { monitors = Displays.All().Count; } catch { }
-                DisplayMonitorsText.Text = monitors <= 0 ? ""
-                    : monitors == 1 ? "1 monitor connected" : monitors + " monitors connected";
-            }
+            // First visit with nothing saved: seed a mode from the boxes so enabling works.
+            if (_displayMode is null
+                && DisplayResBox.SelectedItem is Resolution r0 && DisplayRefreshBox.SelectedItem is int hz0)
+                _displayMode = new DisplayMode(r0.Width, r0.Height, hz0);
+
+            UpdateDisplaySummary();
         }
         catch { }
         _loadingDisplay = false;
         SetDisplayStatus();
     }
 
+    // Fills the refresh-rate box with the rates the selected resolution supports,
+    // keeping the preferred rate if it's still available, else the highest.
+    private void PopulateRefreshBox(int? preferred)
+    {
+        if (DisplayRefreshBox is null || DisplayResBox?.SelectedItem is not Resolution res) return;
+        DisplayRefreshBox.Items.Clear();
+        foreach (int hz in DisplaySettings.RefreshesOf(_supportedModes, res.Width, res.Height))
+            DisplayRefreshBox.Items.Add(hz);
+
+        if (preferred is int p && DisplayRefreshBox.Items.Contains(p))
+            DisplayRefreshBox.SelectedItem = p;
+        else if (DisplayRefreshBox.Items.Count > 0)
+            DisplayRefreshBox.SelectedIndex = 0;
+    }
+
+    // The "your display" hero: the live resolution and a row of stat chips.
+    private void UpdateDisplaySummary()
+    {
+        DisplayMode? cur = DisplaySettings.Current();
+        if (DisplayCurrentText is not null)
+            DisplayCurrentText.Text = cur is { } c ? $"{c.Width} × {c.Height}" : "—";
+
+        if (DisplayChips is null) return;
+        DisplayChips.Children.Clear();
+        if (cur is { } m) AddDisplayChip("REFRESH", m.Refresh + " Hz");
+        AddDisplayChip("SCALING", DisplaySettings.ScalingPercent() + "%");
+        int bits = DisplaySettings.CurrentBits();
+        if (bits > 0) AddDisplayChip("COLOUR", bits + "-bit");
+        int mon = 0;
+        try { mon = Displays.All().Count; } catch { }
+        if (mon > 0) AddDisplayChip("MONITORS", mon.ToString());
+    }
+
+    private void AddDisplayChip(string label, string value)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(new TextBlock
+        {
+            Text = label, FontSize = 9, FontWeight = FontWeights.Bold,
+            Foreground = (Brush)FindResource("TextMuted"),
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0),
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = value, FontSize = 11, FontWeight = FontWeights.Bold,
+            Foreground = (Brush)FindResource("TextBright"), VerticalAlignment = VerticalAlignment.Center,
+        });
+        DisplayChips.Children.Add(new Border
+        {
+            Background = (Brush)FindResource("Panel"),
+            BorderBrush = (Brush)FindResource("Outline"), BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(3), Padding = new Thickness(9, 4, 9, 4),
+            Margin = new Thickness(0, 0, 7, 7), Child = row,
+        });
+    }
+
     // Re-reads the monitor's modes and the current desktop mode (e.g. after plugging
     // in a monitor or changing the resolution in Windows).
-    private void DisplayRefresh_Click(object sender, RoutedEventArgs e)
-    {
-        DisplayModeBox?.Items.Clear();   // force a re-enumerate in RefreshDisplayOnShow
-        RefreshDisplayOnShow();
-    }
+    private void DisplayRefresh_Click(object sender, RoutedEventArgs e) => RefreshDisplayOnShow();
 
     private void DisplayEnable_Changed(object sender, RoutedEventArgs e)
     {
@@ -83,12 +139,29 @@ public partial class MainWindow
         SetDisplayStatus();
     }
 
-    private void DisplayMode_Changed(object sender, SelectionChangedEventArgs e)
+    private void DisplayRes_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_loadingDisplay || DisplayModeBox?.SelectedItem is not DisplayMode m) return;
-        _displayMode = m;
+        if (_loadingDisplay) return;
+        _loadingDisplay = true;
+        PopulateRefreshBox(_displayMode?.Refresh);   // keep the rate if this resolution still has it
+        _loadingDisplay = false;
+        SyncDisplayModeFromBoxes();
+    }
+
+    private void DisplayRate_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingDisplay) return;
+        SyncDisplayModeFromBoxes();
+    }
+
+    // Combines the two dropdowns into the mode to apply, and applies it live if Roblox
+    // is already running under an active switch.
+    private void SyncDisplayModeFromBoxes()
+    {
+        if (DisplayResBox?.SelectedItem is not Resolution r || DisplayRefreshBox?.SelectedItem is not int hz) return;
+        _displayMode = new DisplayMode(r.Width, r.Height, hz);
         _settingsDirty = true;
-        if (_displayApplied) DisplaySettings.Apply(m);   // Roblox is open — switch live
+        if (_displayApplied) DisplaySettings.Apply(_displayMode.Value);
         SetDisplayStatus();
     }
 

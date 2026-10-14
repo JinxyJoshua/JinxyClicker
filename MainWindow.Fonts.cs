@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace JinxyClicker;
@@ -21,6 +22,12 @@ public partial class MainWindow
     private string _customFontName = "";
     private bool _customFontApplied;
     private Border? _selectedFontTile;
+
+    // Keeps the chosen font applied even when Roblox lays down a fresh version folder
+    // mid-session (a Roblox update, which reverts the fonts to stock). The font files
+    // stay writable while Roblox runs, so re-applying here takes effect on the next
+    // join without the user ever opening the font page.
+    private readonly DispatcherTimer _fontWatch = new() { Interval = TimeSpan.FromSeconds(3) };
 
     // Bundled presets (file in the Fonts\ folder, name shown to the user). All are
     // SIL Open Font License — see Fonts\FONTS-LICENSE.txt. "Minecraft" is Monocraft,
@@ -78,11 +85,23 @@ public partial class MainWindow
         }
 
         UpdateFontUi();
+
+        // Keep it applied across mid-session Roblox updates without needing the
+        // font page open.
+        _fontWatch.Tick -= FontWatchTick;
+        _fontWatch.Tick += FontWatchTick;
+        _fontWatch.Start();
+    }
+
+    private void FontWatchTick(object? sender, EventArgs e)
+    {
+        if (IsPro) ReapplyFontIfNeeded();
     }
 
     // Re-applies the chosen font if it's meant to be on but the live Roblox folder
     // isn't swapped — e.g. a Roblox update laid down a fresh folder with the stock
-    // fonts. Best effort: a running Roblox holds the files, so the MOD buttons retry.
+    // fonts. The font files stay writable while Roblox runs, so this succeeds even
+    // mid-session and the custom font is back for the next join.
     private void ReapplyFontIfNeeded()
     {
         if (!_customFontApplied || !File.Exists(FontStorePath)) return;
