@@ -21,9 +21,16 @@ public sealed class RobloxFps : IDisposable
     private TraceEventSession? _session;
     private Thread? _pump;
     private Timer? _sampler;
-    private int _count;          // present events since the last sample
+    private readonly object _lock = new();
+    private readonly System.Collections.Generic.Queue<DateTime> _frames = new();   // recent frame timestamps
+    private DateTime _lastStamp;
     private volatile int _fps;
     private volatile int _robloxPid;
+
+    // Average frames over this many seconds. We window on each frame's own ETW
+    // timestamp, not on when the event was delivered — ETW flushes events in bursts,
+    // so delivery time is jumpy while the timestamps are accurate.
+    private const double WindowSeconds = 2.0;
 
     /// <summary>True once an ETW session is running (requires admin).</summary>
     public bool Available { get; private set; }
@@ -48,7 +55,7 @@ public sealed class RobloxFps : IDisposable
             _pump = new Thread(PumpEvents) { IsBackground = true, Name = "JinxyFps" };
             _pump.Start();
 
-            _sampler = new Timer(Sample, null, 1000, 1000);
+            _sampler = new Timer(Sample, null, 500, 500);
             Available = true;
         }
         catch (Exception ex)
@@ -67,21 +74,48 @@ public sealed class RobloxFps : IDisposable
 
     private void OnEvent(TraceEvent data)
     {
-        // One present == one frame, but DxgKrnl logs both the Start and the Stop of
-        // each present, so counting every "Present" event double-counts (reads ~2x
-        // the real FPS). Count only the Start of each frame.
+        // The DxgKrnl "Present" event fires once per Present() call — one per frame,
+        // in both windowed and fullscreen. (Matching every event whose name merely
+        // contains "Present" also catches present-history and detailed-present events,
+        // which over-counts; and those history events don't fire in fullscreen, so a
+        // history-based count reads zero there.)
         if (data.ProcessID == _robloxPid && _robloxPid != 0
-            && data.Opcode == TraceEventOpcode.Start
-            && data.EventName.IndexOf("Present", StringComparison.Ordinal) >= 0)
+            && data.EventName == "Present")
         {
-            Interlocked.Increment(ref _count);
+            lock (_lock)
+            {
+                _frames.Enqueue(data.TimeStamp);
+                if (data.TimeStamp > _lastStamp) _lastStamp = data.TimeStamp;
+            }
         }
     }
 
     private void Sample(object? _)
     {
+        int prevPid = _robloxPid;
         _robloxPid = FindRobloxPid();
-        _fps = Interlocked.Exchange(ref _count, 0);
+
+        lock (_lock)
+        {
+            if (_robloxPid == 0) { _frames.Clear(); _fps = 0; return; }
+            if (_robloxPid != prevPid) _frames.Clear();   // new game — don't blend across
+
+            // No frames for a couple of seconds → Roblox is minimized/stalled.
+            if (_frames.Count == 0 || (DateTime.Now - _lastStamp).TotalSeconds > 2.0)
+            {
+                _frames.Clear();
+                _fps = 0;
+                return;
+            }
+
+            DateTime cutoff = _lastStamp - TimeSpan.FromSeconds(WindowSeconds);
+            while (_frames.Count > 1 && _frames.Peek() < cutoff) _frames.Dequeue();
+
+            int c = _frames.Count;
+            double span = (_lastStamp - _frames.Peek()).TotalSeconds;
+            // c timestamps span (c-1) frame intervals over `span` seconds.
+            _fps = (c >= 2 && span > 0.3) ? (int)Math.Round((c - 1) / span) : 0;
+        }
     }
 
     // A real-time ETW session outlives a process that doesn't dispose it, and a
