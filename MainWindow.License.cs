@@ -114,6 +114,10 @@ public partial class MainWindow
         ApplyServerPro();
         ApplyTrainerPro();
 
+        // Just went (or stayed) Plus: bring the chosen font back right away rather
+        // than waiting for the font watcher's next tick.
+        if (IsPro) ReapplyFontIfNeeded();
+
         // The bottom-left shortcut reflects the plan: a nudge when free, a badge
         // when active.
         if (NavProCorner is not null)

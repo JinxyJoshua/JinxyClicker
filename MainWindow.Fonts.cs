@@ -74,13 +74,13 @@ public partial class MainWindow
             }
             else
             {
-                // Plus has lapsed. Don't keep forcing the font back, and restore
-                // Roblox's default now — Reset lives on the gated MOD page, so a
-                // Free user would otherwise be stuck with a font they can't undo.
+                // Plus isn't active right now, so put Roblox's default back (the font
+                // is a paid feature). But REMEMBER the choice — don't clear it — so the
+                // moment Plus is active again the watcher re-applies the same font
+                // without the user having to pick it a second time. Losing the
+                // selection here is what made the font "go back to normal" for good.
                 string? dir = RobloxFonts.FindFontsFolder();
                 if (dir != null) { try { RobloxFonts.Reset(dir); } catch { /* retry next launch */ } }
-                _customFontApplied = false;
-                _settingsDirty = true;
             }
         }
 
