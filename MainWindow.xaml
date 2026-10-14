@@ -972,28 +972,6 @@
                             Click="NavSwitcher_Click"/>
                 </StackPanel>
 
-                <!-- The paid features, gathered in one group. Each tab stays visible
-                     so Free users can see what Pro unlocks; clicking one when Free
-                     sends them to the key page (see the NavX_Click handlers). -->
-                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PLUS"
-                        Tag="{Binding ElementName=GroupPro}" Click="NavGroup_Click"/>
-                <StackPanel x:Name="GroupPro">
-                    <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
-                            Click="NavSocd_Click"/>
-                    <Button x:Name="NavKeystrokes" app:NavIcon.Glyph="&#xE765;" Content="KEYSTROKES" Style="{StaticResource NavButton}"
-                            Click="NavKeystrokes_Click"/>
-                    <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
-                            Click="NavClipStudio_Click"/>
-                    <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
-                            Click="NavSetups_Click"/>
-                    <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
-                            Click="NavMod_Click"/>
-                    <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
-                            Click="NavServer_Click"/>
-                    <Button x:Name="NavTrainer" app:NavIcon.Glyph="&#xE1D2;" Content="AIM TRAINER" Style="{StaticResource NavButton}"
-                            Click="NavTrainer_Click"/>
-                </StackPanel>
-
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
                         Tag="{Binding ElementName=GroupGame}" Click="NavGroup_Click"/>
                 <StackPanel x:Name="GroupGame">
@@ -1030,6 +1008,28 @@
                             Click="NavSettings_Click"/>
                     <Button x:Name="NavFeedback" app:NavIcon.Glyph="&#xE939;" Content="FEEDBACK" Style="{StaticResource NavButton}"
                             Click="NavFeedback_Click"/>
+                </StackPanel>
+
+                <!-- The paid features, gathered in one group at the bottom. Each tab
+                     stays visible so Free users can see what Pro unlocks; clicking one
+                     when Free sends them to the key page (see the NavX_Click handlers). -->
+                <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PLUS"
+                        Tag="{Binding ElementName=GroupPro}" Click="NavGroup_Click"/>
+                <StackPanel x:Name="GroupPro">
+                    <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
+                            Click="NavSocd_Click"/>
+                    <Button x:Name="NavKeystrokes" app:NavIcon.Glyph="&#xE765;" Content="KEYSTROKES" Style="{StaticResource NavButton}"
+                            Click="NavKeystrokes_Click"/>
+                    <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
+                            Click="NavClipStudio_Click"/>
+                    <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
+                            Click="NavSetups_Click"/>
+                    <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
+                            Click="NavMod_Click"/>
+                    <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
+                            Click="NavServer_Click"/>
+                    <Button x:Name="NavTrainer" app:NavIcon.Glyph="&#xE1D2;" Content="AIM TRAINER" Style="{StaticResource NavButton}"
+                            Click="NavTrainer_Click"/>
                 </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
