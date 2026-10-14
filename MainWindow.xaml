@@ -1055,12 +1055,6 @@
                             Click="NavFeedback_Click"/>
                 </StackPanel>
 
-                <!-- Discord invite, sitting right above the Plus group — it is where
-                     keys are sold and the community hangs out, so it leads into Plus. -->
-                <Button x:Name="NavDiscord" Style="{StaticResource DiscordCta}"
-                        Margin="6,18,8,4" Click="JoinDiscord_Click"
-                        ToolTip="Join the Jinxy Discord"/>
-
                 <!-- The paid features, gathered in one group at the bottom. Each tab
                      stays visible so Free users can see what Pro unlocks; clicking one
                      when Free sends them to the key page (see the NavX_Click handlers). -->
@@ -1082,6 +1076,12 @@
                     <Button x:Name="NavTrainer" app:NavIcon.Glyph="&#xE1D2;" Content="AIM TRAINER" Style="{StaticResource NavButton}"
                             Click="NavTrainer_Click"/>
                 </StackPanel>
+
+                <!-- Discord invite, right below the Plus group — where keys are sold
+                     and the community hangs out. -->
+                <Button x:Name="NavDiscord" Style="{StaticResource DiscordCta}"
+                        Margin="6,12,8,6" Click="JoinDiscord_Click"
+                        ToolTip="Join the Jinxy Discord"/>
                 </StackPanel>
                 </ScrollViewer>
             </DockPanel>
