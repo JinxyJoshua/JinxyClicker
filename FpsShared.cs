@@ -38,9 +38,4 @@ public static class FpsShared
     }
 
     public static void ClearFps() { try { File.Delete(FpsFile); } catch { } }
-
-    public static void WriteDebug(string line)
-    {
-        try { EnsureDir(); File.WriteAllText(Path.Combine(Dir, "fps-debug.txt"), DateTime.Now + " " + line); } catch { }
-    }
 }

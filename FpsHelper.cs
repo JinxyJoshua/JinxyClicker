@@ -17,7 +17,6 @@ public static class FpsHelper
     {
         using var fps = new RobloxFps();
         fps.Start();
-        FpsShared.WriteDebug($"available={fps.Available} err={fps.LastError}");
         if (!fps.Available) return;   // not actually elevated / session blocked
 
         int idle = 0;           // consecutive 500ms ticks with no Roblox

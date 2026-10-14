@@ -100,10 +100,22 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; WorkingDir: "
 [Run]
 Filename: "{app}\{#AppExeName}"; WorkingDir: "{app}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
 
+[UninstallRun]
+; Best-effort removal of the in-game-FPS helper's scheduled task. After uninstall
+; the task is inert anyway — its exe is gone and it only ever runs on demand, never
+; on a schedule — but a dead Task Scheduler entry is untidy. This runs unelevated
+; (the installer is per-user), so it may not have the rights to delete a task that
+; was registered with highest privileges; the attempt is harmless either way.
+Filename: "{sys}\schtasks.exe"; Parameters: "/delete /tn ""JinxyFpsHelper"" /f"; Flags: runhidden; RunOnceId: "DelFpsTask"
+
 [UninstallDelete]
 ; Settings, presets, bindings and history. Generated at runtime, so Setup never
 ; installed them and would otherwise leave the whole folder behind.
 Type: filesandordirs; Name: "{userappdata}\JinxyClicker"
+
+; The in-game-FPS helper's IPC file (the current frame rate the elevated helper
+; writes for the app to read). Created at runtime, so Setup never installed it.
+Type: filesandordirs; Name: "{localappdata}\JinxyClicker"
 
 ; The rolling replay buffer. Bounded, but it is still up to a minute of video
 ; that nobody asked to keep.
