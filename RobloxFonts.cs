@@ -12,10 +12,13 @@ namespace JinxyClicker;
 /// Roblox resolves a Font to a file through the JSON descriptors in
 /// <c>content\fonts\families</c>: each face has an <c>assetId</c> that is either a
 /// local file (<c>rbxasset://fonts/...</c>) or a cloud asset (<c>rbxassetid://...</c>).
-/// Replacing the local .otf files only changes the faces that use them — chat and
-/// some weights point at cloud assets and stay unchanged. So instead we drop the
-/// custom font in beside the stock ones and rewrite every face's assetId to it,
-/// which covers every weight of every family, chat included.
+/// We do two things so the swap reaches everything. First, drop the custom font in
+/// beside the stock ones and rewrite every face's assetId to it — that covers every
+/// weight of every family that resolves a font by name, cloud-asset faces included.
+/// Second, overwrite the physical UI font files too: the new in-experience chat
+/// references its font file directly rather than through the family descriptor, so
+/// repointing the JSON alone leaves it on the stock font. Emoji and non-Latin
+/// fallback files are left alone (see <see cref="IsReplaceableFontFile"/>).
 ///
 /// Each rewritten JSON keeps a one-time <c>.jinxybak</c> copy of the original so it
 /// can be put back. A Roblox update lays down a fresh folder, so the swap is
@@ -59,6 +62,32 @@ public static class RobloxFonts
             }
             rewritten++;
         }
+
+        // Also overwrite the physical font files. Repointing the family descriptors
+        // covers everything that resolves a font by family name, but the new
+        // in-experience chat references its font FILE directly, so only replacing the
+        // file itself reaches it. Fallbacks and emoji are left as they are.
+        byte[] fontBytes = File.ReadAllBytes(customFontPath);
+        foreach (string file in Directory.EnumerateFiles(fontsDir))
+        {
+            if (!IsReplaceableFontFile(Path.GetFileName(file))) continue;
+
+            string backup = file + BackupSuffix;
+            bool madeBackup = false;
+            try
+            {
+                if (!File.Exists(backup)) { File.Copy(file, backup); madeBackup = true; }
+                File.WriteAllBytes(file, fontBytes);
+            }
+            catch
+            {
+                // Most likely a running Roblox holding the file open. Best effort:
+                // drop the stray backup and carry on — the family-JSON swap still
+                // applied, and the MOD page (or next launch with Roblox closed)
+                // overwrites the file then. Never fail the whole apply over it.
+                if (madeBackup) { try { File.Delete(backup); } catch { } }
+            }
+        }
         return rewritten;
     }
 
@@ -78,6 +107,15 @@ public static class RobloxFonts
                 catch { /* leave it for a retry */ }
             }
         }
+
+        // Put the physical font files back (the ones Apply overwrote).
+        foreach (string backup in Directory.EnumerateFiles(fontsDir, "*" + BackupSuffix).ToList())
+        {
+            string target = backup[..^BackupSuffix.Length];
+            try { File.Copy(backup, target, overwrite: true); File.Delete(backup); }
+            catch { /* leave it for a retry */ }
+        }
+
         try { File.Delete(Path.Combine(fontsDir, CustomFontFile)); } catch { }
         return restored;
     }
@@ -96,6 +134,26 @@ public static class RobloxFonts
     /// </summary>
     public static string PointFamilyAtFont(string json, string assetUri) =>
         Regex.Replace(json, "(\"assetId\"\\s*:\\s*\")[^\"]*(\")", "${1}" + assetUri + "${2}");
+
+    /// <summary>
+    /// True if this file in the fonts folder is one we overwrite with the custom
+    /// font. Repointing the family descriptors covers everything that resolves a
+    /// font by family name, but the new in-experience chat references its font FILE
+    /// directly, so only overwriting the file reaches it. Emoji and the non-Latin
+    /// fallbacks (Noto*) are left alone — a Latin font in their place would render
+    /// those scripts as missing-glyph boxes. Exposed for testing.
+    /// </summary>
+    public static bool IsReplaceableFontFile(string fileName)
+    {
+        string ext = Path.GetExtension(fileName);
+        if (!ext.Equals(".otf", StringComparison.OrdinalIgnoreCase)
+            && !ext.Equals(".ttf", StringComparison.OrdinalIgnoreCase)) return false;
+        if (fileName.Equals(CustomFontFile, StringComparison.OrdinalIgnoreCase)) return false;
+        if (fileName.StartsWith("Noto", StringComparison.OrdinalIgnoreCase)) return false;
+        if (fileName.Equals("RobloxEmoji.ttf", StringComparison.OrdinalIgnoreCase)) return false;
+        if (fileName.Equals("TwemojiMozilla.ttf", StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
+    }
 
     /// <summary>
     /// The live Roblox client's <c>content\fonts</c> folder, or null if Roblox

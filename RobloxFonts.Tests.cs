@@ -22,10 +22,31 @@ public class RobloxFontsTests
         File.WriteAllText(Path.Combine(families, "Gotham.json"),
             "{\"name\":\"Gotham\",\"faces\":[{\"name\":\"Regular\",\"weight\":400,\"assetId\":\"rbxassetid://12345\"}]}");
 
+        // Physical font files beside the families dir, as in a real install: a UI
+        // font the new chat references by file path, plus an emoji/CJK fallback that
+        // must NOT be clobbered (a latin custom font would turn those into boxes).
+        File.WriteAllText(Path.Combine(dir, "BuilderSans-Regular.otf"), "ORIGINAL-BUILDERSANS");
+        File.WriteAllText(Path.Combine(dir, "RobloxEmoji.ttf"), "ORIGINAL-EMOJI");
+        File.WriteAllText(Path.Combine(dir, "NotoSansThaiUI-Regular.ttf"), "ORIGINAL-NOTO");
+
         customFont = Path.Combine(Path.GetTempPath(), "jinxycustom-" + Path.GetRandomFileName() + ".ttf");
         File.WriteAllText(customFont, "CUSTOM-FONT-BYTES");
         return dir;
     }
+
+    [Theory]
+    [InlineData("BuilderSans-Regular.otf", true)]
+    [InlineData("BuilderSans-Medium.otf", true)]
+    [InlineData("SourceSansPro-Regular.ttf", true)]
+    [InlineData("Bangers-Regular.ttf", true)]
+    [InlineData("NotoSansThaiUI-Regular.ttf", false)]   // non-latin fallback
+    [InlineData("NotoSansCJKjp-Regular.ttf", false)]    // CJK fallback
+    [InlineData("RobloxEmoji.ttf", false)]
+    [InlineData("TwemojiMozilla.ttf", false)]
+    [InlineData("JinxyCustom.ttf", false)]              // our own drop-in
+    [InlineData("gamecontrollerdb.txt", false)]         // not a font
+    public void IsReplaceableFontFile_takes_latin_ui_fonts_not_fallbacks(string name, bool expected)
+        => Assert.Equal(expected, RobloxFonts.IsReplaceableFontFile(name));
 
     [Fact]
     public void PointFamilyAtFont_repoints_every_assetId_local_and_cloud()
@@ -59,6 +80,15 @@ public class RobloxFontsTests
             Assert.DoesNotContain("rbxassetid://", builder);          // cloud face repointed too
             Assert.DoesNotContain("BuilderSans-Regular.otf", builder); // local face repointed
             Assert.True(File.Exists(Path.Combine(dir, "families", "BuilderSans.json.jinxybak")));
+
+            // The physical UI font file is overwritten with the custom font (so the
+            // new chat, which references the file directly, picks it up), backed up,
+            // while the emoji/CJK fallbacks are left alone.
+            Assert.Equal("CUSTOM-FONT-BYTES", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf")));
+            Assert.True(File.Exists(Path.Combine(dir, "BuilderSans-Regular.otf.jinxybak")));
+            Assert.Equal("ORIGINAL-EMOJI", File.ReadAllText(Path.Combine(dir, "RobloxEmoji.ttf")));
+            Assert.Equal("ORIGINAL-NOTO", File.ReadAllText(Path.Combine(dir, "NotoSansThaiUI-Regular.ttf")));
+            Assert.False(File.Exists(Path.Combine(dir, "RobloxEmoji.ttf.jinxybak")));
         }
         finally { Cleanup(dir, custom); }
     }
@@ -93,6 +123,10 @@ public class RobloxFontsTests
             Assert.DoesNotContain("JinxyCustom", builder);
             Assert.False(File.Exists(Path.Combine(dir, "JinxyCustom.ttf")));
             Assert.False(File.Exists(Path.Combine(dir, "families", "BuilderSans.json.jinxybak")));
+
+            // The physical font file is restored to its original and its backup removed.
+            Assert.Equal("ORIGINAL-BUILDERSANS", File.ReadAllText(Path.Combine(dir, "BuilderSans-Regular.otf")));
+            Assert.False(File.Exists(Path.Combine(dir, "BuilderSans-Regular.otf.jinxybak")));
         }
         finally { Cleanup(dir, custom); }
     }
