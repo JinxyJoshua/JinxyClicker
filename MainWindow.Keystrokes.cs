@@ -12,7 +12,7 @@ namespace JinxyClicker;
 public partial class MainWindow
 {
     private KeystrokeOverlay? _keystrokes;
-    private readonly DispatcherTimer _fpsHeartbeat = new() { Interval = TimeSpan.FromSeconds(3) };
+    private readonly DispatcherTimer _fpsHeartbeat = new() { Interval = TimeSpan.FromSeconds(2) };
     private bool _fpsHeartbeatWired;
     private bool _keystrokesEnabled;
     private bool _keystrokesMoving;
@@ -66,14 +66,21 @@ public partial class MainWindow
     }
 
     // Kicks the elevated helper (via its scheduled task) and keeps a heartbeat so it
-    // stays alive while we want FPS and exits on its own when we stop.
+    // stays alive while we want FPS. The helper exits on its own once Roblox closes,
+    // so the heartbeat relaunches it whenever no fresh FPS is coming through (Roblox
+    // opened after the helper gave up, or the helper died).
     private void StartFpsHelper()
     {
-        FpsShared.Ping();
         FpsTask.Start();
         if (!_fpsHeartbeatWired)
         {
-            _fpsHeartbeat.Tick += (_, _) => FpsShared.Ping();
+            _fpsHeartbeat.Tick += (_, _) =>
+            {
+                // No fresh FPS → the helper isn't running. (Re)launch it. The task's
+                // single-instance policy makes a re-trigger a no-op when one is
+                // already running.
+                if (FpsShared.ReadFps() is null) FpsTask.Start();
+            };
             _fpsHeartbeatWired = true;
         }
         _fpsHeartbeat.Start();

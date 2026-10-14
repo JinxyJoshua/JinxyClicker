@@ -21,16 +21,18 @@ public static class FpsTask
     }
 
     /// <summary>
-    /// Creates the task if it isn't there yet. The create is elevated (one UAC);
-    /// returns true if the task exists afterwards (already there, or just made).
+    /// Creates the task if it isn't there yet, or recreates it if an existing task
+    /// points at a different exe (e.g. after an update or a move) — otherwise the
+    /// task would silently run a stale build. The create is elevated (one UAC);
+    /// returns true if the task exists afterwards (already current, or just made).
     /// </summary>
     public static bool EnsureCreated()
     {
-        if (Exists()) return true;
+        string exe = Environment.ProcessPath ?? "";
+        if (exe.Length == 0) return false;
+        if (Exists() && RegisteredExeMatches(exe)) return true;
         try
         {
-            string exe = Environment.ProcessPath ?? "";
-            if (exe.Length == 0) return false;
 
             // Run the helper as the current user, with highest privileges, on demand.
             string args =
@@ -55,6 +57,30 @@ public static class FpsTask
 
     public static void Start() { try { RunSchtasks($"/run /tn \"{TaskName}\""); } catch { } }
     public static void Stop() { try { RunSchtasks($"/end /tn \"{TaskName}\""); } catch { } }
+
+    // True if the existing task's "Task To Run" command references this exe. Used so
+    // a task left over from an older build at a different path gets recreated instead
+    // of silently launching the stale copy. Unknown (query failed) → assume a match,
+    // so we never nag with a UAC prompt on a false alarm.
+    private static bool RegisteredExeMatches(string exe)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("schtasks", $"/query /tn \"{TaskName}\" /fo list /v")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            using Process p = Process.Start(psi)!;
+            string outp = p.StandardOutput.ReadToEnd();
+            p.StandardError.ReadToEnd();
+            p.WaitForExit(5000);
+            return outp.IndexOf(exe, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+        catch { return true; }
+    }
 
     private static int RunSchtasks(string args)
     {
