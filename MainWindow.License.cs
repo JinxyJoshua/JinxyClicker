@@ -110,6 +110,7 @@ public partial class MainWindow
         ApplySocdPro();
         ApplyKeystrokesPro();
         ApplyModPro();
+        ApplyDisplayPro();
         ApplyServerPro();
         ApplyTrainerPro();
 

@@ -7,7 +7,7 @@ using System.Windows.Threading;
 namespace JinxyClicker;
 
 /// <summary>
-/// Display switching (Plus, on the MOD page): pick a resolution / refresh rate and
+/// Display switching (Plus, on its own tab): pick a resolution / refresh rate and
 /// it is applied while Roblox is open and reverted when it closes. A background
 /// watcher drives the lifecycle, so it works even when you're on another page, and
 /// the change is reverted on app exit too (and, because it's a temporary mode, by
@@ -49,10 +49,29 @@ public partial class MainWindow
                 DisplayModeBox.SelectedIndex = 0;
 
             if (DisplayEnableCheck is not null) DisplayEnableCheck.IsChecked = _displayEnabled;
+
+            // "Your display" summary: the current desktop mode and monitor count.
+            DisplayMode? cur = DisplaySettings.Current();
+            if (DisplayCurrentText is not null) DisplayCurrentText.Text = cur?.ToString() ?? "—";
+            if (DisplayMonitorsText is not null)
+            {
+                int monitors = 0;
+                try { monitors = Displays.All().Count; } catch { }
+                DisplayMonitorsText.Text = monitors <= 0 ? ""
+                    : monitors == 1 ? "1 monitor connected" : monitors + " monitors connected";
+            }
         }
         catch { }
         _loadingDisplay = false;
         SetDisplayStatus();
+    }
+
+    // Re-reads the monitor's modes and the current desktop mode (e.g. after plugging
+    // in a monitor or changing the resolution in Windows).
+    private void DisplayRefresh_Click(object sender, RoutedEventArgs e)
+    {
+        DisplayModeBox?.Items.Clear();   // force a re-enumerate in RefreshDisplayOnShow
+        RefreshDisplayOnShow();
     }
 
     private void DisplayEnable_Changed(object sender, RoutedEventArgs e)

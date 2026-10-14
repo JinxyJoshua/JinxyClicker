@@ -3629,9 +3629,15 @@ public partial class MainWindow : Window
         RefreshFlags();
         RefreshGraySky();
         RefreshMouseSens();
-        RefreshDisplayOnShow();
         ShowPage(NavMod, PageMod, "Mod", "Roblox client settings");
         RefreshFontsOnShow();   // catch a mid-session Roblox update and sync the status
+    }
+
+    private void NavDisplay_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
+        RefreshDisplayOnShow();
+        ShowPage(NavDisplay, PageDisplay, "Display", "Resolution & refresh while Roblox is open");
     }
 
     // The MOD tab stays visible so Free users see it exists, but its content is
@@ -3640,6 +3646,13 @@ public partial class MainWindow : Window
     private void ApplyModPro()
     {
         if (!IsPro && PageMod is { Visibility: Visibility.Visible })
+            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
+    }
+
+    // Same gating for the Display tab (a Plus feature on its own page now).
+    private void ApplyDisplayPro()
+    {
+        if (!IsPro && PageDisplay is { Visibility: Visibility.Visible })
             ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
     }
 
@@ -5038,13 +5051,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavSocd, NavKeystrokes, NavMod, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavMacros, NavSwitcher, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageSocd, PageKeystrokes, PageMod, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageMacros, PageSwitcher, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----

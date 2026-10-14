@@ -1071,6 +1071,8 @@
                             Click="NavSetups_Click"/>
                     <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
                             Click="NavMod_Click"/>
+                    <Button x:Name="NavDisplay" app:NavIcon.Glyph="&#xE7F4;" Content="DISPLAY" Style="{StaticResource NavButton}"
+                            Click="NavDisplay_Click"/>
                     <Button x:Name="NavServer" app:NavIcon.Glyph="&#xE774;" Content="SERVER" Style="{StaticResource NavButton}"
                             Click="NavServer_Click"/>
                     <Button x:Name="NavTrainer" app:NavIcon.Glyph="&#xE1D2;" Content="AIM TRAINER" Style="{StaticResource NavButton}"
@@ -2896,6 +2898,52 @@
 
                 </StackPanel>
 
+                <StackPanel x:Name="PageDisplay" Visibility="Collapsed">
+
+                    <!-- Current screen at a glance. -->
+                    <Border Background="{StaticResource Panel2}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                <TextBlock Text="YOUR DISPLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock x:Name="DisplayCurrentText" Text="&#8212;" Foreground="{StaticResource TextBright}"
+                                           FontSize="22" FontWeight="Black" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="DisplayMonitorsText" Text="" Foreground="{StaticResource TextMuted}"
+                                           FontSize="11" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Right" Content="Refresh" Click="DisplayRefresh_Click"
+                                    Height="34" Padding="16,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Switch resolution and refresh rate while Roblox is open, and back to normal when it closes. Lower or stretched resolutions can mean bigger models and more FPS."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="RESOLUTION &amp; REFRESH" Foreground="{StaticResource TextSoft}" FontSize="9" FontWeight="Bold" Margin="0,14,0,0"/>
+                            <ComboBox x:Name="DisplayModeBox" Width="260" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                      SelectionChanged="DisplayMode_Changed"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="430">
+                                    <TextBlock Text="APPLY WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextSoft}" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Switches to the mode above when Roblox launches and reverts when it closes."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="DisplayEnableCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                          Checked="DisplayEnable_Changed" Unchecked="DisplayEnable_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock x:Name="DisplayStatus" Text="" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                            <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary — it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
+                                       Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
                 <StackPanel x:Name="PageMod" Visibility="Collapsed">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
@@ -2993,32 +3041,6 @@
                             </StackPanel>
                             <TextBlock x:Name="MouseSensStatus" Text="" Foreground="{StaticResource TextMuted}"
                                        FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="DISPLAY — RESOLUTION &amp; REFRESH" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Switch resolution and refresh rate while Roblox is open, and back to normal when it closes. Lower or stretched resolutions can mean bigger models and more FPS."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <ComboBox x:Name="DisplayModeBox" Width="240" HorizontalAlignment="Left" Margin="0,12,0,0"
-                                      SelectionChanged="DisplayMode_Changed"/>
-
-                            <DockPanel LastChildFill="False" Margin="0,12,0,0">
-                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="430">
-                                    <TextBlock Text="APPLY WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextSoft}" FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Switches to the mode above when Roblox launches and reverts when it closes."
-                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <CheckBox x:Name="DisplayEnableCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
-                                          Checked="DisplayEnable_Changed" Unchecked="DisplayEnable_Changed"/>
-                            </DockPanel>
-
-                            <TextBlock x:Name="DisplayStatus" Text="" Foreground="{StaticResource TextMuted}"
-                                       FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"/>
-                            <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary — it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
-                                       Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
 
