@@ -900,6 +900,51 @@
             </Setter>
         </Style>
 
+        <!-- Join-the-Discord shortcut above the Plus group. Discord blurple with a
+             matching glow so it pops against the dark sidebar and reads as the thing
+             to click. Opens the invite (JoinDiscord_Click). -->
+        <Style x:Key="DiscordCta" TargetType="Button">
+            <Setter Property="Background" Value="#5865F2"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="10,0">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="16" ShadowDepth="0"
+                                                  Opacity="0.75" Color="#5865F2"/>
+                            </Border.Effect>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="&#xE8BD;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="JOIN DISCORD" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#6B74F5"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="26" ShadowDepth="0"
+                                                          Opacity="0.95" Color="#5865F2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- A small flat outlined button for clip-row actions and dialog
              secondaries, so they read as part of the dark UI, not default chrome. -->
         <!-- Small bordered action button. Inherits the default Button template
@@ -1009,6 +1054,12 @@
                     <Button x:Name="NavFeedback" app:NavIcon.Glyph="&#xE939;" Content="FEEDBACK" Style="{StaticResource NavButton}"
                             Click="NavFeedback_Click"/>
                 </StackPanel>
+
+                <!-- Discord invite, sitting right above the Plus group — it is where
+                     keys are sold and the community hangs out, so it leads into Plus. -->
+                <Button x:Name="NavDiscord" Style="{StaticResource DiscordCta}"
+                        Margin="6,18,8,4" Click="JoinDiscord_Click"
+                        ToolTip="Join the Jinxy Discord"/>
 
                 <!-- The paid features, gathered in one group at the bottom. Each tab
                      stays visible so Free users can see what Pro unlocks; clicking one
