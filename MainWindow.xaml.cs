@@ -3638,7 +3638,7 @@ public partial class MainWindow : Window
     {
         if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
         RefreshDisplayOnShow();
-        ShowPage(NavDisplay, PageDisplay, "Display", "Resolution & refresh while Roblox is open");
+        ShowPage(NavDisplay, PageDisplay, "Display", "Your screen, tuned for Roblox — resolution & refresh rate");
     }
 
     // The MOD tab stays visible so Free users see it exists, but its content is

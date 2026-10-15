@@ -1029,6 +1029,30 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- One-click resolution preset tiles on the Display page. -->
+        <Style x:Key="PresetChip" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{StaticResource Panel2}" BorderBrush="{StaticResource Outline}"
+                                BorderThickness="1" CornerRadius="3" Padding="13,8">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Panel}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -2995,10 +3019,32 @@
                         </DockPanel>
                     </Border>
 
-                    <TextBlock Text="WHILE ROBLOX IS OPEN" Foreground="{StaticResource TextMuted}"
+                    <!-- Live link to Roblox, so it's obvious the whole page drives the game. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="14,12" Margin="0,0,0,16">
+                        <DockPanel LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                       Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="DisplayRobloxDot" DockPanel.Dock="Left" Text="&#x25CF;" Foreground="{StaticResource TextMuted}"
+                                       FontSize="12" VerticalAlignment="Center" Margin="0,0,9,0"/>
+                            <TextBlock x:Name="DisplayRobloxStatus" Text="Checking Roblox&#8230;" Foreground="{StaticResource TextSoft}"
+                                       FontSize="12" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                    </Border>
+
+                    <TextBlock Text="RESOLUTION FOR ROBLOX" Foreground="{StaticResource TextMuted}"
                                FontSize="10" FontWeight="Bold" Margin="2,2,0,4"/>
                     <TextBlock Text="Switch resolution and refresh rate the moment Roblox opens, and back to normal when it closes. Lower or stretched resolutions can mean bigger models and more FPS."
                                Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,0,0,12"/>
+
+                    <!-- One-click Roblox presets, built from supported modes in code. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="QUICK PRESETS" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold"/>
+                            <TextBlock Text="One tap to a competitive setup, then it applies while Roblox is open. Stretched sizes fill the screen for bigger models and a wider view in BedWars."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <WrapPanel x:Name="DisplayPresets" Margin="0,12,0,2"/>
+                        </StackPanel>
+                    </Border>
 
                     <!-- Resolution -->
                     <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
@@ -3056,8 +3102,29 @@
 
                     <TextBlock x:Name="DisplayStatus" Text="" Foreground="{StaticResource Accent}"
                                FontSize="11" FontWeight="Bold" TextWrapping="Wrap" Margin="2,6,0,0"/>
+
+                    <!-- Roblox context: why you'd change this, and where the rest lives. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="WHY CHANGE THIS FOR ROBLOX?" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold"/>
+                            <StackPanel Margin="0,8,0,0">
+                                <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
+                                           Text="&#x2022;  Lower resolutions render fewer pixels, so Roblox pushes more frames."/>
+                                <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
+                                           Text="&#x2022;  Stretched 4:3 / 5:4 sizes blow players and blocks up bigger and widen your view — the classic BedWars edge."/>
+                                <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
+                                           Text="&#x2022;  A higher refresh rate shows those extra frames, so aim feels smoother."/>
+                                <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap"
+                                           Text="&#x2022;  It all reverts the instant Roblox closes — your desktop is never left stretched."/>
+                            </StackPanel>
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
+                            <TextBlock Margin="0,12,0,0" Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"
+                                       Text="Want an FPS cap or the graphics renderer (D3D11 / Vulkan)? Those live on the MOD page under FPS Boost."/>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary — it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
-                               Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="2,8,0,0"/>
+                               Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="2,12,0,0"/>
 
                 </StackPanel>
 

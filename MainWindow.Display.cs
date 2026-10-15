@@ -64,10 +64,75 @@ public partial class MainWindow
                 _displayMode = new DisplayMode(r0.Width, r0.Height, hz0);
 
             UpdateDisplaySummary();
+            BuildDisplayPresets();
+            UpdateDisplayRobloxStatus();
         }
         catch { }
         _loadingDisplay = false;
         SetDisplayStatus();
+    }
+
+    // One-click Roblox resolution presets, built from what the monitor supports.
+    private void BuildDisplayPresets()
+    {
+        if (DisplayPresets is null) return;
+        DisplayPresets.Children.Clear();
+        foreach ((Resolution res, string label, string why) in DisplaySettings.PresetsFor(_supportedModes))
+            DisplayPresets.Children.Add(MakePresetChip(res, label, why));
+    }
+
+    private System.Windows.UIElement MakePresetChip(Resolution res, string label, string why)
+    {
+        var stack = new StackPanel();
+        stack.Children.Add(new TextBlock
+        {
+            Text = label.ToUpperInvariant(), FontSize = 8, FontWeight = FontWeights.Bold,
+            Foreground = (Brush)FindResource("Accent"),
+        });
+        stack.Children.Add(new TextBlock
+        {
+            Text = res.ToString(), FontSize = 13, FontWeight = FontWeights.Bold,
+            Foreground = (Brush)FindResource("TextBright"), Margin = new Thickness(0, 2, 0, 0),
+        });
+        var btn = new Button
+        {
+            Content = stack,
+            Style = (Style)FindResource("PresetChip"),
+            Margin = new Thickness(0, 0, 8, 8),
+            ToolTip = why,
+            Tag = res,
+        };
+        btn.Click += DisplayPreset_Click;
+        return btn;
+    }
+
+    // Picking a preset selects its resolution and turns the switch on, so it actually
+    // takes effect in Roblox with one click.
+    private void DisplayPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button b || b.Tag is not Resolution res || DisplayResBox is null) return;
+
+        DisplayResBox.SelectedItem = DisplayResBox.Items.Cast<Resolution>().FirstOrDefault(r => r == res);
+        if (DisplayEnableCheck is { IsChecked: not true }) DisplayEnableCheck.IsChecked = true;
+    }
+
+    // Live "this drives Roblox" line: open/closed, whether the switch is active, and
+    // the in-game FPS when the overlay's FPS reader is running.
+    private void UpdateDisplayRobloxStatus()
+    {
+        if (DisplayRobloxStatus is null) return;
+
+        bool roblox = RobloxIsRunning();
+        int? fps = FpsShared.ReadFps();
+        string fpsPart = fps is int f && f > 0 ? $"  ·  {f} FPS" : "";
+
+        DisplayRobloxStatus.Text = !roblox ? "Roblox is closed — your picks apply the moment it opens."
+            : _displayApplied ? $"Roblox is open — display switched{fpsPart}."
+            : _displayEnabled ? $"Roblox is open — switching when you join{fpsPart}."
+            : $"Roblox is open{fpsPart}.";
+
+        if (DisplayRobloxDot is not null)
+            DisplayRobloxDot.Foreground = (Brush)FindResource(roblox ? "Accent" : "TextMuted");
     }
 
     // Fills the refresh-rate box with the rates the selected resolution supports,
@@ -177,6 +242,8 @@ public partial class MainWindow
             DisplaySettings.Revert();
             _displayApplied = false;
         }
+
+        UpdateDisplayRobloxStatus();   // keep the live Roblox line current
     }
 
     private static bool RobloxIsRunning()

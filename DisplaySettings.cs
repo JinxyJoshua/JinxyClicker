@@ -71,6 +71,41 @@ public static class DisplaySettings
              .OrderByDescending(r => r)
              .ToList();
 
+    // Resolutions Roblox players reach for: 16:9 steps down for more frames, and the
+    // 4:3 / 5:4 ones that stretch to fill a widescreen so models look bigger and the
+    // view is wider — the classic BedWars "stretched res" look.
+    private static readonly (int W, int H, string Label, string Why)[] CuratedPresets =
+    {
+        (1600, 900,  "Balanced",  "A step down for more frames"),
+        (1366, 768,  "Balanced",  "16:9, lighter on the GPU"),
+        (1280, 1024, "Stretched", "5:4 — wider, bigger models"),
+        (1280, 960,  "Stretched", "4:3 — the classic stretched look"),
+        (1152, 864,  "Stretched", "4:3 — bigger models, more FPS"),
+        (1024, 768,  "Low",       "Lowest — most frames, chunkiest models"),
+    };
+
+    /// <summary>
+    /// One-click resolution presets for Roblox, filtered to what the monitor actually
+    /// reports: the native resolution first, then the supported curated ones. Pure,
+    /// testable.
+    /// </summary>
+    public static List<(Resolution Res, string Label, string Why)> PresetsFor(IEnumerable<DisplayMode> modes)
+    {
+        List<Resolution> res = ResolutionsOf(modes);
+        var result = new List<(Resolution, string, string)>();
+        if (res.Count == 0) return result;
+
+        result.Add((res[0], "Native", "Your monitor's real resolution"));
+
+        var have = new HashSet<Resolution>(res);
+        foreach ((int w, int h, string label, string why) in CuratedPresets)
+        {
+            var r = new Resolution(w, h);
+            if (r != res[0] && have.Contains(r)) result.Add((r, label, why));
+        }
+        return result;
+    }
+
     /// <summary>The current desktop colour depth in bits per pixel (0 if unknown).</summary>
     public static int CurrentBits()
     {

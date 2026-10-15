@@ -49,6 +49,28 @@ public class DisplaySettingsTests
     }
 
     [Fact]
+    public void PresetsFor_lists_native_first_then_supported_curated_only()
+    {
+        var modes = new List<DisplayMode>
+        {
+            new(1920, 1080, 144), new(1600, 900, 60), new(1280, 960, 60), new(800, 600, 60),
+        };
+
+        var p = DisplaySettings.PresetsFor(modes);
+
+        Assert.Equal(new Resolution(1920, 1080), p[0].Res);   // native = widest
+        Assert.Equal("Native", p[0].Label);
+        Assert.Contains(p, x => x.Res == new Resolution(1600, 900));   // supported curated
+        Assert.Contains(p, x => x.Res == new Resolution(1280, 960));
+        Assert.DoesNotContain(p, x => x.Res == new Resolution(800, 600));   // not a curated preset
+        Assert.Single(p.Where(x => x.Res == new Resolution(1920, 1080)));   // native not duplicated
+    }
+
+    [Fact]
+    public void PresetsFor_is_empty_without_modes()
+        => Assert.Empty(DisplaySettings.PresetsFor(new List<DisplayMode>()));
+
+    [Fact]
     public void Hardware_queries_do_not_throw_or_corrupt()
     {
         // Runs the real Win32 / DisplayConfig calls on the test machine. Values are
