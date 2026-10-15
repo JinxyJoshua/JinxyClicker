@@ -3100,8 +3100,18 @@
                         </DockPanel>
                     </Border>
 
+                    <Button x:Name="DisplayResetButton" Click="DisplayReset_Click" HorizontalAlignment="Left"
+                            Height="34" Padding="14,0" Margin="0,2,0,0"
+                            ToolTip="Revert now and keep your monitor's normal resolution">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Back to default resolution" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <TextBlock x:Name="DisplayStatus" Text="" Foreground="{StaticResource Accent}"
-                               FontSize="11" FontWeight="Bold" TextWrapping="Wrap" Margin="2,6,0,0"/>
+                               FontSize="11" FontWeight="Bold" TextWrapping="Wrap" Margin="2,10,0,0"/>
 
                     <!-- Roblox context: why you'd change this, and where the rest lives. -->
                     <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,14,0,0">

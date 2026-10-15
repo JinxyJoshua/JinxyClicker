@@ -195,6 +195,19 @@ public partial class MainWindow
     // in a monitor or changing the resolution in Windows).
     private void DisplayRefresh_Click(object sender, RoutedEventArgs e) => RefreshDisplayOnShow();
 
+    // One click back to normal: restore the saved desktop mode now, turn the switch
+    // off so nothing re-applies, and re-select the native resolution.
+    private void DisplayReset_Click(object sender, RoutedEventArgs e)
+    {
+        try { DisplaySettings.Revert(); } catch { }
+        _displayApplied = false;
+        _displayEnabled = false;
+        _displayMode = null;          // forget the target so the box lands on native
+        _settingsDirty = true;
+        RefreshDisplayOnShow();        // unchecks the toggle and re-selects native
+        if (DisplayStatus is not null) DisplayStatus.Text = "Back to your default resolution.";
+    }
+
     private void DisplayEnable_Changed(object sender, RoutedEventArgs e)
     {
         if (_loadingDisplay || DisplayEnableCheck is null) return;
