@@ -1,14 +1,19 @@
 // Jinxy site Worker.
 //
-// Serves the static site (from the `site/` assets) and handles /download by
-// streaming the installer from the GitHub release server-side. Visitors only
-// ever see this domain; the GitHub URL below exists only here, never in the
-// browser. On a new release, upload the installer under the same asset name
-// and this keeps pointing at the newest one.
+// Serves the static site (from the `site/` assets) and handles /download.
+//
+// /download redirects to the GitHub release asset rather than streaming it
+// through the Worker. Streaming an 85 MB installer through a *.workers.dev
+// domain was failing for some visitors: browsers (Chrome/SmartScreen) block
+// executables from low-reputation worker domains far more than from github.com,
+// and edge-caching an installer whose size changes each release could serve a
+// truncated file (cached content-length vs a fresher body). GitHub's CDN is
+// reputable, sets correct headers, and never truncates. On a new release,
+// publishing the installer under the same asset name keeps this pointing at the
+// newest one. The permalink always resolves to the latest release's asset.
 
 const INSTALLER_URL =
   "https://github.com/oneforetheages/jinxy-download/releases/latest/download/JinxyAutoClicker-Beta-Setup.exe";
-const FILENAME = "JinxyAutoClicker-Beta-Setup.exe";
 
 export default {
   async fetch(request, env) {
@@ -18,30 +23,12 @@ export default {
       if (request.method !== "GET" && request.method !== "HEAD") {
         return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
       }
-      let upstream;
-      try {
-        // Cache the installer at Cloudflare's edge so each visitor isn't a fresh
-        // full fetch from GitHub.
-        upstream = await fetch(INSTALLER_URL, { redirect: "follow", cf: { cacheEverything: true, cacheTtl: 600 } });
-      } catch {
-        upstream = null;
-      }
-
-      if (!upstream || !upstream.ok || !upstream.body) {
-        return new Response(
-          "The download is temporarily unavailable. Please try again in a moment.",
-          { status: 502, headers: { "content-type": "text/plain; charset=utf-8" } }
-        );
-      }
-
-      const headers = new Headers();
-      headers.set("content-type", "application/octet-stream");
-      headers.set("content-disposition", `attachment; filename="${FILENAME}"`);
-      const len = upstream.headers.get("content-length");
-      if (len) headers.set("content-length", len);
-      headers.set("cache-control", "public, max-age=600");
-
-      return new Response(upstream.body, { status: 200, headers });
+      // no-store so the redirect itself is never cached — it always points at
+      // whatever the latest release currently is.
+      return new Response(null, {
+        status: 302,
+        headers: { location: INSTALLER_URL, "cache-control": "no-store" },
+      });
     }
 
     // Everything else: serve the static site.
