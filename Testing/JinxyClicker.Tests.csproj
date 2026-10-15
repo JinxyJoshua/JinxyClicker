@@ -117,6 +117,10 @@
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->
     <Compile Include="../DisplayInfo.cs" />
     <Compile Include="../GpuInfo.cs" />
+    <Compile Include="../DisplaySettings.cs" />
+    <Compile Include="../DisplaySettings.Tests.cs" />
+    <Compile Include="../NavLayout.cs" />
+    <Compile Include="../NavLayout.Tests.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -153,6 +153,7 @@ public partial class MainWindow
         var nav = new Button
         {
             Content = "DEV",
+            Name = "NavDev",   // so the sidebar-reorder feature can track/persist it
             Style = (Style)FindResource("NavButton")
         };
 

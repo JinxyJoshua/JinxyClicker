@@ -1899,6 +1899,8 @@ public partial class MainWindow : Window
     private void ApplyAppSettings(AppSettings s)
     {
         LoadDevForcePro();   // dev builds: restore the forced Pro/Free gate before licence eval
+        _navLayoutJson = s.NavLayout;
+        InitNavReorder();    // restore the custom sidebar order and enable drag-reordering
         ApplySwitcherToUi(s);
         LoadCrosshair(s);
 
@@ -2092,6 +2094,7 @@ public partial class MainWindow : Window
             CrosshairApplied = _crosshairApplied,
             CustomFontName = _customFontName,
             CustomFontApplied = _customFontApplied,
+            NavLayout = _navLayoutJson,
             CrosshairSizes = _crosshairSizes,
             CustomCrosshairs = _customCrosshairs,
             ReplayEnabled = ReplayEnabled.IsChecked == true,

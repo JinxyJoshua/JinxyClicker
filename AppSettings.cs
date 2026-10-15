@@ -131,6 +131,13 @@ public sealed class AppSettings
     public bool CustomFontApplied { get; set; }
 
     /// <summary>
+    /// The user's custom sidebar order (groups and the items inside them), as JSON.
+    /// Null means the default order. Reconciled against the live sidebar on load so
+    /// new tabs appear and removed ones drop out — see <see cref="JinxyClicker.NavLayout"/>.
+    /// </summary>
+    public string? NavLayout { get; set; }
+
+    /// <summary>
     /// The size, as a percentage, kept per crosshair by name.
     /// </summary>
     /// <remarks>
