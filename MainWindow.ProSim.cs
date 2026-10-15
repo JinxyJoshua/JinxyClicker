@@ -17,6 +17,35 @@ public partial class MainWindow
     // RefreshLicense (also under DEVTOOLS).
     private bool? _devForceProOverride;
 
+    // Persist the choice so a dev build stays on the forced gate across launches
+    // (otherwise it defaults to the real/unkeyed licence = Free every start).
+    private static string DevForceProPath => SettingsPath.For("devforcepro.txt");
+
+    partial void LoadDevForcePro()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(DevForceProPath)) return;
+            _devForceProOverride = System.IO.File.ReadAllText(DevForceProPath).Trim() switch
+            {
+                "pro" => true,
+                "free" => false,
+                _ => null,
+            };
+        }
+        catch { }
+    }
+
+    private void SaveDevForcePro()
+    {
+        try
+        {
+            System.IO.File.WriteAllText(DevForceProPath,
+                _devForceProOverride == true ? "pro" : _devForceProOverride == false ? "free" : "real");
+        }
+        catch { }
+    }
+
     private Border BuildProSimPanel()
     {
         var body = new StackPanel();
@@ -52,6 +81,7 @@ public partial class MainWindow
             btn.Click += (_, _) =>
             {
                 _devForceProOverride = value;
+                SaveDevForcePro();  // remember across launches
                 RefreshLicense();   // re-applies every page's Pro gating live
                 MarkProSimButtons(row);
             };

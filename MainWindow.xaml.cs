@@ -1898,6 +1898,7 @@ public partial class MainWindow : Window
 
     private void ApplyAppSettings(AppSettings s)
     {
+        LoadDevForcePro();   // dev builds: restore the forced Pro/Free gate before licence eval
         ApplySwitcherToUi(s);
         LoadCrosshair(s);
 
@@ -5485,6 +5486,13 @@ public partial class MainWindow : Window
     /// no handler, and no strings that hint either exists.
     /// </remarks>
     partial void ShowDevToolsIfBuilt();
+
+    /// <summary>
+    /// Restores the dev Pro-gate choice (Force Pro / Force Free / real licence) from
+    /// its persisted file, early enough that the first licence evaluation sees it.
+    /// Erased in public builds along with the rest of the dev tooling.
+    /// </summary>
+    partial void LoadDevForcePro();
 
     /// <summary>
     /// Lets a page stop whatever it was running when another one is shown.
