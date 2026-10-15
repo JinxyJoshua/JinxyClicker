@@ -1,4 +1,4 @@
-; Jinxy Clicker installer.
+﻿; Jinxy Clicker installer.
 ;
 ; Build with:  ISCC.exe Installer\JinxyClicker.iss
 ; Requires a self-contained publish to exist first:
@@ -6,7 +6,7 @@
 ; and ffmpeg.exe to be present in the ffmpeg folder beside the project.
 
 #define AppName        "Jinxy AutoClicker Beta"
-#define AppVersion     "1.7.1"
+#define AppVersion     "1.7.2"
 #define AppPublisher   "JinxyJoshua"
 #define AppExeName     "JinxyClicker.exe"
 #define FfmpegDir      "..\ffmpeg"
@@ -68,7 +68,7 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 
 [Files]
 ; The kit art rides along inside the publish output, as {app}\kits. The project
-; copies it there on publish, so there is deliberately no separate line for it —
+; copies it there on publish, so there is deliberately no separate line for it â€”
 ; one that listed the files again could fall out of step with the roster.
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#FfmpegDir}\ffmpeg.exe"; DestDir: "{app}\ffmpeg"; Flags: ignoreversion
@@ -102,8 +102,8 @@ Filename: "{app}\{#AppExeName}"; WorkingDir: "{app}"; Description: "Launch {#App
 
 [UninstallRun]
 ; Best-effort removal of the in-game-FPS helper's scheduled task. After uninstall
-; the task is inert anyway — its exe is gone and it only ever runs on demand, never
-; on a schedule — but a dead Task Scheduler entry is untidy. This runs unelevated
+; the task is inert anyway â€” its exe is gone and it only ever runs on demand, never
+; on a schedule â€” but a dead Task Scheduler entry is untidy. This runs unelevated
 ; (the installer is per-user), so it may not have the rights to delete a task that
 ; was registered with highest privileges; the attempt is harmless either way.
 Filename: "{sys}\schtasks.exe"; Parameters: "/delete /tn ""JinxyFpsHelper"" /f"; Flags: runhidden; RunOnceId: "DelFpsTask"
@@ -122,7 +122,7 @@ Type: filesandordirs; Name: "{localappdata}\JinxyClicker"
 Type: filesandordirs; Name: "{localappdata}\Temp\JinxyClicker"
 
 ; Saved clips in Videos\JinxyClicker are deliberately NOT removed. Those are
-; recordings the user chose to make and may not have copied anywhere else —
+; recordings the user chose to make and may not have copied anywhere else â€”
 ; an uninstaller is not entitled to them.
 
 [Code]
@@ -130,16 +130,33 @@ Type: filesandordirs; Name: "{localappdata}\Temp\JinxyClicker"
 // scheduled task, so it holds the exe open. A per-user (non-elevated) installer
 // can't close a higher-integrity process through Restart Manager, so without
 // this the new files can't overwrite the old ones and the "update" silently
-// does nothing — it looks installed but the app never changes. Ending the task
-// (we own it, same user, so this works unelevated) frees the exe before the
-// files are copied, on both a silent auto-update and a manual run. This lives
-// in the installer so it fixes the update no matter which version it came from.
-function PrepareToInstall(var NeedsRestart: Boolean): String;
+// does nothing â€” it looks installed but the app never changes.
+//
+// Ending the task (we own it, same user, so this works unelevated) frees the
+// exe. We do it TWICE: once early, and again at ssInstall â€” by which point
+// /CLOSEAPPLICATION has closed the GUI, so its ~2s heartbeat can no longer
+// relaunch the helper and re-lock the exe before the files are copied. Living
+// in the installer means this fixes the update no matter which app version it
+// came from.
+procedure EndFpsHelper;
 var
   ResultCode: Integer;
 begin
   Exec(ExpandConstant('{sys}\schtasks.exe'), '/end /tn "JinxyFpsHelper"', '',
        SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(700);   // let the elevated helper release the exe handle before copying
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  EndFpsHelper;   // early kill, before the GUI is closed
   Result := '';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+  begin
+    EndFpsHelper;   // GUI is closed now, so this stays dead
+    Sleep(1000);    // let the elevated helper release the exe handle before copying
+  end;
 end;

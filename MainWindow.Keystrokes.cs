@@ -92,6 +92,14 @@ public partial class MainWindow
         FpsTask.Stop();
     }
 
+    /// <summary>
+    /// Called right before an update installer runs. Stops the heartbeat AND the
+    /// elevated helper so neither relaunches the helper while the installer is
+    /// replacing JinxyClicker.exe — otherwise the heartbeat re-locks the exe ~2s
+    /// later and the update silently fails.
+    /// </summary>
+    public void StopFpsForUpdate() => StopFpsHelper();
+
     private void NavKeystrokes_Click(object sender, RoutedEventArgs e)
     {
         if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page

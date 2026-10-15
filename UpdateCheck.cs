@@ -175,8 +175,10 @@ public static class UpdateCheck
         // scheduled task). A non-elevated installer can't close a higher-integrity
         // process, and while the helper runs it holds JinxyClicker.exe open — so the
         // new files can't replace the old ones and the "update" silently does
-        // nothing. End it first (and its task) so the exe is free for the installer.
-        try { FpsTask.Stop(); } catch { }
+        // nothing. Stop the overlay's heartbeat AND the helper so neither relaunches
+        // it while the installer runs. (The installer also does this itself, so an
+        // older build that lacks this still updates correctly.)
+        try { (owner as MainWindow)?.StopFpsForUpdate(); } catch { }
 
         // Inno Setup's own flags. CLOSEAPPLICATION and RESTARTAPPLICATIONS are
         // what make this an update rather than a second install sitting behind
