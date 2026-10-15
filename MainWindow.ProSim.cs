@@ -26,7 +26,7 @@ public partial class MainWindow
         try
         {
             if (!System.IO.File.Exists(DevForceProPath)) return;
-            _devForceProOverride = System.IO.File.ReadAllText(DevForceProPath).Trim() switch
+            _devForceProOverride = System.IO.File.ReadAllText(DevForceProPath).Trim().TrimStart('﻿') switch
             {
                 "pro" => true,
                 "free" => false,
