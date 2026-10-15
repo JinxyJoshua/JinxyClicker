@@ -6,7 +6,7 @@
 ; and ffmpeg.exe to be present in the ffmpeg folder beside the project.
 
 #define AppName        "Jinxy AutoClicker Beta"
-#define AppVersion     "1.7.0"
+#define AppVersion     "1.7.1"
 #define AppPublisher   "JinxyJoshua"
 #define AppExeName     "JinxyClicker.exe"
 #define FfmpegDir      "..\ffmpeg"
@@ -124,3 +124,22 @@ Type: filesandordirs; Name: "{localappdata}\Temp\JinxyClicker"
 ; Saved clips in Videos\JinxyClicker are deliberately NOT removed. Those are
 ; recordings the user chose to make and may not have copied anywhere else —
 ; an uninstaller is not entitled to them.
+
+[Code]
+// The in-game FPS helper runs ELEVATED from {app}\JinxyClicker.exe via its
+// scheduled task, so it holds the exe open. A per-user (non-elevated) installer
+// can't close a higher-integrity process through Restart Manager, so without
+// this the new files can't overwrite the old ones and the "update" silently
+// does nothing — it looks installed but the app never changes. Ending the task
+// (we own it, same user, so this works unelevated) frees the exe before the
+// files are copied, on both a silent auto-update and a manual run. This lives
+// in the installer so it fixes the update no matter which version it came from.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\schtasks.exe'), '/end /tn "JinxyFpsHelper"', '',
+       SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(700);   // let the elevated helper release the exe handle before copying
+  Result := '';
+end;

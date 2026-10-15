@@ -171,6 +171,13 @@ public static class UpdateCheck
             throw;
         }
 
+        // The in-game FPS helper runs ELEVATED from the installed exe (via its
+        // scheduled task). A non-elevated installer can't close a higher-integrity
+        // process, and while the helper runs it holds JinxyClicker.exe open — so the
+        // new files can't replace the old ones and the "update" silently does
+        // nothing. End it first (and its task) so the exe is free for the installer.
+        try { FpsTask.Stop(); } catch { }
+
         // Inno Setup's own flags. CLOSEAPPLICATION and RESTARTAPPLICATIONS are
         // what make this an update rather than a second install sitting behind
         // a locked executable.
