@@ -1865,11 +1865,14 @@ public partial class MainWindow : Window
         int MasterHotkeyVk, int ClickSwitchHotkeyVk,
         bool HotkeysArmed, bool RebindIdle, bool BuildMode,
         ClickButton Button = ClickButton.Left,
-        bool StopAtTaskbar = false)
+        bool StopAtTaskbar = false,
+        bool AutoTune = false,
+        bool BlockHit = false)
     {
         /// <summary>
-        /// The timing actually sent, which is the fixed building rate whenever
-        /// build mode is on and the sliders otherwise.
+        /// The timing actually sent: the fixed building rate while build mode is
+        /// on, the Auto-tune ceiling while Auto-tune is on, and the sliders
+        /// otherwise.
         /// </summary>
         /// <remarks>
         /// Building deliberately ignores HitFix as well as the sliders. HitFix
@@ -1877,9 +1880,14 @@ public partial class MainWindow : Window
         /// duty cycle from 1% to over 50% and turn a tap into a held button —
         /// the opposite of what placing blocks needs.
         ///
+        /// Auto-tune (Plus) locks the stream to the rate measured to land the
+        /// most hits — the HitFix ceiling — so the player stops guessing a CPS
+        /// that only floods the server. Building wins over it: placing blocks
+        /// still needs the fast tap, not the combat rate.
         /// </remarks>
         public ClickTiming Timing => BuildMode
             ? ClickTimings.Resolve(BuildCps, BuildDuty, hitFix: false)
+            : AutoTune ? ClickTimings.Optimal()
             : ClickTimings.Resolve(Cps, Duty, HitFix);
     }
 
@@ -1928,6 +1936,7 @@ public partial class MainWindow : Window
         UltraAccuracy.IsChecked = s.UltraAccuracy;
         PingSync.IsChecked = s.PingSync;
         HitFix.IsChecked = s.HitFix;
+        LoadHitReg(s);   // Plus hit-reg toggles + combat-profile buttons
 
         StopAtTaskbar.IsChecked = s.StopAtTaskbar;
 
@@ -2082,6 +2091,9 @@ public partial class MainWindow : Window
             UltraAccuracy = UltraAccuracy.IsChecked == true,
             PingSync = PingSync.IsChecked == true,
             HitFix = HitFix.IsChecked == true,
+            AutoTune = AutoTuneToggle?.IsChecked == true,
+            BlockHit = BlockHitToggle?.IsChecked == true,
+            CombatProfile = _activeCombatProfile,
             StopAtTaskbar = StopAtTaskbar.IsChecked == true,
             HoldMode = _holdMode,
             ClickButton = _clickButton.ToString(),
@@ -2169,8 +2181,14 @@ public partial class MainWindow : Window
 
         // Ping Sync forces the spin-wait on while latency is high, so the only
         // variance left in the click stream is the network's, not ours.
+        // Auto-tune (Plus) forces the steady spin-wait on too: locking the rate
+        // only lands the most hits if every click actually arrives on schedule,
+        // and Windows throttles this thread hard in the background. Keeping the
+        // spacing tight is what stops a click drifting past the cooldown window
+        // and being a dropped hit. Costs a little CPU — the honest trade.
         bool spin = UltraAccuracy?.IsChecked == true
-                    || (PingSync?.IsChecked == true && _lastPingMs >= HighPingMs);
+                    || (PingSync?.IsChecked == true && _lastPingMs >= HighPingMs)
+                    || AutoTuneToggle?.IsChecked == true;
 
         _settings = new ClickSettings(
             CpsSlider.Value,
@@ -2199,7 +2217,11 @@ public partial class MainWindow : Window
             _rebinding == RebindTarget.None,
             _buildMode,
             _clickButton,
-            StopAtTaskbar?.IsChecked == true);
+            StopAtTaskbar?.IsChecked == true,
+            // Plus hit-reg features. Only ever on when a key is active: the gate
+            // forces both toggles off the moment Plus lapses (ApplyHitRegPro).
+            AutoTuneToggle?.IsChecked == true,
+            BlockHitToggle?.IsChecked == true);
 
         UpdateHitFixClamp();
     }
@@ -2538,6 +2560,11 @@ public partial class MainWindow : Window
         // held down across the whole desktop.
         bool buttonDown = false;
 
+        // Same safety for the blockhit right-button block: if anything throws
+        // while it is held, the finally has to let it go, or the right button
+        // stays stuck down across the desktop with nothing to release it.
+        bool blockDown = false;
+
         // Which button the press in flight used, so the release matches it.
         ClickButton held = ClickButton.Left;
 
@@ -2681,6 +2708,34 @@ public partial class MainWindow : Window
 
                 if (cancelled) break;
 
+                // Blockhit assist (Plus): raise the sword's right-button block
+                // in the gap between left attacks, so the knockback taken is cut
+                // without slowing the swing. Build mode keeps its fast tap, and
+                // the block only goes out when the gap is long enough to read it
+                // plus a clear release — so the auto-tune ceiling simply falls
+                // through to the plain gap below.
+                if (s.BlockHit && held == ClickButton.Left && !s.BuildMode)
+                {
+                    BlockHitPlan block = BlockHit.Plan(period, downMs);
+                    if (block.Blocks)
+                    {
+                        // Not under _inputGate: a block is a held button, so a
+                        // shake move during it is harmless, where a move inside
+                        // a left click would split the click into a drag.
+                        SendButtonDown(ClickButton.Right);
+                        blockDown = true;
+                        deadline += (long)(block.BlockMs * freq / 1000.0);
+                        bool blockHeld = WaitUntil(deadline, s.UltraAccuracy, token);
+                        SendButtonUp(ClickButton.Right);
+                        blockDown = false;
+                        if (!blockHeld) break;
+
+                        deadline += (long)(block.ReleaseMs * freq / 1000.0);
+                        if (!WaitUntil(deadline, s.UltraAccuracy, token)) break;
+                        continue;
+                    }
+                }
+
                 // Deliberately outside the lock: the gap between clicks is when
                 // the shake is free to move, which is most of the cycle.
                 deadline += (long)((period - downMs) * freq / 1000.0);
@@ -2698,6 +2753,8 @@ public partial class MainWindow : Window
 
             // The one that was pressed, whatever is selected now.
             if (buttonDown) SendButtonUp(held);
+            // And the blockhit block, if a throw left it held.
+            if (blockDown) SendButtonUp(ClickButton.Right);
             if (raisedTimer) TimeEndPeriod(TimerResolutionMs);
 
             try { GCSettings.LatencyMode = previousGc; } catch { }
@@ -5054,14 +5111,14 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
+        NavMacros, NavSwitcher, NavHitReg, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
+        PageMacros, PageSwitcher, PageHitReg, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
@@ -6044,6 +6101,7 @@ public partial class MainWindow : Window
         _statsTimer.Stop();
         RevertDisplayOnExit();   // never leave the screen on a swapped resolution
         StopFpsHelper();         // let the elevated FPS helper exit
+        CloseMusic();            // tear down the web view so its data folder is freed
 
         // Everything that is not already written the moment it changes gets
         // written here. Presets, hotkeys and tweak state save on edit, so this

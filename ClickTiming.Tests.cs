@@ -234,4 +234,14 @@ public class ClickTimingTests
     {
         Assert.False(ClickTimings.IsClamped(cps: 0, duty: 0.99, hitFix: true));
     }
+
+    [Fact]
+    public void Optimal_sits_at_the_hitfix_ceiling_near_the_measured_best_rate()
+    {
+        ClickTiming t = ClickTimings.Optimal();
+
+        Assert.Equal(ClickTimings.HitFixMinDownMs, t.DownMs, 1);                                // press at the floor
+        Assert.Equal(ClickTimings.HitFixMinDownMs + ClickTimings.HitFixMinUpMs, t.PeriodMs, 1); // press + gap floor
+        Assert.InRange(t.Cps, 32.0, 34.0);   // ~33.3 — the rate measured to land the most hits
+    }
 }

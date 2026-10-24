@@ -31,6 +31,12 @@
     <Compile Include="../RemoteConfig.Tests.cs" />
     <Compile Include="../ClickTiming.cs" />
     <Compile Include="../ClickTiming.Tests.cs" />
+    <Compile Include="../BlockHit.cs" />
+    <Compile Include="../BlockHit.Tests.cs" />
+    <Compile Include="../CombatProfile.cs" />
+    <Compile Include="../CombatProfile.Tests.cs" />
+    <Compile Include="../MusicSearch.cs" />
+    <Compile Include="../MusicSearch.Tests.cs" />
     <Compile Include="../StopZones.cs" />
     <Compile Include="../StopZones.Tests.cs" />
     <Compile Include="../KitArt.cs" />

@@ -2,6 +2,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="clr-namespace:JinxyClicker"
+    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
     Title="Jinxy AutoClicker Beta"
     Width="1120" Height="760"
     MinWidth="900" MinHeight="650"
@@ -1154,6 +1155,10 @@
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PLUS"
                         Tag="{Binding ElementName=GroupPro}" Click="NavGroup_Click"/>
                 <StackPanel x:Name="GroupPro">
+                    <Button x:Name="NavHitReg" app:NavIcon.Glyph="&#xE945;" Content="HIT REGISTRATION" Style="{StaticResource NavButton}"
+                            Click="NavHitReg_Click"/>
+                    <Button x:Name="NavMusic" app:NavIcon.Glyph="&#xE8D6;" Content="MUSIC" Style="{StaticResource NavButton}"
+                            Click="NavMusic_Click"/>
                     <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
                             Click="NavSocd_Click"/>
                     <Button x:Name="NavKeystrokes" app:NavIcon.Glyph="&#xE765;" Content="KEYSTROKES" Style="{StaticResource NavButton}"
@@ -1234,7 +1239,7 @@
 
             <!-- One page visible at a time. Every page shares the header, the
                  status pill and the start button above. -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
+            <ScrollViewer x:Name="PageScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden">
               <Grid>
                 <StackPanel x:Name="PageClicker">
 
@@ -1664,6 +1669,116 @@
                     </Border>
 
                 </StackPanel>
+
+                <!-- Hit registration (Plus). Its own tab in the PLUS group. Everything
+                     here is about landing more of the clicks you send; the engine reads
+                     these toggles through _settings like any other clicker control. -->
+                <StackPanel x:Name="PageHitReg" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2"
+                            BorderThickness="1" BorderBrush="{StaticResource Outline}"
+                            Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="REGISTRATION" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+
+                            <!-- Auto-tune -->
+                            <Grid Margin="0,12,0,0">
+                                <StackPanel Margin="0,0,54,0">
+                                    <TextBlock Text="Auto-tune (max hits)" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Locks your rate to the speed measured to land the most hits (~33/s) and keeps it rock-steady so no click drifts past the game's hit window. Clicking faster doesn't land more — it floods the server. Uses a little more CPU."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox x:Name="AutoTuneToggle" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                          Margin="0,1,0,0"
+                                          Checked="EngineSetting_Changed" Unchecked="EngineSetting_Changed"/>
+                            </Grid>
+
+                            <Separator Opacity=".12" Margin="0,14"/>
+
+                            <!-- Blockhit assist -->
+                            <Grid>
+                                <StackPanel Margin="0,0,54,0">
+                                    <TextBlock Text="Blockhit assist" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Raises your sword block between hits to cut the knockback you take. It needs room to block, so it works at moderate CPS — not at the auto-tune ceiling."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox x:Name="BlockHitToggle" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                          Margin="0,1,0,0"
+                                          Checked="EngineSetting_Changed" Unchecked="EngineSetting_Changed"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2"
+                            BorderThickness="1" BorderBrush="{StaticResource Outline}"
+                            Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="COMBAT PROFILES" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="One-click setting bundles. The registration ceiling is the same for every sword, so these tune your rate and blocking for the situation — not fake per-weapon speed."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,12"/>
+                            <StackPanel x:Name="CombatProfileRow" Orientation="Horizontal"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+                <!-- Music (Plus). Hosts YouTube Music in an embedded web view, so a
+                     song is one search away and keeps playing while you game. The
+                     page is sized to the scroll viewport so the web view gets a real
+                     height; a StackPanel would measure it at infinity and collapse it. -->
+                <Grid x:Name="PageMusic" Visibility="Collapsed"
+                      Height="{Binding ViewportHeight, ElementName=PageScroll}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Search bar -->
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="MusicSearchBox" Grid.Column="0" Height="38"
+                                 VerticalContentAlignment="Center" Padding="12,0" FontSize="13"
+                                 Background="{StaticResource Panel2}" Foreground="{StaticResource TextBright}"
+                                 BorderBrush="{StaticResource Outline}"
+                                 KeyDown="MusicSearch_KeyDown"
+                                 ToolTip="Search a song or artist, then press Enter"/>
+                        <Button Grid.Column="1" Content="Search" Click="MusicSearch_Click"
+                                Style="{StaticResource AccentButton}" Height="38" Width="92" Margin="8,0,0,0"/>
+                        <Button Grid.Column="2" Content="Home" Click="MusicHome_Click"
+                                Height="38" Padding="14,0" Margin="8,0,0,0"
+                                ToolTip="Back to the YouTube Music home"/>
+                    </Grid>
+
+                    <!-- The web view, plus a fallback shown when the Edge WebView2
+                         runtime is missing or fails to start. -->
+                    <Border Grid.Row="1" CornerRadius="2" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" ClipToBounds="True">
+                        <Grid>
+                            <wv2:WebView2 x:Name="MusicWeb"/>
+                            <StackPanel x:Name="MusicFallback" Visibility="Collapsed"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        MaxWidth="420">
+                                <TextBlock Text="Music needs the Edge WebView2 runtime"
+                                           FontWeight="SemiBold" FontSize="14"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="MusicFallbackText"
+                                           Text="It ships with Windows 11 and Microsoft Edge, so most PCs already have it. If this keeps showing, install the free runtime and reopen this tab."
+                                           Foreground="{StaticResource TextMuted}" FontSize="12"
+                                           TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"/>
+                                <Button Content="Get the WebView2 runtime" Click="MusicGetRuntime_Click"
+                                        Style="{StaticResource AccentButton}" Height="36" Padding="16,0"
+                                        HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
 
                 <!-- Remaining pages: same chrome, no components yet. -->
                 <StackPanel x:Name="PagePresets" Visibility="Collapsed">

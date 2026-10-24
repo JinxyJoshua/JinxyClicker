@@ -39,6 +39,22 @@ public sealed class AppSettings
     public bool PingSync { get; set; }
     public bool HitFix { get; set; } = true;
 
+    /// <summary>
+    /// Plus: lock the click rate to the measured-best hit-registration ceiling.
+    /// </summary>
+    /// <remarks>
+    /// Only honoured while Plus is active — the gate forces it off the moment a
+    /// key lapses, so a file that carries it on from a lapsed pass does not keep
+    /// a paid feature running.
+    /// </remarks>
+    public bool AutoTune { get; set; }
+
+    /// <summary>Plus: raise the sword block between hits (blockhit assist).</summary>
+    public bool BlockHit { get; set; }
+
+    /// <summary>Plus: id of the combat profile last applied, for the lit button. Null for none.</summary>
+    public string? CombatProfile { get; set; }
+
     /// <summary>Whether the taskbar and the top of the screen also stop the clicker.</summary>
     /// <remarks>
     /// Off by default, and deliberately separate from the corners, which are

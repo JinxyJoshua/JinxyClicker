@@ -111,6 +111,15 @@ public static class ClickTimings
     }
 
     /// <summary>
+    /// The timing measured to land the most hits (Auto-tune locks to this): the
+    /// HitFix ceiling, where every click registers and none floods the server —
+    /// about 33/s at a 50% duty. See <see cref="ClickOutput"/> for the runs behind
+    /// the number. Resolving a rate well above the ceiling with HitFix on always
+    /// clamps to the ceiling, so this is the ceiling regardless of the input rate.
+    /// </summary>
+    public static ClickTiming Optimal() => Resolve(100.0, 0.5, hitFix: true);
+
+    /// <summary>
     /// Whether HitFix is changing the requested timing rather than passing it
     /// through. True means the sliders are not what is being sent.
     /// </summary>
