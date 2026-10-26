@@ -75,8 +75,11 @@ internal static class Program
         {
             if (!string.IsNullOrEmpty(_output.Text))
             {
-                TrySetClipboard(_output.Text);
-                SetStatus("Copied to clipboard.");
+                _output.Focus();
+                _output.SelectAll();
+                SetStatus(TrySetClipboard(_output.Text)
+                    ? "Copied to clipboard."
+                    : "Clipboard is busy — the key is selected above, press Ctrl+C to copy it.");
             }
         };
         panel.Children.Add(copyBtn);
@@ -127,8 +130,14 @@ internal static class Program
             File.AppendAllText(LogFile, $"{DateTime.UtcNow:o},{tier},{id},{keyString}\n");
 
             _output.Text = keyString;
-            TrySetClipboard(keyString);
-            SetStatus($"{tier} key made and copied. Send it to the buyer. (Logged to keys.csv)");
+            // Select it too, so Ctrl+C works even if the auto-copy lost a race.
+            _output.Focus();
+            _output.SelectAll();
+
+            bool copied = TrySetClipboard(keyString);
+            SetStatus(copied
+                ? $"{tier} key made and copied. Send it to the buyer. (Logged to keys.csv)"
+                : $"{tier} key made and logged — but the clipboard was busy, so it was NOT copied. The key is selected above: press Ctrl+C, or click \"Copy key again\".");
         }
         catch (Exception ex)
         {
@@ -136,9 +145,27 @@ internal static class Program
         }
     }
 
-    private static void TrySetClipboard(string text)
+    // Returns whether the clipboard actually took the text. WPF's clipboard calls
+    // throw outright when another process is holding the clipboard open — a
+    // clipboard manager, a browser, Remote Desktop — and a single silent try lost
+    // the copy while the status still claimed success, so the seller pasted
+    // nothing. Retry a few times to ride out whoever is holding it, and use
+    // SetDataObject(copy: true) so the text survives this app closing.
+    private static bool TrySetClipboard(string text)
     {
-        try { Clipboard.SetText(text); } catch { /* clipboard busy; the key is still shown to copy by hand */ }
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            try
+            {
+                Clipboard.SetDataObject(text, true);
+                return true;
+            }
+            catch
+            {
+                System.Threading.Thread.Sleep(80);
+            }
+        }
+        return false;
     }
 
     private static void SetStatus(string s) => _status.Text = s;
