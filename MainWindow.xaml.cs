@@ -2136,7 +2136,6 @@ public partial class MainWindow : Window
             TintEnabled = _tintEnabled,
             TintPreset = _tintPresetId,
             TintIntensity = _tintIntensity,
-            TintOnlyRoblox = _tintOnlyRoblox,
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,

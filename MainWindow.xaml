@@ -3316,7 +3316,7 @@
                                           Checked="TintToggle_Changed" Unchecked="TintToggle_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="Lays a soft colour over your screen — warm it for late play, cool it, dim it, or give it a cast. It's a light veil, not a filter: it can't change contrast or wash colour out, and it never reads the game."
+                            <TextBlock Text="Lays a soft colour over Roblox — warm it for late play, cool it, dim it, or give it a cast. Only shows while Roblox is the window you're in, never over the rest of your desktop. It's a light veil, not a filter: it can't change contrast or wash colour out, and it never reads the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -3335,17 +3335,6 @@
                                         VerticalAlignment="Center"
                                         ValueChanged="TintIntensity_Changed"
                                         Thumb.DragCompleted="TintIntensity_DragCompleted"/>
-                            </Grid>
-
-                            <Grid Margin="0,14,0,0">
-                                <StackPanel Margin="0,0,54,0">
-                                    <TextBlock Text="Only while Roblox is in front" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Off: the tint stays on over everything."
-                                               Foreground="{StaticResource TextMuted}" FontSize="11"/>
-                                </StackPanel>
-                                <CheckBox x:Name="TintOnlyRobloxToggle" HorizontalAlignment="Right" VerticalAlignment="Top"
-                                          Margin="0,1,0,0"
-                                          Checked="TintOnlyRoblox_Changed" Unchecked="TintOnlyRoblox_Changed"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -3571,17 +3560,43 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="GRAPHICS QUALITY" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="GRAPHICS QUALITY" Foreground="{StaticResource TextMuted}"
+                                               FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="7,1"
+                                            Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="QualityBadgeText" Text="Balanced" FontSize="9"
+                                                   FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                </StackPanel>
                                 <TextBlock x:Name="QualityStateText" DockPanel.Dock="Right" Text=""
                                            FontSize="11" Foreground="{StaticResource TextMuted}"
                                            VerticalAlignment="Center"/>
                             </DockPanel>
 
-                            <TextBlock Text="One slider from full quality to maximum FPS. It sets Roblox's render level, textures, anti-aliasing, grass and sky together — all its own allowlisted flags, all reversible. Click Apply, then restart Roblox to see it."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock x:Name="QualitySummary" Text="" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
 
+                            <!-- Looks vs FPS meters -->
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="22"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="LOOKS" FontSize="9" FontWeight="Bold"
+                                               Foreground="{StaticResource TextMuted}" Margin="0,0,0,5"/>
+                                    <StackPanel x:Name="QualityLooksMeter" Orientation="Horizontal"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="FPS" FontSize="9" FontWeight="Bold"
+                                               Foreground="{StaticResource TextMuted}" Margin="0,0,0,5"/>
+                                    <StackPanel x:Name="QualityFpsMeter" Orientation="Horizontal"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Slider -->
                             <Grid Margin="0,16,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="64"/>
@@ -3598,16 +3613,74 @@
                                            Foreground="{StaticResource TextMuted}"/>
                             </Grid>
 
-                            <TextBlock x:Name="QualityReadout" Text=""
-                                       Foreground="{StaticResource TextDim}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+                            <!-- Preset anchors -->
+                            <UniformGrid x:Name="QualityPresetRow" Columns="4" Margin="0,14,0,0" HorizontalAlignment="Stretch">
+                                <RadioButton Content="Quality" GroupName="QualPreset" Tag="10"
+                                             Style="{StaticResource SegmentButton}" Checked="QualityPreset_Checked"/>
+                                <RadioButton Content="Balanced" GroupName="QualPreset" Tag="6"
+                                             Style="{StaticResource SegmentButton}" Checked="QualityPreset_Checked"/>
+                                <RadioButton Content="Performance" GroupName="QualPreset" Tag="3"
+                                             Style="{StaticResource SegmentButton}" Checked="QualityPreset_Checked"/>
+                                <RadioButton Content="Max FPS" GroupName="QualPreset" Tag="1" Margin="0"
+                                             Style="{StaticResource SegmentButton}" Checked="QualityPreset_Checked"/>
+                            </UniformGrid>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button Content="Apply" Style="{StaticResource AccentButton}"
-                                        Click="ApplyQuality_Click" Height="34" Padding="20,0" Margin="0,0,8,0"/>
-                                <Button Content="Restore default" Click="RestoreQuality_Click"
-                                        Height="34" Padding="14,0"/>
-                            </StackPanel>
+                            <!-- Readout grid -->
+                            <UniformGrid Columns="4" Margin="0,16,0,0">
+                                <StackPanel Margin="0,0,12,12">
+                                    <TextBlock Text="GRAPHICS LEVEL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualGraphicsLevel" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,12,12">
+                                    <TextBlock Text="FPS CAP" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualFpsCap" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,12,12">
+                                    <TextBlock Text="TEXTURES" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualTextures" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,12">
+                                    <TextBlock Text="ANTI-ALIASING" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualAA" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="DETAIL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualDetail" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="GRASS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualGrass" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="SKY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualSky" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,0,0">
+                                    <TextBlock Text="OVERALL LOOK" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                                    <TextBlock x:Name="QualArt" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <DockPanel LastChildFill="False" Margin="0,8,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Write it into Roblox" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Applies next time Roblox starts." Foreground="{StaticResource TextMuted}" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="Restore default" Click="RestoreQuality_Click"
+                                            Height="34" Padding="14,0" Margin="0,0,8,0"/>
+                                    <Button Content="Apply" Style="{StaticResource AccentButton}"
+                                            Click="ApplyQuality_Click" Height="34" Padding="22,0"/>
+                                </StackPanel>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
 

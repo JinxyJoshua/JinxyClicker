@@ -26,19 +26,16 @@ public partial class MainWindow
     private bool _tintEnabled;
     private string _tintPresetId = "warm";
     private double _tintIntensity = 50;
-    private bool _tintOnlyRoblox = true;
 
     private void LoadTint(AppSettings s)
     {
         _tintEnabled = s.TintEnabled;
         _tintPresetId = TintStyles.ById(s.TintPreset)?.Id ?? "warm";
         _tintIntensity = Math.Clamp(s.TintIntensity, 0, 100);
-        _tintOnlyRoblox = s.TintOnlyRoblox;
 
         BuildTintButtons();
 
         if (TintToggle != null) TintToggle.IsChecked = _tintEnabled;
-        if (TintOnlyRobloxToggle != null) TintOnlyRobloxToggle.IsChecked = _tintOnlyRoblox;
         if (TintIntensitySlider != null) TintIntensitySlider.Value = _tintIntensity;
         LightTintPreset();
 
@@ -88,10 +85,13 @@ public partial class MainWindow
 
     private void StopTintTimer() => _tintTimer?.Stop();
 
-    /// <summary>Shows, hides or recolours the veil for the current settings.</summary>
+    /// <summary>
+    /// Shows, hides or recolours the veil. Only ever shown while Roblox is the
+    /// foreground window, so it never tints the rest of the desktop.
+    /// </summary>
     private void UpdateTintNow()
     {
-        bool shouldShow = _tintEnabled && (!_tintOnlyRoblox || RobloxForeground.IsFront());
+        bool shouldShow = _tintEnabled && RobloxForeground.IsFront();
 
         if (!shouldShow)
         {
@@ -111,13 +111,6 @@ public partial class MainWindow
         _tintEnabled = TintToggle?.IsChecked == true;
         if (_tintEnabled) StartTintTimer();
         else { StopTintTimer(); _tint?.Hide(); }
-        UpdateTintNow();
-        SaveAppSettings();
-    }
-
-    private void TintOnlyRoblox_Changed(object sender, RoutedEventArgs e)
-    {
-        _tintOnlyRoblox = TintOnlyRobloxToggle?.IsChecked == true;
         UpdateTintNow();
         SaveAppSettings();
     }
