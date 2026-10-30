@@ -1943,6 +1943,7 @@ public partial class MainWindow : Window
         HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
         RobloxPriority.IsChecked = s.RobloxPriority;
         LoadGamingMode(s);
+        LoadLowerPing(s);   // Plus: Lower Ping one-switch + cards
 
         SetClickMode(s.HoldMode);
 
@@ -2124,6 +2125,8 @@ public partial class MainWindow : Window
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,
+            LowerPingOn = _lowerPingOn,
+            LowerPingAppliedTweaks = _lowerPingApplied,
             LicenseKey = _licenseKey,
             LicenseFirstUseUtc = _licenseFirstUseUtc,
             MontageVertical = _montageVertical,
@@ -5112,13 +5115,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavHitReg, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavMacros, NavSwitcher, NavHitReg, NavLowerPing, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageHitReg, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageMacros, PageSwitcher, PageHitReg, PageLowerPing, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
@@ -5848,6 +5851,7 @@ public partial class MainWindow : Window
         foreach (PcTweak tweak in _tweaks) tweak.Refresh();
         foreach (PcTweak tweak in _inputTweaks) tweak.Refresh();
         foreach (PcTweak tweak in _networkTweaks) tweak.Refresh();
+        foreach (PcTweak tweak in _lowerPingTweaks) tweak.Refresh();   // Plus: Lower Ping page
 
         RestartAdminButton.Visibility = TweakEnvironment.IsElevated
             ? Visibility.Collapsed

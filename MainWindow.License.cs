@@ -115,6 +115,7 @@ public partial class MainWindow
         ApplyTrainerPro();
         ApplyHitRegPro();
         ApplyMusicPro();
+        ApplyLowerPingPro();
 
         // Just went (or stayed) Plus: bring the chosen font back right away rather
         // than waiting for the font watcher's next tick.

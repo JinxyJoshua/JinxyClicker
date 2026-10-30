@@ -201,6 +201,14 @@ public sealed class AppSettings
     public bool GamingModeSetPriority { get; set; }
 
     /// <summary>
+    /// Plus: Lower Ping — whether the one-switch network bundle is on, and exactly
+    /// which tweaks it applied, so turning it off reverts only its own doing (the
+    /// same reversible contract as Gaming Mode).
+    /// </summary>
+    public bool LowerPingOn { get; set; }
+    public List<string> LowerPingAppliedTweaks { get; set; } = new();
+
+    /// <summary>
     /// The Pro license key the user pasted, or null for a free install. The key
     /// itself carries the tier and is re-verified on every launch, so nothing here
     /// needs to be trusted — a hand-edited value just fails verification.
