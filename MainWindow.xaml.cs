@@ -5141,13 +5141,13 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
+        NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
         NavMacros, NavSwitcher, NavHitReg, NavLowerPing, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
+        PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
         PageMacros, PageSwitcher, PageHitReg, PageLowerPing, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
