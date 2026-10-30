@@ -1112,6 +1112,8 @@
                             Click="NavMacros_Click"/>
                     <Button x:Name="NavSwitcher" app:NavIcon.Glyph="&#xE8AB;" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
                             Click="NavSwitcher_Click"/>
+                    <Button x:Name="NavAppTargeting" app:NavIcon.Glyph="&#xE71D;" Content="APP TARGETING" Style="{StaticResource NavButton}"
+                            Click="NavAppTargeting_Click"/>
                 </StackPanel>
 
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; GAME"
@@ -2230,6 +2232,76 @@
 
                             <TextBlock Text="Slot keys are just the number keys Roblox already uses — the switcher presses 1 and 2 exactly as you would. It does not read the screen or the game."
                                        Style="{StaticResource CardHint}" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+                <!-- App Targeting: which apps the clicker may click over. Whitelist
+                     clicks only over the ticked apps; Blacklist clicks everywhere
+                     except them. The app under the pointer is checked before every
+                     click. Both lists are kept at once; Mode selects which is used. -->
+                <StackPanel x:Name="PageAppTargeting" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="MODE" Style="{StaticResource CardLabel}"/>
+                            <UniformGrid Columns="3" Margin="0,10,0,0">
+                                <RadioButton x:Name="AppTargetOff" Content="Off" GroupName="AppTarget"
+                                             Tag="Off" IsChecked="True" Style="{StaticResource SegmentButton}"
+                                             Checked="AppTargetMode_Checked"/>
+                                <RadioButton x:Name="AppTargetWhitelist" Content="Whitelist" GroupName="AppTarget"
+                                             Tag="Whitelist" Style="{StaticResource SegmentButton}"
+                                             Checked="AppTargetMode_Checked"/>
+                                <RadioButton x:Name="AppTargetBlacklist" Content="Blacklist" GroupName="AppTarget"
+                                             Tag="Blacklist" Margin="0" Style="{StaticResource SegmentButton}"
+                                             Checked="AppTargetMode_Checked"/>
+                            </UniformGrid>
+                            <TextBlock x:Name="AppTargetExplain"
+                                       Text="Off — the clicker clicks everywhere, over any app."
+                                       Style="{StaticResource CardHint}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                            <Border Background="{StaticResource Sunken}" CornerRadius="2" Padding="12,9" Margin="0,12,0,0">
+                                <TextBlock x:Name="AppTargetPointer" Text="Under the pointer: —"
+                                           Foreground="{StaticResource TextMuted}" FontSize="12" TextWrapping="Wrap"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- The list that counts in the current mode. -->
+                    <Border x:Name="AppTargetActiveCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock x:Name="AppTargetActiveHeading" Text="WHITELIST"
+                                           Style="{StaticResource CardLabel}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="AppTargetActiveCount" DockPanel.Dock="Right" Text="0 apps"
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <WrapPanel x:Name="AppTargetChips" Margin="0,10,0,0"/>
+                            <TextBlock x:Name="AppTargetEmpty"
+                                       Text="No apps yet — tick a running app below, or type a program file name."
+                                       Style="{StaticResource CardHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <DockPanel LastChildFill="True" Margin="0,14,0,0">
+                                <Button Content="Add" DockPanel.Dock="Right" Click="AppTargetAdd_Click"
+                                        Style="{StaticResource AccentButton}" Height="34" Padding="18,0" Margin="8,0,0,0"/>
+                                <TextBox x:Name="AppTargetAddBox" Style="{StaticResource InputField}"
+                                         KeyDown="AppTargetAddBox_KeyDown"
+                                         ToolTip="A program file name, such as RobloxPlayerBeta.exe"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Apps with a window right now, to tick on with one click. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="RUNNING APPS" Style="{StaticResource CardLabel}" VerticalAlignment="Center"/>
+                                <Button Content="Refresh" DockPanel.Dock="Right" Click="AppTargetRefresh_Click"
+                                        Height="30" Padding="14,0" Margin="0"/>
+                            </DockPanel>
+                            <StackPanel x:Name="RunningAppsList" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
 

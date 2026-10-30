@@ -72,6 +72,8 @@
     <Compile Include="../ClickOutput.Tests.cs" />
     <Compile Include="../ClickPreset.cs" />
     <Compile Include="../ClickPreset.Tests.cs" />
+    <Compile Include="../AppTargeting.cs" />
+    <Compile Include="../AppTargeting.Tests.cs" />
     <Compile Include="../AppSettings.cs" />
     <Compile Include="../AppSettings.Tests.cs" />
     <Compile Include="../SetupProfile.cs" />

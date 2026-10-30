@@ -70,6 +70,19 @@ public sealed class AppSettings
     /// </remarks>
     public bool StopAtTaskbar { get; set; }
 
+    /// <summary>
+    /// App targeting for the clicker: 0 Off, 1 Whitelist (click only over the
+    /// listed apps), 2 Blacklist (click everywhere except the listed apps).
+    /// </summary>
+    /// <remarks>
+    /// Both lists are kept at once and remembered independently, so switching
+    /// Mode never loses the other list — the Mode just selects which one is in
+    /// force. Entries are executable file names such as RobloxPlayerBeta.exe.
+    /// </remarks>
+    public int ClickTargetMode { get; set; }
+    public List<string> ClickWhitelist { get; set; } = new();
+    public List<string> ClickBlacklist { get; set; } = new();
+
     public bool HoldMode { get; set; }
 
     /// <summary>Which button is clicked: Left, Right or Middle.</summary>

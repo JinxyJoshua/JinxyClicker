@@ -1872,7 +1872,9 @@ public partial class MainWindow : Window
         bool StopAtTaskbar = false,
         bool AutoTune = false,
         bool BlockHit = false,
-        double ShakeSmoothness = 60)
+        double ShakeSmoothness = 60,
+        ClickTargetMode Targeting = ClickTargetMode.Off,
+        IReadOnlySet<string>? TargetApps = null)
     {
         /// <summary>
         /// The timing actually sent: the fixed building rate while build mode is
@@ -1908,6 +1910,15 @@ public partial class MainWindow : Window
 
     private volatile ClickSettings _settings =
         new(10.0, 0.67, false, new ShakeRange(8, 20, 40, 8), 33, false, true, false, VK_F6, 0, 0, 0, 0, 0, 0, 0, false, true, false);
+
+    /// <summary>Reused for the Off fast path so no set is allocated per update.</summary>
+    private static readonly IReadOnlySet<string> EmptyApps = new HashSet<string>();
+
+    // App targeting state. Both lists are kept so switching Mode never loses the
+    // other one; the active set is derived from the mode in UpdateEngineSettings.
+    private ClickTargetMode _clickTargetMode = ClickTargetMode.Off;
+    private List<string> _clickWhitelist = new();
+    private List<string> _clickBlacklist = new();
 
     private void ApplyAppSettings(AppSettings s)
     {
@@ -1946,6 +1957,7 @@ public partial class MainWindow : Window
         LoadHitReg(s);   // Plus hit-reg toggles + combat-profile buttons
 
         StopAtTaskbar.IsChecked = s.StopAtTaskbar;
+        LoadAppTargeting(s);   // clicker app whitelist/blacklist
 
         HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
         RobloxPriority.IsChecked = s.RobloxPriority;
@@ -2106,6 +2118,9 @@ public partial class MainWindow : Window
             BlockHit = BlockHitToggle?.IsChecked == true,
             CombatProfile = _activeCombatProfile,
             StopAtTaskbar = StopAtTaskbar.IsChecked == true,
+            ClickTargetMode = (int)_clickTargetMode,
+            ClickWhitelist = _clickWhitelist,
+            ClickBlacklist = _clickBlacklist,
             HoldMode = _holdMode,
             ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
@@ -2239,7 +2254,13 @@ public partial class MainWindow : Window
             // forces both toggles off the moment Plus lapses (ApplyHitRegPro).
             AutoTuneToggle?.IsChecked == true,
             BlockHitToggle?.IsChecked == true,
-            _shakeSmoothness);
+            _shakeSmoothness,
+            _clickTargetMode,
+            // The active list depends on the mode; an empty set when Off so the
+            // loop's fast path never touches the pointer lookup.
+            _clickTargetMode == ClickTargetMode.Whitelist ? AppTargeting.Set(_clickWhitelist)
+            : _clickTargetMode == ClickTargetMode.Blacklist ? AppTargeting.Set(_clickBlacklist)
+            : EmptyApps);
 
         UpdateHitFixClamp();
     }
@@ -2652,6 +2673,18 @@ public partial class MainWindow : Window
                 {
                     BankActiveTime(ref activeSince);
                     Thread.Sleep(50);
+                    deadline = Stopwatch.GetTimestamp();
+                    continue;
+                }
+
+                // App targeting: armed but silent while the pointer is over an
+                // app the whitelist/blacklist rules out. Only the gated modes do
+                // the pointer lookup; Off never gets here with a non-empty set.
+                if (s.Targeting != ClickTargetMode.Off &&
+                    !AppTargeting.Allows(s.Targeting, s.TargetApps ?? EmptyApps, PointerApp.ExeUnderCursor()))
+                {
+                    BankActiveTime(ref activeSince);
+                    Thread.Sleep(5);
                     deadline = Stopwatch.GetTimestamp();
                     continue;
                 }
@@ -5149,13 +5182,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavHitReg, NavLowerPing, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageHitReg, PageLowerPing, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
