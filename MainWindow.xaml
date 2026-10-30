@@ -1553,6 +1553,26 @@
                                           VerticalAlignment="Top" Margin="0,1,0,0"
                                           Checked="EngineSetting_Changed" Unchecked="EngineSetting_Changed"/>
                             </Grid>
+
+                            <Separator Opacity=".15"/>
+
+                            <!-- Humanize is the opposite of Ultra Accuracy: it adds
+                                 random spacing so the stream is less robotic, at the
+                                 cost of a little hit-reg consistency. Off at 0. -->
+                            <Grid Margin="0,7,0,0">
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock Text="Humanize" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="HumanizeValueText" DockPanel.Dock="Right" Text="Off"
+                                               Foreground="{StaticResource TextMuted}" FontSize="11"
+                                               VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock Text="Randomises the gap between clicks so the pattern looks less robotic. Higher is more random"
+                                           Foreground="{StaticResource TextMuted}" FontSize="11"
+                                           TextWrapping="Wrap" Margin="0,18,0,0"/>
+                                <Slider x:Name="HumanizeSlider" Minimum="0" Maximum="100" Value="0"
+                                        Margin="0,46,0,0" TickFrequency="10"
+                                        ValueChanged="Humanize_Changed"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
 

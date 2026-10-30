@@ -1874,7 +1874,8 @@ public partial class MainWindow : Window
         bool BlockHit = false,
         double ShakeSmoothness = 60,
         ClickTargetMode Targeting = ClickTargetMode.Off,
-        IReadOnlySet<string>? TargetApps = null)
+        IReadOnlySet<string>? TargetApps = null,
+        double Jitter = 0)
     {
         /// <summary>
         /// The timing actually sent: the fixed building rate while build mode is
@@ -1920,6 +1921,9 @@ public partial class MainWindow : Window
     private List<string> _clickWhitelist = new();
     private List<string> _clickBlacklist = new();
 
+    /// <summary>Humanize amount, 0–100: how much the gap between clicks is randomised.</summary>
+    private double _clickHumanize;
+
     private void ApplyAppSettings(AppSettings s)
     {
         LoadDevForcePro();   // dev builds: restore the forced Pro/Free gate before licence eval
@@ -1958,6 +1962,9 @@ public partial class MainWindow : Window
 
         StopAtTaskbar.IsChecked = s.StopAtTaskbar;
         LoadAppTargeting(s);   // clicker app whitelist/blacklist
+
+        _clickHumanize = Math.Clamp(s.ClickHumanize, 0, 100);
+        HumanizeSlider.Value = _clickHumanize;   // raises Humanize_Changed → readout + engine
 
         HotkeysEnabledToggle.IsChecked = s.HotkeysEnabled;
         RobloxPriority.IsChecked = s.RobloxPriority;
@@ -2121,6 +2128,7 @@ public partial class MainWindow : Window
             ClickTargetMode = (int)_clickTargetMode,
             ClickWhitelist = _clickWhitelist,
             ClickBlacklist = _clickBlacklist,
+            ClickHumanize = _clickHumanize,
             HoldMode = _holdMode,
             ClickButton = _clickButton.ToString(),
             HideValues = _valuesHidden,
@@ -2260,7 +2268,8 @@ public partial class MainWindow : Window
             // loop's fast path never touches the pointer lookup.
             _clickTargetMode == ClickTargetMode.Whitelist ? AppTargeting.Set(_clickWhitelist)
             : _clickTargetMode == ClickTargetMode.Blacklist ? AppTargeting.Set(_clickBlacklist)
-            : EmptyApps);
+            : EmptyApps,
+            Math.Clamp(_clickHumanize / 100.0, 0.0, 1.0));
 
         UpdateHitFixClamp();
     }
@@ -2305,6 +2314,14 @@ public partial class MainWindow : Window
         // The toggles are part of a preset now, so changing one can make the
         // applied preset stop matching.
         RefreshAppliedPreset();
+    }
+
+    private void Humanize_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        _clickHumanize = Math.Clamp(e.NewValue, 0, 100);
+        if (HumanizeValueText != null)
+            HumanizeValueText.Text = _clickHumanize < 1 ? "Off" : $"{_clickHumanize:0}%";
+        UpdateEngineSettings();
     }
 
     /// <summary>
@@ -2611,6 +2628,10 @@ public partial class MainWindow : Window
         // Which button the press in flight used, so the release matches it.
         ClickButton held = ClickButton.Left;
 
+        // Humanize's randomness. Thread-local to the click loop, so it is never
+        // shared across threads and costs nothing when humanize is off.
+        var rng = new Random();
+
         // Windows 11 throttles timer resolution for processes that are not in
         // the foreground, which silently undoes the TimeBeginPeriod below at
         // exactly the moment it matters — the clicker is in the background
@@ -2792,8 +2813,10 @@ public partial class MainWindow : Window
                 }
 
                 // Deliberately outside the lock: the gap between clicks is when
-                // the shake is free to move, which is most of the cycle.
-                deadline += (long)((period - downMs) * freq / 1000.0);
+                // the shake is free to move, which is most of the cycle. Humanize
+                // (when on) randomises this gap; the press length is left alone.
+                double gapMs = ClickJitter.Gap(period - downMs, s.Jitter, rng.NextDouble());
+                deadline += (long)(gapMs * freq / 1000.0);
                 if (!WaitUntil(deadline, s.UltraAccuracy, token)) break;
             }
         }

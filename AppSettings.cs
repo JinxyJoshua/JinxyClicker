@@ -83,6 +83,12 @@ public sealed class AppSettings
     public List<string> ClickWhitelist { get; set; } = new();
     public List<string> ClickBlacklist { get; set; } = new();
 
+    /// <summary>
+    /// Humanize amount, 0–100: how much the gap between clicks is randomised. 0
+    /// (the default) is the old perfectly-even spacing.
+    /// </summary>
+    public double ClickHumanize { get; set; }
+
     public bool HoldMode { get; set; }
 
     /// <summary>Which button is clicked: Left, Right or Middle.</summary>
