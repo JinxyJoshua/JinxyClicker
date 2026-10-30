@@ -32,6 +32,10 @@ public partial class MainWindow : Window
 
     /// <summary>Movements per second. Drives the interval the shake loop sleeps.</summary>
     private double _shakeSpeed = 33;
+
+    /// <summary>0–100. How much the shake glides toward each point instead of
+    /// jumping to it: 0 is the old sharp jitter, higher is a smooth sway.</summary>
+    private double _shakeSmoothness = 60;
     private ShakeRange? _savedShake;
     private readonly CancellationTokenSource _shakeCts = new();
     private volatile bool _shakeActive;
@@ -1867,7 +1871,8 @@ public partial class MainWindow : Window
         ClickButton Button = ClickButton.Left,
         bool StopAtTaskbar = false,
         bool AutoTune = false,
-        bool BlockHit = false)
+        bool BlockHit = false,
+        double ShakeSmoothness = 60)
     {
         /// <summary>
         /// The timing actually sent: the fixed building rate while build mode is
@@ -1920,7 +1925,9 @@ public partial class MainWindow : Window
         _shakeUp = Math.Clamp(s.ShakeUp, 0, MaxShakePixels);
         _shakeDown = Math.Clamp(s.ShakeDown, 0, MaxShakePixels);
         _shakeSpeed = Math.Clamp(s.ShakeSpeed, MinShakeSpeed, MaxShakeSpeed);
+        _shakeSmoothness = Math.Clamp(s.ShakeSmoothness, 0, 100);
         WriteShakeBoxes();
+        StartShakePreview();   // live shake preview under the sliders
 
         _savedShake = s.HasSavedShake
             ? new ShakeRange(
@@ -2083,6 +2090,7 @@ public partial class MainWindow : Window
             ShakeUp = _shakeUp,
             ShakeDown = _shakeDown,
             ShakeSpeed = _shakeSpeed,
+            ShakeSmoothness = _shakeSmoothness,
             HasSavedShake = _savedShake != null,
             SavedShakeLeft = _savedShake?.Left ?? 0,
             SavedShakeRight = _savedShake?.Right ?? 0,
@@ -2224,7 +2232,8 @@ public partial class MainWindow : Window
             // Plus hit-reg features. Only ever on when a key is active: the gate
             // forces both toggles off the moment Plus lapses (ApplyHitRegPro).
             AutoTuneToggle?.IsChecked == true,
-            BlockHitToggle?.IsChecked == true);
+            BlockHitToggle?.IsChecked == true,
+            _shakeSmoothness);
 
         UpdateHitFixClamp();
     }
@@ -2288,7 +2297,7 @@ public partial class MainWindow : Window
         // The test is the LAST of the group to be built, not the first: guarding
         // on an earlier one lets the speed slider through while the readouts
         // after it are still null, which is a crash inside WriteShakeBoxes.
-        if (_writingShakeUi || ShakeSpeedValue == null) return;
+        if (_writingShakeUi || ShakeSmoothValue == null) return;
 
         double value = Math.Round(e.NewValue);
 
@@ -2297,6 +2306,7 @@ public partial class MainWindow : Window
         else if (sender == ShakeUpSlider) _shakeUp = value;
         else if (sender == ShakeDownSlider) _shakeDown = value;
         else if (sender == ShakeSpeedSlider) _shakeSpeed = value;
+        else if (sender == ShakeSmoothSlider) _shakeSmoothness = value;
         else return;
 
         WriteShakeBoxes();
@@ -2312,7 +2322,7 @@ public partial class MainWindow : Window
     /// </remarks>
     private void WriteShakeBoxes()
     {
-        if (ShakeSpeedValue == null) return;
+        if (ShakeSmoothValue == null) return;
 
         _writingShakeUi = true;
 
@@ -2323,6 +2333,7 @@ public partial class MainWindow : Window
             ShakeUpSlider.Value = _shakeUp;
             ShakeDownSlider.Value = _shakeDown;
             ShakeSpeedSlider.Value = _shakeSpeed;
+            ShakeSmoothSlider.Value = _shakeSmoothness;
         }
         finally
         {
@@ -2334,6 +2345,7 @@ public partial class MainWindow : Window
         ShakeUpValue.Text = Format(_shakeUp);
         ShakeDownValue.Text = Format(_shakeDown);
         ShakeSpeedValue.Text = Format(_shakeSpeed);
+        ShakeSmoothValue.Text = Format(_shakeSmoothness);
 
         static string Format(double v) => ((int)Math.Round(v)).ToString(CultureInfo.CurrentCulture);
     }
@@ -2369,14 +2381,15 @@ public partial class MainWindow : Window
     /// </remarks>
     private void CommitShakeValue(TextBox? box)
     {
-        if (box == null || ShakeSpeedValue == null) return;
+        if (box == null || ShakeSmoothValue == null) return;
 
         Slider slider =
             box == ShakeLeftValue ? ShakeLeftSlider
             : box == ShakeRightValue ? ShakeRightSlider
             : box == ShakeUpValue ? ShakeUpSlider
             : box == ShakeDownValue ? ShakeDownSlider
-            : ShakeSpeedSlider;
+            : box == ShakeSpeedValue ? ShakeSpeedSlider
+            : ShakeSmoothSlider;
 
         if (double.TryParse(box.Text, NumberStyles.Float, CultureInfo.CurrentCulture, out double typed))
             slider.Value = Math.Round(Math.Clamp(Math.Abs(typed), slider.Minimum, slider.Maximum));
@@ -2949,7 +2962,8 @@ public partial class MainWindow : Window
     /// </remarks>
     private void ShakeLoop(CancellationToken token)
     {
-        int offsetX = 0, offsetY = 0;
+        int offsetX = 0, offsetY = 0;       // what has actually been sent to the mouse
+        double curX = 0, curY = 0;          // the true, fractional position we ease along
 
         try
         {
@@ -2979,6 +2993,8 @@ public partial class MainWindow : Window
                         {
                             offsetX = 0;
                             offsetY = 0;
+                            curX = 0;
+                            curY = 0;
                         }
                     }
 
@@ -2989,16 +3005,27 @@ public partial class MainWindow : Window
                 int targetX = NextOffset(-range.Left, range.Right);
                 int targetY = NextOffset(-range.Up, range.Down);
 
-                int dx = targetX - offsetX;
-                int dy = targetY - offsetY;
+                // Ease toward the fresh random point rather than snapping to it.
+                // At 0 smoothness the step is the whole distance (the old sharp
+                // jitter); higher glides. Tracked in doubles so sub-pixel steps
+                // accumulate instead of rounding away to nothing.
+                double smooth = s.ShakeSmoothness / 100.0;
+                curX = ShakeMotion.Ease(curX, targetX, smooth);
+                curY = ShakeMotion.Ease(curY, targetY, smooth);
+
+                int newX = (int)Math.Round(curX);
+                int newY = (int)Math.Round(curY);
+                int dx = newX - offsetX;
+                int dy = newY - offsetY;
 
                 // The offsets only advance if the move actually went out, or the
                 // cursor's real position and what this thread believes it to be
-                // would drift apart and the return-to-origin would be wrong.
+                // would drift apart and the return-to-origin would be wrong. curX
+                // keeps advancing regardless, so a skipped move is made up next tick.
                 if ((dx != 0 || dy != 0) && MoveWithoutSplittingAClick(dx, dy))
                 {
-                    offsetX = targetX;
-                    offsetY = targetY;
+                    offsetX = newX;
+                    offsetY = newY;
                 }
 
                 // Jittered around the chosen rate rather than sleeping it exactly.

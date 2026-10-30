@@ -1626,6 +1626,44 @@
                                                      KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
                                         </Grid>
 
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="52"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="60"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="SMOOTH" FontSize="9" FontWeight="Bold"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <Slider Grid.Column="1" x:Name="ShakeSmoothSlider" Minimum="0" Maximum="100"
+                                                    Value="60" TickFrequency="10" IsSnapToTickEnabled="False"
+                                                    VerticalAlignment="Center"
+                                                    ValueChanged="ShakeSlider_ValueChanged"/>
+                                            <TextBox Grid.Column="2" x:Name="ShakeSmoothValue" Text="60"
+                                                     Style="{StaticResource SliderValueBox}"
+                                                     ToolTip="0 = sharp jitter, 100 = smooth glide"
+                                                     KeyDown="ShakeValue_KeyDown" LostFocus="ShakeValue_LostFocus"/>
+                                        </Grid>
+
+                                        <!-- Live preview: runs the same easing the engine does, driven
+                                             by a timer while the Clicker page is open, scaled up so a
+                                             few-pixel shake is visible. -->
+                                        <Border Margin="0,12,0,0" Height="92" CornerRadius="3"
+                                                Background="{StaticResource Panel2}"
+                                                BorderThickness="1" BorderBrush="{StaticResource Outline}"
+                                                ClipToBounds="True">
+                                            <Grid>
+                                                <TextBlock Text="PREVIEW" FontSize="8" FontWeight="Bold"
+                                                           Foreground="{StaticResource TextMuted}"
+                                                           HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                           Margin="8,6,0,0" Opacity="0.7"/>
+                                                <Canvas x:Name="ShakePreviewCanvas" ClipToBounds="True">
+                                                    <Ellipse x:Name="ShakePreviewDot" Width="10" Height="10"
+                                                             Fill="{StaticResource Accent}"/>
+                                                </Canvas>
+                                            </Grid>
+                                        </Border>
+
                                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                             <Button Content="Save" Click="SaveShake_Click"
                                                     ToolTip="Remember these values"

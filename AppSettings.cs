@@ -34,6 +34,12 @@ public sealed class AppSettings
     /// <summary>Shake movements per second.</summary>
     public double ShakeSpeed { get; set; } = 50;
 
+    /// <summary>
+    /// Shake smoothness, 0–100: how much the shake glides toward each random
+    /// point instead of jumping to it. 0 is the original sharp jitter.
+    /// </summary>
+    public double ShakeSmoothness { get; set; } = 60;
+
     public bool ShakyTracking { get; set; }
     public bool UltraAccuracy { get; set; }
     public bool PingSync { get; set; }
