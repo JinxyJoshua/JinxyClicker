@@ -3306,256 +3306,14 @@
 
                 <StackPanel x:Name="PageMod" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="SCREEN TINT" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <CheckBox x:Name="TintToggle" DockPanel.Dock="Right" Margin="0"
-                                          VerticalAlignment="Center"
-                                          Checked="TintToggle_Changed" Unchecked="TintToggle_Changed"/>
-                            </DockPanel>
+                    <UniformGrid x:Name="ModTabBar" Columns="4" Margin="0,0,0,14">
+                        <RadioButton Content="Performance" GroupName="ModTab" Tag="Performance" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="ModTab_Checked"/>
+                        <RadioButton Content="Fonts" GroupName="ModTab" Tag="Fonts" Style="{StaticResource SegmentButton}" Checked="ModTab_Checked"/>
+                        <RadioButton Content="Screen" GroupName="ModTab" Tag="Screen" Style="{StaticResource SegmentButton}" Checked="ModTab_Checked"/>
+                        <RadioButton Content="Mouse" GroupName="ModTab" Tag="Mouse" Margin="0" Style="{StaticResource SegmentButton}" Checked="ModTab_Checked"/>
+                    </UniformGrid>
 
-                            <TextBlock Text="Lays a soft colour over Roblox — warm it for late play, cool it, dim it, or give it a cast. Only shows while Roblox is the window you're in, never over the rest of your desktop. It's a light veil, not a filter: it can't change contrast or wash colour out, and it never reads the game."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <TextBlock Text="LOOK" Foreground="{StaticResource TextMuted}" FontSize="9"
-                                       FontWeight="Bold" Margin="0,14,0,0"/>
-                            <WrapPanel x:Name="TintPresetRow" Margin="0,8,0,0"/>
-
-                            <Grid Margin="0,14,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="STRENGTH" FontSize="9" FontWeight="Bold"
-                                           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-                                <Slider Grid.Column="1" x:Name="TintIntensitySlider" Minimum="0" Maximum="100" Value="50"
-                                        VerticalAlignment="Center"
-                                        ValueChanged="TintIntensity_Changed"
-                                        Thumb.DragCompleted="TintIntensity_DragCompleted"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="CUSTOM FONT" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="FontStateText" DockPanel.Dock="Right" Text=""
-                                           FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                            </DockPanel>
-
-                            <TextBlock Text="Pick a preset below, or import your own .ttf/.otf. Your choice replaces Roblox's font everywhere &#8212; chat, menus and nametags &#8212; and is re-applied automatically after Roblox updates."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <TextBlock Text="PRESETS" Foreground="{StaticResource TextMuted}" FontSize="9"
-                                       FontWeight="Bold" Margin="0,14,0,0"/>
-                            <WrapPanel x:Name="FontPresetPanel" Margin="0,8,0,0"/>
-
-                            <TextBlock x:Name="FontCurrentText" Text="No font selected yet."
-                                       Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,14,0,0"/>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button x:Name="ImportFontButton" Content="Import font&#8230;" Click="ImportFont_Click"
-                                        Height="36" Padding="16,0" Margin="0,0,10,0"/>
-                                <Button x:Name="ApplyFontButton" Content="Apply" Style="{StaticResource AccentButton}"
-                                        Click="ApplyFont_Click" Height="36" Width="120" Margin="0,0,10,0" IsEnabled="False"/>
-                                <Button x:Name="ResetFontButton" Content="Reset to default" Click="ResetFont_Click"
-                                        Height="36" Padding="16,0" IsEnabled="False"/>
-                            </StackPanel>
-
-                            <TextBlock x:Name="FontStatusText" Text="" TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
-
-                            <TextBlock Text="This changes Roblox client font files. Font swaps are a common cosmetic mod and low-risk, but you use it at your own discretion."
-                                       Foreground="{StaticResource TextMuted}" FontSize="10"
-                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <DockPanel LastChildFill="False">
-                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="470">
-                                <TextBlock Text="GRAY SKY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
-                                <TextBlock Text="Replaces the sky with a flat gray — clearer sightlines and a little less to render. One tap, no FastFlags to edit. Takes effect next time you launch Roblox. A game that sets its own skybox overrides it."
-                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                <TextBlock x:Name="GraySkyStatus" Text="" Foreground="{StaticResource TextMuted}"
-                                           FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                            </StackPanel>
-                            <CheckBox x:Name="GraySkyCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
-                                      Checked="GraySky_Changed" Unchecked="GraySky_Changed"/>
-                        </DockPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="MOUSE &amp; SENSITIVITY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Windows pointer speed and acceleration, plus your Roblox in-game sensitivity. Windows settings apply instantly; Roblox sens applies on your next launch."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <TextBlock Text="WINDOWS MOUSE SPEED" FontSize="9" FontWeight="Bold" Margin="0,14,0,6" Foreground="{StaticResource TextMuted}"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
-                                <Slider Grid.Column="0" x:Name="MouseSpeedSlider" Minimum="1" Maximum="20" Value="10"
-                                        IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="MouseSpeed_Changed"/>
-                                <TextBlock Grid.Column="1" x:Name="MouseSpeedValue" Text="10" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                           FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
-                            </Grid>
-                            <TextBlock Text="10 is 1:1 (no extra scaling) — what most players want." Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,2,0,0"/>
-
-                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
-                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="430">
-                                    <TextBlock Text="MOUSE ACCELERATION" Foreground="{StaticResource TextSoft}" FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Windows 'Enhance pointer precision'. Most players keep this OFF for consistent aim."
-                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <CheckBox x:Name="MouseAccelCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
-                                          Checked="MouseAccel_Changed" Unchecked="MouseAccel_Changed"/>
-                            </DockPanel>
-
-                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
-                            <TextBlock Text="ROBLOX SENSITIVITY" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
-                                <Slider Grid.Column="0" x:Name="RobloxSensSlider" Minimum="0.1" Maximum="4" Value="1"
-                                        VerticalAlignment="Center" ValueChanged="RobloxSens_Changed"/>
-                                <TextBlock Grid.Column="1" x:Name="RobloxSensValue" Text="1.00" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                           FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
-                            </Grid>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <Button x:Name="RobloxSensApply" Content="Apply to Roblox" Style="{StaticResource AccentButton}"
-                                        Height="34" Padding="16,0" Click="RobloxSensApply_Click"/>
-                                <Button Content="Reset mouse to default" Click="MouseReset_Click" Height="34" Padding="14,0" Margin="10,0,0,0"/>
-                            </StackPanel>
-                            <TextBlock x:Name="MouseSensStatus" Text="" Foreground="{StaticResource TextMuted}"
-                                       FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="FPS BOOST FASTFLAGS" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="FlagStateText" DockPanel.Dock="Right" Text=""
-                                           FontSize="11" Foreground="{StaticResource TextMuted}"
-                                           VerticalAlignment="Center"/>
-                            </DockPanel>
-
-                            <TextBlock Text="Every option here is one Roblox officially allows. Anything else it just ignores, so this only shows what actually works."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <TextBlock x:Name="FlagPathText" Text="" TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,8,0,0"/>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button x:Name="ApplyFlagsButton" Content="Apply"
-                                        Style="{StaticResource AccentButton}"
-                                        Click="ApplyFlags_Click" Height="36" Width="120" Margin="0,0,10,0"/>
-                                <Button x:Name="ResetFlagsButton" Content="Reset"
-                                        Click="ResetFlags_Click" Height="36" Padding="20,0" Margin="0,0,10,0"/>
-                                <Button x:Name="RestoreFlagsButton" Content="Restore backup"
-                                        Click="RestoreFlags_Click" IsEnabled="False"
-                                        ToolTip="Puts back the client settings file as it was before this app first changed it"
-                                        Height="36" Padding="16,0" Margin="0"/>
-                            </StackPanel>
-
-                            <TextBlock x:Name="FlagStatusText" Text="" TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="GRAPHICS API" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="GraphicsApiStateText" DockPanel.Dock="Right" Text=""
-                                           FontSize="11" Foreground="{StaticResource TextMuted}"
-                                           VerticalAlignment="Center"/>
-                            </DockPanel>
-
-                            <TextBlock Text="Which backend the client renders with. Allowlisted, and applied the moment you choose — no Apply needed. Which one is fastest depends on your GPU and driver, so try them: Vulkan is a large gain on some machines and a loss on others."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <UniformGrid x:Name="GraphicsApiPanel" Columns="4" Margin="0,14,0,0"
-                                         MaxWidth="440" HorizontalAlignment="Left">
-                                <!-- Deliberately not IsChecked here. A default in the
-                                     markup raises Checked during parsing, and the
-                                     handler applies what it is given — which wiped
-                                     the stored API preference on every launch.
-                                     RefreshFlags selects the right one from the file. -->
-                                <RadioButton Content="Default" GroupName="GraphicsApi"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="GraphicsApi_Checked" Tag=""/>
-                                <RadioButton Content="D3D11" GroupName="GraphicsApi"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="GraphicsApi_Checked" Tag="D3D11"/>
-                                <RadioButton Content="Vulkan" GroupName="GraphicsApi"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="GraphicsApi_Checked" Tag="Vulkan"/>
-                                <RadioButton Content="OpenGL" GroupName="GraphicsApi" Margin="0"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="GraphicsApi_Checked" Tag="OpenGL"/>
-                            </UniformGrid>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <Button x:Name="DetectApiButton" Content="Pick for my PC"
-                                        Style="{StaticResource AccentButton}"
-                                        Click="DetectApi_Click" Height="36" Padding="18,0" Margin="0"/>
-                            </StackPanel>
-
-                            <TextBlock x:Name="ApiAdviceText" Text="" TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextDim}" FontSize="11" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="FPS LIMIT" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="FpsCapStateText" DockPanel.Dock="Right" Text=""
-                                           FontSize="11" Foreground="{StaticResource TextMuted}"
-                                           VerticalAlignment="Center"/>
-                            </DockPanel>
-
-                            <TextBlock Text="Roblox caps at 60 FPS out of the box. Lift the cap to match your monitor for smoother aim and movement. Applied the moment you choose &#8212; restart Roblox to see it. Pick a limit at or under your monitor's refresh rate; higher just wastes GPU."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <UniformGrid x:Name="FpsCapPanel" Columns="6" Margin="0,14,0,0"
-                                         MaxWidth="560" HorizontalAlignment="Left">
-                                <!-- No IsChecked here on purpose, as with the API grid:
-                                     RefreshFlags ticks the one that matches the file. -->
-                                <RadioButton Content="60" GroupName="FpsCap"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="FpsCap_Checked" Tag=""/>
-                                <RadioButton Content="120" GroupName="FpsCap"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="FpsCap_Checked" Tag="120"/>
-                                <RadioButton Content="144" GroupName="FpsCap"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="FpsCap_Checked" Tag="144"/>
-                                <RadioButton Content="240" GroupName="FpsCap"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="FpsCap_Checked" Tag="240"/>
-                                <RadioButton Content="360" GroupName="FpsCap"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="FpsCap_Checked" Tag="360"/>
-                                <RadioButton Content="Max" GroupName="FpsCap" Margin="0"
-                                             Style="{StaticResource SegmentButton}"
-                                             Checked="FpsCap_Checked" Tag="9999"/>
-                            </UniformGrid>
-                        </StackPanel>
-                    </Border>
+                    <StackPanel x:Name="ModTabPerformance">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
@@ -3687,23 +3445,120 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
+                                <TextBlock Text="FPS LIMIT" Foreground="{StaticResource TextMuted}"
                                            FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                <CheckBox x:Name="RobloxPriority" DockPanel.Dock="Right" Margin="0"
-                                          VerticalAlignment="Center"
-                                          Checked="RobloxPriority_Changed" Unchecked="RobloxPriority_Changed"/>
+                                <TextBlock x:Name="FpsCapStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           VerticalAlignment="Center"/>
                             </DockPanel>
 
-                            <TextBlock Text="Raises the Roblox process above normal priority so Windows schedules it ahead of background work. Not a flag and nothing is injected — the same setting Task Manager offers. Reapplied every second, so it survives Roblox restarting."
+                            <TextBlock Text="Roblox caps at 60 FPS out of the box. Lift the cap to match your monitor for smoother aim and movement. Applied the moment you choose &#8212; restart Roblox to see it. Pick a limit at or under your monitor's refresh rate; higher just wastes GPU."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-                            <TextBlock Text="Worth having while clicking — the clicker works your CPU hard, and this makes sure the game still gets its share so it stays smooth."
-                                       Foreground="{StaticResource TextDim}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <UniformGrid x:Name="FpsCapPanel" Columns="6" Margin="0,14,0,0"
+                                         MaxWidth="560" HorizontalAlignment="Left">
+                                <!-- No IsChecked here on purpose, as with the API grid:
+                                     RefreshFlags ticks the one that matches the file. -->
+                                <RadioButton Content="60" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag=""/>
+                                <RadioButton Content="120" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="120"/>
+                                <RadioButton Content="144" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="144"/>
+                                <RadioButton Content="240" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="240"/>
+                                <RadioButton Content="360" GroupName="FpsCap"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="360"/>
+                                <RadioButton Content="Max" GroupName="FpsCap" Margin="0"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="FpsCap_Checked" Tag="9999"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
 
-                            <TextBlock x:Name="RobloxPriorityStateText" Text="" TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,8,0,0"/>
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="GRAPHICS API" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="GraphicsApiStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Which backend the client renders with. Allowlisted, and applied the moment you choose — no Apply needed. Which one is fastest depends on your GPU and driver, so try them: Vulkan is a large gain on some machines and a loss on others."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <UniformGrid x:Name="GraphicsApiPanel" Columns="4" Margin="0,14,0,0"
+                                         MaxWidth="440" HorizontalAlignment="Left">
+                                <!-- Deliberately not IsChecked here. A default in the
+                                     markup raises Checked during parsing, and the
+                                     handler applies what it is given — which wiped
+                                     the stored API preference on every launch.
+                                     RefreshFlags selects the right one from the file. -->
+                                <RadioButton Content="Default" GroupName="GraphicsApi"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag=""/>
+                                <RadioButton Content="D3D11" GroupName="GraphicsApi"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag="D3D11"/>
+                                <RadioButton Content="Vulkan" GroupName="GraphicsApi"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag="Vulkan"/>
+                                <RadioButton Content="OpenGL" GroupName="GraphicsApi" Margin="0"
+                                             Style="{StaticResource SegmentButton}"
+                                             Checked="GraphicsApi_Checked" Tag="OpenGL"/>
+                            </UniformGrid>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button x:Name="DetectApiButton" Content="Pick for my PC"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="DetectApi_Click" Height="36" Padding="18,0" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="ApiAdviceText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextDim}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="FPS BOOST FASTFLAGS" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="FlagStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Every option here is one Roblox officially allows. Anything else it just ignores, so this only shows what actually works."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="FlagPathText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,8,0,0"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="ApplyFlagsButton" Content="Apply"
+                                        Style="{StaticResource AccentButton}"
+                                        Click="ApplyFlags_Click" Height="36" Width="120" Margin="0,0,10,0"/>
+                                <Button x:Name="ResetFlagsButton" Content="Reset"
+                                        Click="ResetFlags_Click" Height="36" Padding="20,0" Margin="0,0,10,0"/>
+                                <Button x:Name="RestoreFlagsButton" Content="Restore backup"
+                                        Click="RestoreFlags_Click" IsEnabled="False"
+                                        ToolTip="Puts back the client settings file as it was before this app first changed it"
+                                        Height="36" Padding="16,0" Margin="0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="FlagStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
 
@@ -3738,6 +3593,174 @@
                             </ItemsControl>
                         </StackPanel>
                     </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <DockPanel LastChildFill="False">
+                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="470">
+                                <TextBlock Text="GRAY SKY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="Replaces the sky with a flat gray — clearer sightlines and a little less to render. One tap, no FastFlags to edit. Takes effect next time you launch Roblox. A game that sets its own skybox overrides it."
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                <TextBlock x:Name="GraySkyStatus" Text="" Foreground="{StaticResource TextMuted}"
+                                           FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="GraySkyCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                      Checked="GraySky_Changed" Unchecked="GraySky_Changed"/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="RobloxPriority" DockPanel.Dock="Right" Margin="0"
+                                          VerticalAlignment="Center"
+                                          Checked="RobloxPriority_Changed" Unchecked="RobloxPriority_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Raises the Roblox process above normal priority so Windows schedules it ahead of background work. Not a flag and nothing is injected — the same setting Task Manager offers. Reapplied every second, so it survives Roblox restarting."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="Worth having while clicking — the clicker works your CPU hard, and this makes sure the game still gets its share so it stays smooth."
+                                       Foreground="{StaticResource TextDim}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <TextBlock x:Name="RobloxPriorityStateText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="ModTabFonts" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="CUSTOM FONT" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="FontStateText" DockPanel.Dock="Right" Text=""
+                                           FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Pick a preset below, or import your own .ttf/.otf. Your choice replaces Roblox's font everywhere &#8212; chat, menus and nametags &#8212; and is re-applied automatically after Roblox updates."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="PRESETS" Foreground="{StaticResource TextMuted}" FontSize="9"
+                                       FontWeight="Bold" Margin="0,14,0,0"/>
+                            <WrapPanel x:Name="FontPresetPanel" Margin="0,8,0,0"/>
+
+                            <TextBlock x:Name="FontCurrentText" Text="No font selected yet."
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,14,0,0"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="ImportFontButton" Content="Import font&#8230;" Click="ImportFont_Click"
+                                        Height="36" Padding="16,0" Margin="0,0,10,0"/>
+                                <Button x:Name="ApplyFontButton" Content="Apply" Style="{StaticResource AccentButton}"
+                                        Click="ApplyFont_Click" Height="36" Width="120" Margin="0,0,10,0" IsEnabled="False"/>
+                                <Button x:Name="ResetFontButton" Content="Reset to default" Click="ResetFont_Click"
+                                        Height="36" Padding="16,0" IsEnabled="False"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="FontStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+
+                            <TextBlock Text="This changes Roblox client font files. Font swaps are a common cosmetic mod and low-risk, but you use it at your own discretion."
+                                       Foreground="{StaticResource TextMuted}" FontSize="10"
+                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="ModTabScreen" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="SCREEN TINT" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="TintToggle" DockPanel.Dock="Right" Margin="0"
+                                          VerticalAlignment="Center"
+                                          Checked="TintToggle_Changed" Unchecked="TintToggle_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Lays a soft colour over Roblox — warm it for late play, cool it, dim it, or give it a cast. Only shows while Roblox is the window you're in, never over the rest of your desktop. It's a light veil, not a filter: it can't change contrast or wash colour out, and it never reads the game."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="LOOK" Foreground="{StaticResource TextMuted}" FontSize="9"
+                                       FontWeight="Bold" Margin="0,14,0,0"/>
+                            <WrapPanel x:Name="TintPresetRow" Margin="0,8,0,0"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="72"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="STRENGTH" FontSize="9" FontWeight="Bold"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                <Slider Grid.Column="1" x:Name="TintIntensitySlider" Minimum="0" Maximum="100" Value="50"
+                                        VerticalAlignment="Center"
+                                        ValueChanged="TintIntensity_Changed"
+                                        Thumb.DragCompleted="TintIntensity_DragCompleted"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="ModTabMouse" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="MOUSE &amp; SENSITIVITY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="Windows pointer speed and acceleration, plus your Roblox in-game sensitivity. Windows settings apply instantly; Roblox sens applies on your next launch."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="WINDOWS MOUSE SPEED" FontSize="9" FontWeight="Bold" Margin="0,14,0,6" Foreground="{StaticResource TextMuted}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="46"/></Grid.ColumnDefinitions>
+                                <Slider Grid.Column="0" x:Name="MouseSpeedSlider" Minimum="1" Maximum="20" Value="10"
+                                        IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" ValueChanged="MouseSpeed_Changed"/>
+                                <TextBlock Grid.Column="1" x:Name="MouseSpeedValue" Text="10" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                           FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                            </Grid>
+                            <TextBlock Text="10 is 1:1 (no extra scaling) — what most players want." Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,2,0,0"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="430">
+                                    <TextBlock Text="MOUSE ACCELERATION" Foreground="{StaticResource TextSoft}" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Windows 'Enhance pointer precision'. Most players keep this OFF for consistent aim."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="MouseAccelCheck" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                          Checked="MouseAccel_Changed" Unchecked="MouseAccel_Changed"/>
+                            </DockPanel>
+
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
+                            <TextBlock Text="ROBLOX SENSITIVITY" FontSize="9" FontWeight="Bold" Margin="0,12,0,6" Foreground="{StaticResource TextMuted}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                                <Slider Grid.Column="0" x:Name="RobloxSensSlider" Minimum="0.1" Maximum="4" Value="1"
+                                        VerticalAlignment="Center" ValueChanged="RobloxSens_Changed"/>
+                                <TextBlock Grid.Column="1" x:Name="RobloxSensValue" Text="1.00" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                           FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button x:Name="RobloxSensApply" Content="Apply to Roblox" Style="{StaticResource AccentButton}"
+                                        Height="34" Padding="16,0" Click="RobloxSensApply_Click"/>
+                                <Button Content="Reset mouse to default" Click="MouseReset_Click" Height="34" Padding="14,0" Margin="10,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock x:Name="MouseSensStatus" Text="" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
 
                 </StackPanel>
 
