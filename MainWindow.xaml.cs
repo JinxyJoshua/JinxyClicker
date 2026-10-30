@@ -2159,6 +2159,7 @@ public partial class MainWindow : Window
             TintEnabled = _tintEnabled,
             TintPreset = _tintPresetId,
             TintIntensity = _tintIntensity,
+            TintVignette = _tintVignette,
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,

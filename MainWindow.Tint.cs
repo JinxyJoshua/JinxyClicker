@@ -26,21 +26,64 @@ public partial class MainWindow
     private bool _tintEnabled;
     private string _tintPresetId = "warm";
     private double _tintIntensity = 50;
+    private double _tintVignette;
+    private bool _tintLooksBuilt;
 
     private void LoadTint(AppSettings s)
     {
         _tintEnabled = s.TintEnabled;
         _tintPresetId = TintStyles.ById(s.TintPreset)?.Id ?? "warm";
         _tintIntensity = Math.Clamp(s.TintIntensity, 0, 100);
+        _tintVignette = Math.Clamp(s.TintVignette, 0, 100);
 
         BuildTintButtons();
+        BuildLookButtons();
 
         if (TintToggle != null) TintToggle.IsChecked = _tintEnabled;
         if (TintIntensitySlider != null) TintIntensitySlider.Value = _tintIntensity;
+        if (TintVignetteSlider != null) TintVignetteSlider.Value = _tintVignette;
         LightTintPreset();
 
         if (_tintEnabled) StartTintTimer();
         UpdateTintNow();
+    }
+
+    private void BuildLookButtons()
+    {
+        if (_tintLooksBuilt || TintLookRow == null) return;
+        _tintLooksBuilt = true;
+
+        foreach (ColorLook look in ColorLooks.All)
+        {
+            var b = new Button
+            {
+                Tag = look.Id,
+                Content = look.Name,
+                Padding = new Thickness(12, 5, 12, 5),
+                Margin = new Thickness(0, 0, 8, 8),
+                FontSize = 11
+            };
+            b.Click += Look_Click;
+            TintLookRow.Children.Add(b);
+        }
+    }
+
+    private void Look_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string id }) return;
+        ColorLook? look = ColorLooks.ById(id);
+        if (look == null) return;
+
+        _tintPresetId = look.TintId;
+        _tintIntensity = look.Intensity;
+        _tintVignette = look.Vignette;
+
+        // Push to the sliders without each one re-saving mid-change.
+        if (TintIntensitySlider != null) TintIntensitySlider.Value = _tintIntensity;
+        if (TintVignetteSlider != null) TintVignetteSlider.Value = _tintVignette;
+        LightTintPreset();
+        UpdateTintNow();
+        SaveAppSettings();
     }
 
     private void BuildTintButtons()
@@ -103,6 +146,7 @@ public partial class MainWindow
 
         TintPreset preset = TintStyles.ById(_tintPresetId) ?? TintStyles.All[0];
         _tint.SetTint(preset, _tintIntensity);
+        _tint.SetVignette(_tintVignette);
         if (!_tint.IsVisible) _tint.Show();
     }
 
@@ -130,6 +174,14 @@ public partial class MainWindow
     }
 
     private void TintIntensity_DragCompleted(object sender, DragCompletedEventArgs e) => SaveAppSettings();
+
+    private void TintVignette_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        _tintVignette = e.NewValue;
+        UpdateTintNow();   // live
+    }
+
+    private void TintVignette_DragCompleted(object sender, DragCompletedEventArgs e) => SaveAppSettings();
 
     // Lights the active preset's button.
     private void LightTintPreset()

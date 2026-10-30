@@ -35,4 +35,45 @@ public class TintStylesTests
         // Never fully opaque, even past the top of the slider.
         Assert.Equal(TintStyles.MaxAlpha, TintStyles.AlphaFor(500));
     }
+
+    [Fact]
+    public void VignetteAlphaScalesWithStrengthAndIsCapped()
+    {
+        Assert.Equal((byte)0, TintStyles.VignetteAlphaFor(0));
+        Assert.Equal(TintStyles.MaxVignetteAlpha, TintStyles.VignetteAlphaFor(100));
+
+        byte mid = TintStyles.VignetteAlphaFor(50);
+        Assert.True(mid > 0 && mid < TintStyles.MaxVignetteAlpha);
+
+        Assert.Equal(TintStyles.MaxVignetteAlpha, TintStyles.VignetteAlphaFor(1000));
+    }
+}
+
+public class ColorLooksTests
+{
+    [Fact]
+    public void EveryLookHasAUniqueIdAndReferencesARealTint()
+    {
+        var ids = ColorLooks.All.Select(l => l.Id).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+
+        Assert.All(ColorLooks.All, l =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(l.Id));
+            Assert.False(string.IsNullOrWhiteSpace(l.Name));
+            Assert.NotNull(TintStyles.ById(l.TintId));
+            Assert.InRange(l.Intensity, 0, 100);
+            Assert.InRange(l.Vignette, 0, 100);
+        });
+    }
+
+    [Fact]
+    public void ByIdRoundTripsAndRejectsUnknowns()
+    {
+        foreach (ColorLook l in ColorLooks.All)
+            Assert.Same(l, ColorLooks.ById(l.Id));
+
+        Assert.Null(ColorLooks.ById("nope"));
+        Assert.Null(ColorLooks.ById(null));
+    }
 }

@@ -296,6 +296,9 @@ public sealed class AppSettings
     public bool TintEnabled { get; set; }
     public string TintPreset { get; set; } = "warm";
     public double TintIntensity { get; set; } = 50;
+
+    /// <summary>Screen Tint vignette strength, 0–100 (0 = no vignette).</summary>
+    public double TintVignette { get; set; }
     public bool TintOnlyRoblox { get; set; } = true;
 
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>

@@ -39,6 +39,40 @@ public static class TintStyles
     /// <summary>Turns a 0–100 intensity into the veil's alpha.</summary>
     public static byte AlphaFor(double intensity) =>
         (byte)Math.Clamp(Math.Round(intensity / 100.0 * MaxAlpha), 0, MaxAlpha);
+
+    /// <summary>
+    /// How dark the vignette's edges get at full strength. Higher than the tint's
+    /// cap because it only darkens the corners, where it reads as depth rather
+    /// than as a veil over the whole picture.
+    /// </summary>
+    public const byte MaxVignetteAlpha = 215;
+
+    /// <summary>Turns a 0–100 vignette strength into the edge alpha.</summary>
+    public static byte VignetteAlphaFor(double strength) =>
+        (byte)Math.Clamp(Math.Round(strength / 100.0 * MaxVignetteAlpha), 0, MaxVignetteAlpha);
+}
+
+/// <summary>
+/// A one-tap "look": a tint colour, its strength and a vignette amount applied
+/// together. The pieces are the plain tint and vignette controls — a look is
+/// just a named starting point a player can then nudge.
+/// </summary>
+public sealed record ColorLook(string Id, string Name, string TintId, double Intensity, double Vignette);
+
+/// <summary>The built-in looks shown as one-tap buttons on the Screen tab.</summary>
+public static class ColorLooks
+{
+    public static readonly IReadOnlyList<ColorLook> All = new[]
+    {
+        new ColorLook("cinematic", "Cinematic", "cool",  28, 72),   // cool cast, deep edges
+        new ColorLook("cozy",      "Cozy",      "warm",  40, 26),   // warm, gentle edges
+        new ColorLook("focus",     "Focus",     "dim",   20, 58),   // neutral, pulls the eye in
+        new ColorLook("moody",     "Moody",     "night", 46, 78),   // dark amber, heavy edges
+        new ColorLook("faded",     "Faded",     "dusk",  18, 34)    // soft purple, light edges
+    };
+
+    public static ColorLook? ById(string? id) =>
+        id is null ? null : All.FirstOrDefault(l => l.Id == id);
 }
 
 /// <summary>Whether Roblox owns the foreground window right now.</summary>
@@ -76,6 +110,10 @@ public sealed class TintOverlay : Window
 {
     private bool _streamerMode;
 
+    // Two stacked layers: the flat colour veil, then the vignette on top of it.
+    private readonly System.Windows.Controls.Border _tintLayer = new();
+    private readonly System.Windows.Controls.Border _vignetteLayer = new() { IsHitTestVisible = false };
+
     public TintOverlay()
     {
         WindowStyle = WindowStyle.None;
@@ -86,6 +124,11 @@ public sealed class TintOverlay : Window
         ShowActivated = false;
         ResizeMode = ResizeMode.NoResize;
         IsHitTestVisible = false;
+
+        var grid = new System.Windows.Controls.Grid();
+        grid.Children.Add(_tintLayer);
+        grid.Children.Add(_vignetteLayer);
+        Content = grid;
 
         // Cover every monitor; the "only while Roblox is in front" gate decides
         // when it shows, not where.
@@ -105,7 +148,29 @@ public sealed class TintOverlay : Window
     public void SetTint(TintPreset preset, double intensity)
     {
         byte a = TintStyles.AlphaFor(intensity);
-        Background = new SolidColorBrush(Color.FromArgb(a, preset.R, preset.G, preset.B));
+        _tintLayer.Background = a == 0 ? null : new SolidColorBrush(Color.FromArgb(a, preset.R, preset.G, preset.B));
+    }
+
+    /// <summary>
+    /// Sets the vignette: a radial darkening that is clear in the middle and
+    /// deepens toward the edges, so the centre of the screen stays bright. 0
+    /// clears it.
+    /// </summary>
+    public void SetVignette(double strength)
+    {
+        byte a = TintStyles.VignetteAlphaFor(strength);
+        if (a == 0) { _vignetteLayer.Background = null; return; }
+
+        var brush = new RadialGradientBrush
+        {
+            GradientOrigin = new Point(0.5, 0.5),
+            Center = new Point(0.5, 0.5),
+            RadiusX = 0.85, RadiusY = 0.85
+        };
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.45));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(a / 3), 0, 0, 0), 0.78));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(a, 0, 0, 0), 1.0));
+        _vignetteLayer.Background = brush;
     }
 
     public bool StreamerMode
