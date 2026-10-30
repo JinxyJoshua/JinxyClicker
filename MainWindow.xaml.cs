@@ -1952,6 +1952,7 @@ public partial class MainWindow : Window
         LoadGamingMode(s);
         LoadLowerPing(s);   // Plus: Lower Ping one-switch + cards
         LoadGraphicsQuality(s);   // Tweaks: graphics quality slider
+        LoadTint(s);              // Plus: screen tint overlay
 
         SetClickMode(s.HoldMode);
 
@@ -2132,6 +2133,10 @@ public partial class MainWindow : Window
             GamingModeOn = _gamingOn,
             GamingModeAppliedTweaks = _gamingAppliedTweaks,
             GraphicsQualityLevel = _qualityLevel,
+            TintEnabled = _tintEnabled,
+            TintPreset = _tintPresetId,
+            TintIntensity = _tintIntensity,
+            TintOnlyRoblox = _tintOnlyRoblox,
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,
@@ -6136,6 +6141,7 @@ public partial class MainWindow : Window
         RevertDisplayOnExit();   // never leave the screen on a swapped resolution
         StopFpsHelper();         // let the elevated FPS helper exit
         CloseMusic();            // tear down the web view so its data folder is freed
+        CloseTint();             // drop the tint veil so it can't linger or hold the app open
 
         // Everything that is not already written the moment it changes gets
         // written here. Presets, hotkeys and tweak state save on edit, so this

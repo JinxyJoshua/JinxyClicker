@@ -3309,6 +3309,50 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
+                                <TextBlock Text="SCREEN TINT" Foreground="{StaticResource TextMuted}"
+                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="TintToggle" DockPanel.Dock="Right" Margin="0"
+                                          VerticalAlignment="Center"
+                                          Checked="TintToggle_Changed" Unchecked="TintToggle_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Lays a soft colour over your screen — warm it for late play, cool it, dim it, or give it a cast. It's a light veil, not a filter: it can't change contrast or wash colour out, and it never reads the game."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="LOOK" Foreground="{StaticResource TextMuted}" FontSize="9"
+                                       FontWeight="Bold" Margin="0,14,0,0"/>
+                            <WrapPanel x:Name="TintPresetRow" Margin="0,8,0,0"/>
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="72"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="STRENGTH" FontSize="9" FontWeight="Bold"
+                                           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+                                <Slider Grid.Column="1" x:Name="TintIntensitySlider" Minimum="0" Maximum="100" Value="50"
+                                        VerticalAlignment="Center"
+                                        ValueChanged="TintIntensity_Changed"
+                                        Thumb.DragCompleted="TintIntensity_DragCompleted"/>
+                            </Grid>
+
+                            <Grid Margin="0,14,0,0">
+                                <StackPanel Margin="0,0,54,0">
+                                    <TextBlock Text="Only while Roblox is in front" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Off: the tint stays on over everything."
+                                               Foreground="{StaticResource TextMuted}" FontSize="11"/>
+                                </StackPanel>
+                                <CheckBox x:Name="TintOnlyRobloxToggle" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                          Margin="0,1,0,0"
+                                          Checked="TintOnlyRoblox_Changed" Unchecked="TintOnlyRoblox_Changed"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
                                 <TextBlock Text="CUSTOM FONT" Foreground="{StaticResource TextMuted}"
                                            FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="FontStateText" DockPanel.Dock="Right" Text=""

@@ -114,6 +114,8 @@
     <Compile Include="../GamingMode.Tests.cs" />
     <Compile Include="../GraphicsQuality.cs" />
     <Compile Include="../GraphicsQuality.Tests.cs" />
+    <Compile Include="../TintOverlay.cs" />
+    <Compile Include="../TintOverlay.Tests.cs" />
     <Compile Include="../NetworkTweaks.cs" />
     <Compile Include="../LowerPing.cs" />
     <Compile Include="../LowerPing.Tests.cs" />

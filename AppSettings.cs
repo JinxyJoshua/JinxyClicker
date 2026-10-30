@@ -273,6 +273,12 @@ public sealed class AppSettings
     public int DisplayHeight { get; set; }
     public int DisplayRefresh { get; set; }
 
+    /// <summary>Plus: Screen Tint — a translucent colour veil over the screen.</summary>
+    public bool TintEnabled { get; set; }
+    public string TintPreset { get; set; } = "warm";
+    public double TintIntensity { get; set; } = 50;
+    public bool TintOnlyRoblox { get; set; } = true;
+
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }
 
