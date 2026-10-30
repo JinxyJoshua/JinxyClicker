@@ -32,4 +32,20 @@ public partial class MainWindow
         OptTabCleaner.Visibility = tab == "Cleaner" ? Visibility.Visible : Visibility.Collapsed;
         OptTabNetwork.Visibility = tab == "Network" ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    /// <summary>
+    /// Generic Lyre-style tab bar used by the simpler pages: every segment
+    /// button in the bar carries, in its Tag, the x:Name of the panel it
+    /// shows. Checking one shows its panel and collapses its siblings'. The
+    /// bar and its panels are self-describing, so one handler serves them all.
+    /// </summary>
+    private void PageTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Parent: Panel bar }) return;
+
+        foreach (object child in bar.Children)
+            if (child is RadioButton { Tag: string panelName } r &&
+                FindName(panelName) is UIElement panel)
+                panel.Visibility = r.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
 }

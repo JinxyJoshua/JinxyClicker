@@ -20,6 +20,7 @@
     PreviewMouseDown="Window_PreviewMouseDown"
     KeyDown="Window_KeyDown"
     Closing="Window_Closing"
+    ContentRendered="Window_ContentRendered"
     Visibility="Visible"
     ShowInTaskbar="True">
 
@@ -2781,6 +2782,13 @@
 
                 <StackPanel x:Name="PageCrosshair" Visibility="Collapsed">
 
+                    <UniformGrid x:Name="PageCrosshairBar" Columns="3" Margin="0,0,0,14">
+                        <RadioButton Content="Crosshair" GroupName="PageCrosshairTab" Tag="PageCrosshair_chair" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Gallery" GroupName="PageCrosshairTab" Tag="PageCrosshair_gallery" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Create" GroupName="PageCrosshairTab" Tag="PageCrosshair_create" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PageCrosshair_chair">
                     <Border Style="{StaticResource ControlCard}" Margin="0,0,0,14">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -2831,6 +2839,9 @@
                         </Grid>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageCrosshair_gallery" Visibility="Collapsed">
                     <Border Style="{StaticResource ControlCard}">
                         <StackPanel>
                             <TextBlock Text="GALLERY" Style="{StaticResource CardLabel}"/>
@@ -2840,6 +2851,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageCrosshair_create" Visibility="Collapsed">
                     <Border Style="{StaticResource ControlCard}" Margin="0,14,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -2961,6 +2975,8 @@
                             </Border>
                         </Grid>
                     </Border>
+
+                    </StackPanel>
 
                 </StackPanel>
 
@@ -3853,6 +3869,13 @@
 
                 <StackPanel x:Name="PageHistory" Visibility="Collapsed">
 
+                    <UniformGrid x:Name="PageHistoryBar" Columns="3" Margin="0,0,0,14">
+                        <RadioButton Content="All Time" GroupName="PageHistoryTab" Tag="PageHistory_alltime" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Session" GroupName="PageHistoryTab" Tag="PageHistory_session" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="By Day" GroupName="PageHistoryTab" Tag="PageHistory_byday" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PageHistory_alltime">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="ALL TIME" Foreground="{StaticResource TextMuted}"
@@ -3896,6 +3919,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageHistory_session" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="THIS SESSION" Foreground="{StaticResource TextMuted}"
@@ -3923,6 +3949,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageHistory_byday" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -3966,10 +3995,19 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageRecorder" Visibility="Collapsed">
 
+                    <UniformGrid x:Name="PageRecorderBar" Columns="3" Margin="0,0,0,14">
+                        <RadioButton Content="Record" GroupName="PageRecorderTab" Tag="PageRecorder_record" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Replay" GroupName="PageRecorderTab" Tag="PageRecorder_replay" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Share" GroupName="PageRecorderTab" Tag="PageRecorder_share" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PageRecorder_record">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="RECORD" Foreground="{StaticResource TextMuted}"
@@ -4011,6 +4049,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageRecorder_replay" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -4055,6 +4096,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageRecorder_share" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="SHARE A CLIP" Foreground="{StaticResource TextMuted}"
@@ -4104,6 +4148,8 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
+
+                    </StackPanel>
 
                 </StackPanel>
 
@@ -4173,6 +4219,13 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageTheme" Visibility="Collapsed">
+
+                    <UniformGrid x:Name="PageThemeBar" Columns="2" Margin="0,0,0,14">
+                        <RadioButton Content="Color" GroupName="PageThemeTab" Tag="PageTheme_color" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Window" GroupName="PageThemeTab" Tag="PageTheme_window" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PageTheme_color">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MODE" Foreground="{StaticResource TextMuted}"
@@ -4262,6 +4315,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageTheme_window" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -4382,6 +4438,9 @@
                                        TextWrapping="Wrap" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
+
+                    </StackPanel>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PagePro" Visibility="Collapsed">
@@ -4503,6 +4562,26 @@
 
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
 
+                    <UniformGrid x:Name="PageSettingsBar" Columns="4" Margin="0,0,0,14">
+                        <RadioButton Content="General" GroupName="PageSettingsTab" Tag="PageSettings_general" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Streaming" GroupName="PageSettingsTab" Tag="PageSettings_streaming" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Hotkeys" GroupName="PageSettingsTab" Tag="PageSettings_hotkeys" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Recording" GroupName="PageSettingsTab" Tag="PageSettings_recording" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PageSettings_general">
+                    <Border Style="{StaticResource EmptyPanel}">
+                        <StackPanel>
+                            <TextBlock Text="SETTINGS" Style="{StaticResource EmptyHeading}"/>
+                            <TextBlock Text="More to come" Style="{StaticResource EmptyTitle}"/>
+                            <TextBlock Text="Hotkeys are rebound from their own buttons on the Clicker and Recorder pages."
+                                       Style="{StaticResource EmptyHint}"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageSettings_streaming" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="STREAMING" Foreground="{StaticResource TextMuted}"
@@ -4546,6 +4625,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageSettings_hotkeys" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -4584,6 +4666,9 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageSettings_recording" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="CLIP FOLDER" Foreground="{StaticResource TextMuted}"
@@ -4665,14 +4750,8 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource EmptyPanel}">
-                        <StackPanel>
-                            <TextBlock Text="SETTINGS" Style="{StaticResource EmptyHeading}"/>
-                            <TextBlock Text="More to come" Style="{StaticResource EmptyTitle}"/>
-                            <TextBlock Text="Hotkeys are rebound from their own buttons on the Clicker and Recorder pages."
-                                       Style="{StaticResource EmptyHint}"/>
-                        </StackPanel>
-                    </Border>
+                    </StackPanel>
+
                 </StackPanel>
               </Grid>
             </ScrollViewer>
@@ -4728,5 +4807,42 @@
              click-through and empty until something celebrates. -->
         <Canvas x:Name="ProCelebration" IsHitTestVisible="False"
                 Grid.ColumnSpan="2" Panel.ZIndex="200" ClipToBounds="True"/>
+
+        <!-- First-open intro, Lyre-style: a brief branded flourish over a solid
+             backdrop that fades away to reveal the app. The backdrop uses the
+             theme Bg so it matches whatever mode is set. Driven from
+             Window_ContentRendered so it starts after the first paint, and a
+             click anywhere skips it. See MainWindow.Intro.cs. -->
+        <Grid x:Name="IntroOverlay" Grid.ColumnSpan="2" Panel.ZIndex="500"
+              Background="{DynamicResource Bg}"
+              MouseLeftButtonDown="IntroOverlay_Skip">
+            <Grid x:Name="IntroContent" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Opacity="0" RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform>
+                    <ScaleTransform x:Name="IntroScale" ScaleX="0.86" ScaleY="0.86"/>
+                </Grid.RenderTransform>
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="JINXY" FontSize="66" FontWeight="Black"
+                               Foreground="{DynamicResource TextBright}"
+                               HorizontalAlignment="Center">
+                        <TextBlock.Effect>
+                            <DropShadowEffect x:Name="IntroGlow" ShadowDepth="0" BlurRadius="34"
+                                              Color="{DynamicResource AccentColor}" Opacity="0"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                    <!-- Accent bar wipes open from the centre under the wordmark. -->
+                    <Border x:Name="IntroBar" Height="4" CornerRadius="2" Width="230"
+                            Background="{DynamicResource Accent}" Margin="0,12,0,0"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="IntroBarScale" ScaleX="0" ScaleY="1"/>
+                        </Border.RenderTransform>
+                    </Border>
+                    <TextBlock Text="ORIGINAL BUILD" FontSize="13" FontWeight="Bold"
+                               Foreground="{DynamicResource TextMuted}"
+                               HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
