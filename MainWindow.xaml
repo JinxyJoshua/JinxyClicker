@@ -3076,6 +3076,14 @@
 
                 <StackPanel x:Name="PageOptimizations" Visibility="Collapsed">
 
+                    <UniformGrid x:Name="OptTabBar" Columns="3" Margin="0,0,0,14">
+                        <RadioButton Content="Game Mode" GroupName="OptTab" Tag="Boost" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="OptTab_Checked"/>
+                        <RadioButton Content="Cleaner" GroupName="OptTab" Tag="Cleaner" Style="{StaticResource SegmentButton}" Checked="OptTab_Checked"/>
+                        <RadioButton Content="Input &amp; Network" GroupName="OptTab" Tag="Network" Margin="0" Style="{StaticResource SegmentButton}" Checked="OptTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="OptTabBoost">
+
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Accent}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="GAMING MODE" Foreground="{StaticResource Accent}"
@@ -3098,6 +3106,10 @@
                                        TextWrapping="Wrap" Margin="0,10,0,0" Opacity="0.85"/>
                         </StackPanel>
                     </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="OptTabCleaner" Visibility="Collapsed">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
@@ -3122,20 +3134,6 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="INPUT" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
-                            <ItemsControl x:Name="InputTweakList" Margin="0,8,0,0"
-                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
-
-                            <TextBlock Text="NETWORK" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold" Margin="0,18,0,0"/>
-                            <ItemsControl x:Name="NetworkTweakList" Margin="0,8,0,0"
-                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
-                        </StackPanel>
-                    </Border>
-
                     <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="MEMORY" Foreground="{StaticResource TextMuted}"
@@ -3154,6 +3152,26 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="OptTabNetwork" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="INPUT" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <ItemsControl x:Name="InputTweakList" Margin="0,8,0,0"
+                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
+
+                            <TextBlock Text="NETWORK" Foreground="{StaticResource TextMuted}"
+                                       FontSize="10" FontWeight="Bold" Margin="0,18,0,0"/>
+                            <ItemsControl x:Name="NetworkTweakList" Margin="0,8,0,0"
+                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
 
                 </StackPanel>
 

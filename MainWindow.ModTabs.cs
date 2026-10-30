@@ -22,4 +22,14 @@ public partial class MainWindow
         ModTabScreen.Visibility = tab == "Screen" ? Visibility.Visible : Visibility.Collapsed;
         ModTabMouse.Visibility = tab == "Mouse" ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    private void OptTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tab }) return;
+        if (OptTabBoost == null) return;
+
+        OptTabBoost.Visibility = tab == "Boost" ? Visibility.Visible : Visibility.Collapsed;
+        OptTabCleaner.Visibility = tab == "Cleaner" ? Visibility.Visible : Visibility.Collapsed;
+        OptTabNetwork.Visibility = tab == "Network" ? Visibility.Visible : Visibility.Collapsed;
+    }
 }
