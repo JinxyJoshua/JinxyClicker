@@ -1951,6 +1951,7 @@ public partial class MainWindow : Window
         RobloxPriority.IsChecked = s.RobloxPriority;
         LoadGamingMode(s);
         LoadLowerPing(s);   // Plus: Lower Ping one-switch + cards
+        LoadGraphicsQuality(s);   // Tweaks: graphics quality slider
 
         SetClickMode(s.HoldMode);
 
@@ -2130,6 +2131,7 @@ public partial class MainWindow : Window
             RobloxPriority = RobloxPriority.IsChecked == true,
             GamingModeOn = _gamingOn,
             GamingModeAppliedTweaks = _gamingAppliedTweaks,
+            GraphicsQualityLevel = _qualityLevel,
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,
@@ -3580,6 +3582,7 @@ public partial class MainWindow : Window
         // Re-read on entry: a tweak may have been changed outside this app since
         // the page was last shown.
         RefreshTweaks();
+        RefreshQualityState();
         ShowPage(NavTweaks, PageTweaks, "Tweaks", "Windows performance tweaks");
     }
 

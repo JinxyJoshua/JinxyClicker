@@ -202,6 +202,12 @@ public sealed class AppSettings
     /// </remarks>
     public bool GamingModeOn { get; set; }
     public List<string> GamingModeAppliedTweaks { get; set; } = new();
+
+    /// <summary>
+    /// Graphics Quality slider position, 1 (max FPS) to 10 (full quality). 10 is
+    /// the default: no overrides, Roblox renders normally.
+    /// </summary>
+    public int GraphicsQualityLevel { get; set; } = 10;
     public bool GamingModeSetFps { get; set; }
     public int? GamingModePrevFpsCap { get; set; }
     public bool GamingModeSetPriority { get; set; }
