@@ -1236,11 +1236,22 @@
                                     </DockPanel>
 
                                     <Border x:Name="RewardResultCard" Visibility="Collapsed" Background="{StaticResource Panel2}" CornerRadius="8"
-                                            BorderThickness="2" BorderBrush="#A78BFA" Padding="18" Margin="0,14,0,0">
+                                            BorderThickness="2" BorderBrush="#A78BFA" Padding="18" Margin="0,14,0,0"
+                                            RenderTransformOrigin="0.5,0.5">
+                                        <Border.RenderTransform>
+                                            <ScaleTransform x:Name="RewardResultScale" ScaleX="1" ScaleY="1"/>
+                                        </Border.RenderTransform>
                                         <StackPanel>
+                                            <TextBlock x:Name="RewardUnlockedBadge" Text="&#x2726; UNLOCKED" Visibility="Collapsed"
+                                                       FontSize="11" FontWeight="Bold" Foreground="#A78BFA" Margin="0,0,0,4"
+                                                       RenderTransformOrigin="0,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <ScaleTransform x:Name="RewardUnlockedScale" ScaleX="1" ScaleY="1"/>
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
                                             <TextBlock x:Name="RewardResultRarity" Text="" FontSize="10" FontWeight="Bold"/>
                                             <TextBlock x:Name="RewardResultName" Text="" FontSize="20" FontWeight="Black" Foreground="{StaticResource TextBright}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="Added to your collection" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,2,0,0"/>
+                                            <TextBlock x:Name="RewardResultSub" Text="Added to your collection" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 

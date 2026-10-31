@@ -325,13 +325,16 @@ public partial class MainWindow
         _spinsToday++;
 
         _spinsSinceLegendary = RewardWheel.ResetsPity(reward.Rarity) ? 0 : _spinsSinceLegendary + 1;
+
+        // A cosmetic counts as newly unlocked only the first time it is won.
+        bool newUnlock = reward.Collectible && !_owned.Contains(reward.Id);
         GrantReward(reward);
 
         _spinning = false;
         _settingsDirty = true;
         SaveAppSettings();
 
-        ShowRewardResult(reward);
+        ShowRewardResult(reward, newUnlock);
         RefreshRewardsHeader();
         BuildCollection();
     }
@@ -497,7 +500,7 @@ public partial class MainWindow
         _ => "Cursor"   // Cursor and Crosshair both apply as the in-game cursor
     };
 
-    private void ShowRewardResult(Reward reward)
+    private void ShowRewardResult(Reward reward, bool newUnlock)
     {
         if (RewardResultCard == null || RewardResultName == null || RewardResultRarity == null) return;
         RewardResultName.Text = reward.Kind switch
@@ -507,9 +510,67 @@ public partial class MainWindow
             _ => reward.Name
         };
         RewardResultRarity.Text = reward.Rarity.ToString().ToUpperInvariant();
-        RewardResultRarity.Foreground = new SolidColorBrush(RarityColor(reward.Rarity));
-        RewardResultCard.BorderBrush = new SolidColorBrush(RarityColor(reward.Rarity));
+        Color rc = RarityColor(reward.Rarity);
+        RewardResultRarity.Foreground = new SolidColorBrush(rc);
+        RewardResultCard.BorderBrush = new SolidColorBrush(rc);
+
+        if (RewardResultSub != null)
+            RewardResultSub.Text = reward.Kind switch
+            {
+                RewardKind.Stardust => "Added to your balance",
+                RewardKind.Premium => "Plus time added — enjoy",
+                _ => newUnlock ? "New — added to your collection" : "Already in your collection",
+            };
+
+        // The badge only fires for a genuinely new cosmetic; a duplicate or a
+        // currency/Premium win just shows the card.
+        if (RewardUnlockedBadge != null)
+        {
+            RewardUnlockedBadge.Visibility = newUnlock ? Visibility.Visible : Visibility.Collapsed;
+            RewardUnlockedBadge.Foreground = new SolidColorBrush(rc);
+        }
+
         RewardResultCard.Visibility = Visibility.Visible;
+        PlayRewardRevealAnimation(newUnlock);
+    }
+
+    /// <summary>
+    /// A subtle reveal when a spin lands: the card fades in with a small
+    /// scale-pop, and a won cosmetic's "UNLOCKED" badge springs in a touch after.
+    /// </summary>
+    private void PlayRewardRevealAnimation(bool newUnlock)
+    {
+        // Card: fade + a gentle pop (a small overshoot reads as "landed", not bouncy).
+        RewardResultCard!.BeginAnimation(UIElement.OpacityProperty,
+            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
+
+        if (RewardResultScale != null)
+        {
+            var pop = new DoubleAnimation(0.92, 1.0, TimeSpan.FromMilliseconds(360))
+            {
+                EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.25 }
+            };
+            RewardResultScale.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
+            RewardResultScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
+        }
+
+        if (!newUnlock || RewardUnlockedBadge == null || RewardUnlockedScale == null) return;
+
+        // Badge: a slightly livelier spring, started just after the card so the eye
+        // catches it as a second beat.
+        var fade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(110)
+        };
+        RewardUnlockedBadge.BeginAnimation(UIElement.OpacityProperty, fade);
+
+        var spring = new DoubleAnimation(0.7, 1.0, TimeSpan.FromMilliseconds(420))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(110),
+            EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.5 }
+        };
+        RewardUnlockedScale.BeginAnimation(ScaleTransform.ScaleXProperty, spring);
+        RewardUnlockedScale.BeginAnimation(ScaleTransform.ScaleYProperty, spring);
     }
 
     // ---- odds + collection ----
