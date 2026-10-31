@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -41,6 +42,12 @@ public partial class MainWindow
     private DispatcherTimer? _infoOverlayTimer;
     private readonly Dictionary<string, CheckBox> _overlayToggles = new();
     private readonly Dictionary<string, FrameworkElement> _previewItems = new();
+
+    // The draggable layer of the preview, and the item being dragged in it.
+    private Canvas? _previewCanvas;
+    private FrameworkElement? _dragItem;
+    private Point _dragStart;
+    private double _dragStartLeft, _dragStartTop;
 
     private string? _musicTitle;
     private long _lastMusicProbe;
@@ -111,7 +118,7 @@ public partial class MainWindow
         host.Children.Clear();
         _previewItems.Clear();
 
-        // A sample scene so the overlays have something game-like to sit over.
+        // The game-like backdrop.
         host.Children.Add(new Rectangle
         {
             Fill = new LinearGradientBrush(Color.FromRgb(0x2A, 0x3B, 0x55), Color.FromRgb(0x10, 0x16, 0x24), 90)
@@ -128,57 +135,171 @@ public partial class MainWindow
         host.Children.Add(blocks);
         host.Children.Add(new TextBlock
         {
-            Text = "your game", Opacity = 0.22, Foreground = Brushes.White,
-            FontSize = 13, FontWeight = FontWeights.Bold,
+            Text = "drag an overlay to place it", Opacity = 0.3, Foreground = Brushes.White,
+            FontSize = 12, FontWeight = FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
         });
 
-        // Each overlay roughly where it appears in-game; stored by key so the
-        // preview can show only the ones that are switched on.
-        AddPreview(host, "server", PreviewPill("", "EU West", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Top, new Thickness(14, 14, 0, 0));
-        AddPreview(host, "keystrokes", PreviewKeys(), HorizontalAlignment.Left, VerticalAlignment.Center, new Thickness(14, 0, 0, 0));
-        AddPreview(host, "mouse", PreviewPill("", "L M R 4 5", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Bottom, new Thickness(14, 0, 0, 14));
-        AddPreview(host, "watermark", PreviewPill("", _watermarkText, OvPurple), HorizontalAlignment.Right, VerticalAlignment.Bottom, new Thickness(0, 0, 14, 14));
+        // The draggable layer on top of the scene.
+        _previewCanvas = new Canvas();
+        host.Children.Add(_previewCanvas);
 
-        var topCentre = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 14, 0, 0) };
-        FrameworkElement music = PreviewPill("", "Now playing", OvPurple);
-        music.HorizontalAlignment = HorizontalAlignment.Center;
-        FrameworkElement clock = PreviewPill("", "9:41", OvPurple);
-        clock.HorizontalAlignment = HorizontalAlignment.Center;
-        clock.Margin = new Thickness(0, 8, 0, 0);
-        _previewItems["music"] = music;
-        _previewItems["clock"] = clock;
-        topCentre.Children.Add(music);
-        topCentre.Children.Add(clock);
-        host.Children.Add(topCentre);
+        AddReplica("server", PreviewPill("", "EU West", OvBlue), draggable: false);
+        AddReplica("music", PreviewPill("", "Now playing", OvPurple), true);
+        AddReplica("clock", PreviewPill("", "9:41", OvPurple), true);
+        AddReplica("keystrokes", PreviewKeys(), true);
+        AddReplica("mouse", PreviewPill("", "L M R 4 5", OvBlue), true);
+        AddReplica("watermark", PreviewPill("", _watermarkText, OvPurple), true);
+        AddReplica("cps", PreviewCps(), true);
+        AddReplica("fps", PreviewPill("", "146 FPS", OvGreen), true);
+        AddReplica("system", PreviewSystem(), true);
 
-        var right = new StackPanel
-        {
-            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 14, 14, 0)
-        };
-        FrameworkElement cps = PreviewCps();
-        FrameworkElement fps = Stacked(PreviewPill("", "146 FPS", OvGreen));
-        FrameworkElement sys = Stacked(PreviewSystem());
-        _previewItems["cps"] = cps;
-        _previewItems["fps"] = fps;
-        _previewItems["system"] = sys;
-        right.Children.Add(cps);
-        right.Children.Add(fps);
-        right.Children.Add(sys);
-        host.Children.Add(right);
-
+        _previewCanvas.SizeChanged += (_, _) => LayoutPreviewItems();
         RefreshPreview();
     }
 
-    private void AddPreview(Grid host, string key, FrameworkElement el, HorizontalAlignment h, VerticalAlignment v, Thickness margin)
+    private void AddReplica(string key, FrameworkElement el, bool draggable)
     {
-        Anchor(el, h, v, margin);
+        el.Tag = key;
         _previewItems[key] = el;
-        host.Children.Add(el);
+        _previewCanvas!.Children.Add(el);
+        if (draggable)
+        {
+            el.Cursor = Cursors.SizeAll;
+            el.MouseLeftButtonDown += PreviewItem_Down;
+            el.MouseMove += PreviewItem_Move;
+            el.MouseLeftButtonUp += PreviewItem_Up;
+        }
     }
 
-    /// <summary>Shows in the preview only the overlays that are currently on.</summary>
+    private void PreviewItem_Down(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || _previewCanvas == null) return;
+        _dragItem = fe;
+        _dragStart = e.GetPosition(_previewCanvas);
+        _dragStartLeft = double.IsNaN(Canvas.GetLeft(fe)) ? 0 : Canvas.GetLeft(fe);
+        _dragStartTop = double.IsNaN(Canvas.GetTop(fe)) ? 0 : Canvas.GetTop(fe);
+        fe.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void PreviewItem_Move(object sender, MouseEventArgs e)
+    {
+        if (_dragItem == null || _previewCanvas == null || e.LeftButton != MouseButtonState.Pressed) return;
+        Point p = e.GetPosition(_previewCanvas);
+        double w = _previewCanvas.ActualWidth, h = _previewCanvas.ActualHeight;
+        double nl = Math.Max(0, Math.Min(_dragStartLeft + (p.X - _dragStart.X), w - _dragItem.ActualWidth));
+        double nt = Math.Max(0, Math.Min(_dragStartTop + (p.Y - _dragStart.Y), h - _dragItem.ActualHeight));
+        Canvas.SetLeft(_dragItem, nl);
+        Canvas.SetTop(_dragItem, nt);
+    }
+
+    private void PreviewItem_Up(object sender, MouseButtonEventArgs e)
+    {
+        if (_dragItem is { Tag: string key } fe && _previewCanvas is { } cv)
+        {
+            fe.ReleaseMouseCapture();
+            double w = cv.ActualWidth, h = cv.ActualHeight;
+            if (w > 0 && h > 0)
+            {
+                double fx = Canvas.GetLeft(fe) / w;
+                double fy = Canvas.GetTop(fe) / h;
+                Rect wa = SystemParameters.WorkArea;
+                SetOverlayPos(key, wa.Left + fx * wa.Width, wa.Top + fy * wa.Height);
+            }
+        }
+        _dragItem = null;
+        e.Handled = true;
+    }
+
+    // Positions every replica from its saved spot (mapped back from the screen),
+    // or its default corner when it has never been dragged.
+    private void LayoutPreviewItems()
+    {
+        if (_previewCanvas is not { } cv) return;
+        double w = cv.ActualWidth, h = cv.ActualHeight;
+        if (w <= 0 || h <= 0) return;
+
+        foreach (KeyValuePair<string, FrameworkElement> item in _previewItems)
+        {
+            FrameworkElement fe = item.Value;
+            if (ReferenceEquals(fe, _dragItem)) continue;
+            if (fe.ActualWidth <= 0) fe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Point pos = SavedToCanvas(item.Key, fe, w, h) ?? DefaultCanvasPos(item.Key, fe, w, h);
+            Canvas.SetLeft(fe, pos.X);
+            Canvas.SetTop(fe, pos.Y);
+        }
+    }
+
+    private Point? SavedToCanvas(string key, FrameworkElement fe, double w, double h)
+    {
+        (double? sx, double? sy) = SavedPos(key);
+        if (sx is not { } x || sy is not { } y) return null;
+        Rect wa = SystemParameters.WorkArea;
+        double rw = ReplicaWidth(fe), rh = ReplicaHeight(fe);
+        double px = Math.Max(0, Math.Min((x - wa.Left) / wa.Width * w, w - rw));
+        double py = Math.Max(0, Math.Min((y - wa.Top) / wa.Height * h, h - rh));
+        return new Point(px, py);
+    }
+
+    private static Point DefaultCanvasPos(string key, FrameworkElement fe, double w, double h)
+    {
+        double rw = ReplicaWidth(fe), rh = ReplicaHeight(fe);
+        const double m = 14;
+        return key switch
+        {
+            "server" => new Point(m, m),
+            "music" => new Point((w - rw) / 2, m),
+            "clock" => new Point((w - rw) / 2, m + 44),
+            "cps" => new Point(w - rw - m, m),
+            "fps" => new Point(w - rw - m, m + 78),
+            "system" => new Point(w - rw - m, m + 118),
+            "mouse" => new Point(m, h - rh - m),
+            "watermark" => new Point(w - rw - m, h - rh - m),
+            "keystrokes" => new Point(m, (h - rh) / 2),
+            _ => new Point(m, m)
+        };
+    }
+
+    private static double ReplicaWidth(FrameworkElement fe) => fe.ActualWidth > 0 ? fe.ActualWidth : fe.DesiredSize.Width;
+    private static double ReplicaHeight(FrameworkElement fe) => fe.ActualHeight > 0 ? fe.ActualHeight : fe.DesiredSize.Height;
+
+    private (double? X, double? Y) SavedPos(string key) => key switch
+    {
+        "cps" => (_cpsX, _cpsY),
+        "fps" => (_fpsX, _fpsY),
+        "system" => (_sysX, _sysY),
+        "mouse" => (_mouseX, _mouseY),
+        "clock" => (_clockX, _clockY),
+        "watermark" => (_wmX, _wmY),
+        "music" => (_musX, _musY),
+        "keystrokes" => (_keystrokesX, _keystrokesY),
+        _ => (null, null)
+    };
+
+    // A drop in the preview writes the overlay's real on-screen spot and applies
+    // it to the live window right away.
+    private void SetOverlayPos(string key, double x, double y)
+    {
+        switch (key)
+        {
+            case "cps": _cpsX = x; _cpsY = y; _overlay?.SetSavedPosition(x, y); break;
+            case "fps": _fpsX = x; _fpsY = y; break;
+            case "system": _sysX = x; _sysY = y; break;
+            case "mouse": _mouseX = x; _mouseY = y; break;
+            case "clock": _clockX = x; _clockY = y; break;
+            case "watermark": _wmX = x; _wmY = y; break;
+            case "music": _musX = x; _musY = y; break;
+            case "keystrokes":
+                _keystrokesX = x; _keystrokesY = y;
+                if (_keystrokes != null) { _keystrokes.Left = x; _keystrokes.Top = y; }
+                break;
+            default: return;
+        }
+        SaveAppSettings();
+    }
+
+    /// <summary>Shows only the overlays that are on, and re-lays out the preview.</summary>
     private void RefreshPreview()
     {
         foreach (KeyValuePair<string, FrameworkElement> item in _previewItems)
@@ -187,6 +308,8 @@ public partial class MainWindow
         if (_previewItems.TryGetValue("watermark", out FrameworkElement? wm) && wm is Border { Child: StackPanel sp }
             && sp.Children.Count > 1 && sp.Children[1] is TextBlock t)
             t.Text = _watermarkText;
+
+        LayoutPreviewItems();
     }
 
     private bool IsOverlayOn(string key) => key switch
