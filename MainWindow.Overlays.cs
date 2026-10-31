@@ -22,15 +22,16 @@ public partial class MainWindow
     private FpsOverlay? _fpsOverlay;
     private SystemOverlay? _systemOverlay;
     private MusicOverlay? _musicOverlay;
+    private MouseOverlay? _mouseOverlay;
 
-    private bool _ovFps, _ovSystem, _ovMusic;
+    private bool _ovFps, _ovSystem, _ovMusic, _ovMouse;
     private bool _overlaysBuilt;
     private bool _syncingOverlayToggles;
     private bool _overlayMoveMode;
     private bool _cpsMovedHooked;
 
     // Dragged positions; null means "use the default corner".
-    private double? _cpsX, _cpsY, _fpsX, _fpsY, _sysX, _sysY, _musX, _musY;
+    private double? _cpsX, _cpsY, _fpsX, _fpsY, _sysX, _sysY, _musX, _musY, _mouseX, _mouseY;
 
     private DispatcherTimer? _infoOverlayTimer;
     private readonly Dictionary<string, CheckBox> _overlayToggles = new();
@@ -49,6 +50,7 @@ public partial class MainWindow
         ("cps",        "", "CPS",        "Clicks per second, with a live graph",   "142",       OvPurple),
         ("fps",        "", "FPS",        "Roblox's real frame rate",                "146 FPS",   OvGreen),
         ("system",     "", "System",     "CPU and RAM load, machine-wide",          "CPU 18%",   OvBlue),
+        ("mouse",      "", "Mouse",      "Mouse buttons that light up as you click", "L M R 4 5", OvBlue),
         ("music",      "", "Music",      "The track playing on the Music page",     "Now playing", OvPurple),
         ("server",     "", "Server",     "The region of your Roblox server",        "EU West",   OvBlue),
     };
@@ -67,11 +69,13 @@ public partial class MainWindow
         _ovFps = s.OverlayFps;
         _ovSystem = s.OverlaySystem;
         _ovMusic = s.OverlayMusic;
+        _ovMouse = s.OverlayMouse;
 
         _cpsX = s.OverlayCpsX; _cpsY = s.OverlayCpsY;
         _fpsX = s.OverlayFpsX; _fpsY = s.OverlayFpsY;
         _sysX = s.OverlaySystemX; _sysY = s.OverlaySystemY;
         _musX = s.OverlayMusicX; _musY = s.OverlayMusicY;
+        _mouseX = s.OverlayMouseX; _mouseY = s.OverlayMouseY;
 
         _overlay?.SetSavedPosition(_cpsX, _cpsY);
         ApplyInfoOverlays();
@@ -119,6 +123,7 @@ public partial class MainWindow
         host.Children.Add(Anchor(PreviewPill("", "EU West", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Top, new Thickness(14, 14, 0, 0)));
         host.Children.Add(Anchor(PreviewPill("", "Now playing", OvPurple), HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(0, 14, 0, 0)));
         host.Children.Add(Anchor(PreviewKeys(), HorizontalAlignment.Left, VerticalAlignment.Center, new Thickness(14, 0, 0, 0)));
+        host.Children.Add(Anchor(PreviewPill("", "L M R 4 5", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Bottom, new Thickness(14, 0, 0, 14)));
 
         var right = new StackPanel
         {
@@ -323,6 +328,7 @@ public partial class MainWindow
             case "server": if (ServerRegionCheck != null) ServerRegionCheck.IsChecked = on; break;
             case "fps": _ovFps = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "system": _ovSystem = on; ApplyInfoOverlays(); SaveAppSettings(); break;
+            case "mouse": _ovMouse = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "music": _ovMusic = on; ApplyInfoOverlays(); SaveAppSettings(); break;
         }
     }
@@ -337,6 +343,7 @@ public partial class MainWindow
         SetToggle("server", ServerRegionCheck?.IsChecked == true);
         SetToggle("fps", _ovFps);
         SetToggle("system", _ovSystem);
+        SetToggle("mouse", _ovMouse);
         SetToggle("music", _ovMusic);
         _syncingOverlayToggles = false;
     }
@@ -350,7 +357,7 @@ public partial class MainWindow
 
     private void ApplyInfoOverlays()
     {
-        bool any = _ovFps || _ovSystem || _ovMusic;
+        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse;
         if (any)
         {
             _infoOverlayTimer ??= CreateInfoOverlayTimer();
@@ -408,6 +415,21 @@ public partial class MainWindow
         }
         else _systemOverlay?.Hide();
 
+        if (_ovMouse)
+        {
+            if (_mouseOverlay == null) { _mouseOverlay = new MouseOverlay(); _mouseOverlay.Moved += SaveMousePos; }
+            _mouseOverlay.StreamerMode = streamer;
+            _mouseOverlay.SetAccent(AccentColorValue());
+            _mouseOverlay.SetMoveMode(_overlayMoveMode);
+            if (front)
+            {
+                if (!_mouseOverlay.IsVisible) _mouseOverlay.Show();
+                if (!_overlayMoveMode) PlacePill(_mouseOverlay, _mouseX, _mouseY, _mouseOverlay.PlaceDefault);
+            }
+            else _mouseOverlay.Hide();
+        }
+        else _mouseOverlay?.Hide();
+
         if (_ovMusic)
         {
             if (_musicOverlay == null) { _musicOverlay = new MusicOverlay(); _musicOverlay.Moved += SaveMusicPos; }
@@ -431,6 +453,7 @@ public partial class MainWindow
     private void SaveFpsPos() { if (_fpsOverlay != null) { _fpsX = _fpsOverlay.Left; _fpsY = _fpsOverlay.Top; SaveAppSettings(); } }
     private void SaveSystemPos() { if (_systemOverlay != null) { _sysX = _systemOverlay.Left; _sysY = _systemOverlay.Top; SaveAppSettings(); } }
     private void SaveMusicPos() { if (_musicOverlay != null) { _musX = _musicOverlay.Left; _musY = _musicOverlay.Top; SaveAppSettings(); } }
+    private void SaveMousePos() { if (_mouseOverlay != null) { _mouseX = _mouseOverlay.Left; _mouseY = _mouseOverlay.Top; SaveAppSettings(); } }
 
     // Sets a window to a saved spot (clamped on-screen), or its default corner.
     private static void PlacePill(Window w, double? x, double? y, Action placeDefault)
@@ -520,5 +543,6 @@ public partial class MainWindow
         try { _fpsOverlay?.Close(); } catch { }
         try { _systemOverlay?.Close(); } catch { }
         try { _musicOverlay?.Close(); } catch { }
+        try { _mouseOverlay?.Close(); } catch { }
     }
 }

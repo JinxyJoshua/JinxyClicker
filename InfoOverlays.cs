@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -6,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Threading;
 
 namespace JinxyClicker;
 
@@ -135,6 +137,14 @@ public abstract class PillOverlayBase : Window
         UpdateLayout();
         Left = SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - ActualWidth) / 2;
         Top = SystemParameters.WorkArea.Top + y;
+    }
+
+    /// <summary>Pins the pill to the bottom-left corner.</summary>
+    protected void PlaceBottomLeft(int margin)
+    {
+        UpdateLayout();
+        Left = SystemParameters.WorkArea.Left + margin;
+        Top = SystemParameters.WorkArea.Bottom - ActualHeight - margin;
     }
 
     private void ApplyCaptureVisibility()
@@ -267,4 +277,93 @@ public sealed class MusicOverlay : PillOverlayBase
     }
 
     public void PlaceDefault() => PlaceTopCentre(24);
+}
+
+/// <summary>
+/// A row of mouse-button keycaps — left, middle, right and the two side buttons —
+/// that light up in the accent colour as they're pressed, including the clicker's
+/// own clicks. Nothing is read from the game; it polls the button states only.
+/// </summary>
+public sealed class MouseOverlay : PillOverlayBase
+{
+    private const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02, VK_MBUTTON = 0x04, VK_XBUTTON1 = 0x05, VK_XBUTTON2 = 0x06;
+
+    private sealed class Cap
+    {
+        public int Vk;
+        public Border Border = null!;
+        public TextBlock Label = null!;
+        public bool Down;
+    }
+
+    private static readonly Color Rest = Color.FromArgb(0x55, 0x2A, 0x2E, 0x3C);
+    private static readonly Color RestText = Color.FromRgb(0xA6, 0xAD, 0xBF);
+
+    private readonly List<Cap> _caps = new();
+    private readonly DispatcherTimer _poll;
+    private Color _accent = Color.FromRgb(0x6A, 0xB7, 0xFF);
+
+    public MouseOverlay() : base("", Color.FromRgb(0x6A, 0xB7, 0xFF))
+    {
+        AddCap("L", VK_LBUTTON);
+        AddCap("M", VK_MBUTTON);
+        AddCap("R", VK_RBUTTON);
+        AddCap("4", VK_XBUTTON1);
+        AddCap("5", VK_XBUTTON2);
+
+        _poll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(24) };
+        _poll.Tick += (_, _) => Poll();
+    }
+
+    /// <summary>The colour a button lights up in while held.</summary>
+    public void SetAccent(Color accent) => _accent = accent;
+
+    private void AddCap(string text, int vk)
+    {
+        var label = new TextBlock
+        {
+            Text = text, FontSize = 12, FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(RestText),
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+        };
+        var border = new Border
+        {
+            Width = 30, Height = 26, Margin = new Thickness(2, 0, 2, 0),
+            CornerRadius = new CornerRadius(5),
+            Background = new SolidColorBrush(Rest),
+            BorderThickness = new Thickness(1),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+            Child = label
+        };
+        _caps.Add(new Cap { Vk = vk, Border = border, Label = label });
+        Body.Children.Add(border);
+    }
+
+    private void Poll()
+    {
+        foreach (Cap c in _caps)
+        {
+            bool down = (GetAsyncKeyState(c.Vk) & 0x8000) != 0;
+            if (down == c.Down) continue;
+            c.Down = down;
+
+            if (down)
+            {
+                c.Border.Background = new SolidColorBrush(_accent);
+                c.Label.Foreground = Brushes.White;
+            }
+            else
+            {
+                c.Border.Background = new SolidColorBrush(Rest);
+                c.Label.Foreground = new SolidColorBrush(RestText);
+            }
+        }
+    }
+
+    public new void Show() { base.Show(); _poll.Start(); }
+    public new void Hide() { _poll.Stop(); base.Hide(); }
+
+    public void PlaceDefault() => PlaceBottomLeft(28);
+
+    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
 }

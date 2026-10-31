@@ -308,6 +308,7 @@ public sealed class AppSettings
     public bool OverlayFps { get; set; }
     public bool OverlaySystem { get; set; }
     public bool OverlayMusic { get; set; }
+    public bool OverlayMouse { get; set; }
 
     /// <summary>Dragged positions for the movable overlays; null means its default corner.</summary>
     public double? OverlayCpsX { get; set; }
@@ -318,6 +319,8 @@ public sealed class AppSettings
     public double? OverlaySystemY { get; set; }
     public double? OverlayMusicX { get; set; }
     public double? OverlayMusicY { get; set; }
+    public double? OverlayMouseX { get; set; }
+    public double? OverlayMouseY { get; set; }
 
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }
