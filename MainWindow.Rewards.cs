@@ -12,8 +12,10 @@ namespace JinxyClicker;
 /// <summary>
 /// Daily Rewards: a once-a-day spin (twice for Plus) on a 12-slice wheel, with rarity
 /// odds and a Legendary pity timer from <see cref="RewardWheel"/>, a daily streak, a
-/// Stardust balance and a cosmetics collection. Stage 2 — the wheel, the spin and the
-/// bookkeeping; actually equipping won cosmetics comes in a later pass.
+/// Stardust balance and a cosmetics collection. Equipping a won cosmetic applies the
+/// real thing — a cursor cosmetic writes its crosshair into Roblox (via
+/// <see cref="CursorWriter"/>), a wallpaper cosmetic installs as the app background —
+/// mapped from id to style/design by <see cref="RewardCosmetics"/>.
 /// </summary>
 public partial class MainWindow
 {
@@ -44,12 +46,25 @@ public partial class MainWindow
     private int _spinsToday;
     private int _boughtSpins;
     private string _boughtDate = "";
-    private string _equippedCosmetic = "";
+    // Two independent equip slots, so a won cursor and a won wallpaper can both
+    // be on at the same time.
+    private string _equippedCursor = "";
+    private string _equippedWallpaper = "";
     private string _rewardModalShownDate = "";
     private DateTime? _rewardPremiumUntil;
     private readonly HashSet<string> _owned = new();
     private readonly Random _wheelRng = new();
     private bool _spinning;
+
+    // True while an equipped reward cursor owns Roblox's cursor files, with a
+    // snapshot of whether the Crosshair page had its own crosshair applied — so
+    // un-equipping can hand the cursor back to the page rather than just wiping it.
+    private bool _cursorOwnedByReward;
+    private bool _pageCursorApplied;
+
+    // The wallpaper that was set before a wallpaper cosmetic was equipped, so
+    // un-equipping in the same session puts the user's own background back.
+    private string _wallpaperBeforeCosmetic = "";
 
     private const int SpinCost = 60;   // Stardust to buy an extra spin
 
@@ -97,7 +112,16 @@ public partial class MainWindow
         _spinsToday = s.RewardLastSpin == Today ? Math.Max(0, s.RewardSpinsToday) : 0;
         _boughtDate = s.RewardBoughtDate ?? "";
         _boughtSpins = _boughtDate == Today ? Math.Max(0, s.RewardBought) : 0;
-        _equippedCosmetic = s.RewardEquipped ?? "";
+        _equippedCursor = s.RewardEquippedCursor ?? "";
+        _equippedWallpaper = s.RewardEquippedWallpaper ?? "";
+        // Migrate an old single-slot equip into whichever slot its kind belongs to.
+        if (!string.IsNullOrEmpty(s.RewardEquipped))
+        {
+            if (RewardCosmetics.IsCursor(s.RewardEquipped) && _equippedCursor.Length == 0)
+                _equippedCursor = s.RewardEquipped;
+            else if (RewardCosmetics.IsWallpaper(s.RewardEquipped) && _equippedWallpaper.Length == 0)
+                _equippedWallpaper = s.RewardEquipped;
+        }
         _rewardModalShownDate = s.RewardModalShown ?? "";
         _rewardPremiumUntil = DateTime.TryParse(s.RewardPremiumUntil, CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.RoundtripKind, out DateTime u) ? u : null;
@@ -107,6 +131,13 @@ public partial class MainWindow
                 _owned.Add(id);
 
         RefreshLicense();   // apply any still-active Premium reward to IsPro
+
+        // Re-assert an equipped cursor cosmetic. This runs after LoadCrosshair has
+        // already re-applied the Crosshair page's own pick, so the reward wins — and
+        // like the Crosshair page, re-writing on every launch is what survives a
+        // Roblox update replacing the version folder with the stock cursor.
+        if (_equippedCursor.Length > 0 && _owned.Contains(_equippedCursor))
+            ApplyCosmeticEffect(_equippedCursor, fromUser: false);
     }
 
     // ---- page ----
@@ -335,33 +366,117 @@ public partial class MainWindow
         RefreshRewardsHeader();
     }
 
-    /// <summary>Equips a won cosmetic (applies its signature accent), or clears it.</summary>
+    /// <summary>
+    /// Equips a won cosmetic — the real cursor (into Roblox) or wallpaper (as the
+    /// app background) — or clears it, handing the cursor back to the Crosshair
+    /// page and restoring the background it replaced.
+    /// </summary>
     private void EquipCosmetic(string id)
     {
-        _equippedCosmetic = _equippedCosmetic == id ? "" : id;   // click again to un-equip
-        ApplyEquipped();
+        // A cursor and a wallpaper live in their own slots, so equipping one never
+        // knocks the other off.
+        ref string slot = ref (RewardCosmetics.IsWallpaper(id) ? ref _equippedWallpaper : ref _equippedCursor);
+
+        if (slot == id)
+        {
+            UndoCosmeticEffect(id);          // clicking the equipped one takes it off
+            slot = "";
+            SetRewardEquipStatus("");
+        }
+        else
+        {
+            UndoCosmeticEffect(slot);        // take off whatever was in this slot
+            slot = id;
+            ApplyCosmeticEffect(id, fromUser: true);
+        }
+
         _settingsDirty = true;
         SaveAppSettings();
         BuildCollection();
+        RefreshRewardsHeader();
     }
 
-    /// <summary>Applies the equipped cosmetic's colour, or restores the theme/season accent.</summary>
-    private void ApplyEquipped()
+    /// <summary>Applies a cosmetic's real effect: a crosshair into Roblox, or a background.</summary>
+    private void ApplyCosmeticEffect(string id, bool fromUser)
     {
-        if (_equippedCosmetic.Length > 0 && _owned.Contains(_equippedCosmetic))
+        if (RewardCosmetics.Cursor(id) is { } style)
         {
-            Reward? r = WheelCatalog.Find(x => x.Id == _equippedCosmetic);
-            if (r != null) { ApplyAccent(SignatureColor(r)); return; }
+            // Remember the Crosshair page's own state only when the reward is first
+            // taking the cursor over, so un-equip can give it back untouched.
+            if (!_cursorOwnedByReward) _pageCursorApplied = _crosshairApplied;
+
+            CursorApplyResult res = CursorWriter.Apply(px => CrosshairImage.RenderCursorPng(style, px, 1.0));
+            _crosshairApplied = res.AnyWritten || CursorWriter.IsApplied();
+            _cursorOwnedByReward = true;
+
+            if (fromUser)
+                SetRewardEquipStatus(res switch
+                {
+                    { AnyWritten: true } => $"Equipped — fully close and reopen Roblox to see your {NameOf(id)} cursor.",
+                    { Failed: > 0 } => "Close Roblox and equip again — its cursor files were in use.",
+                    _ => "No Roblox install found to apply the cursor to."
+                });
+            return;
         }
-        RestoreThemeAccent();
+
+        if (RewardCosmetics.Wallpaper(id) is { } design)
+        {
+            _wallpaperBeforeCosmetic = _wallpaperFile;
+            string? stored = WallpaperGallery.Install(design);
+            if (stored != null) { _wallpaperFile = stored; ApplyWallpaper(); }
+
+            if (fromUser)
+                SetRewardEquipStatus(stored != null
+                    ? $"Equipped — {design.Name} is now your app background."
+                    : "That background could not be saved — the settings folder may be read-only.");
+        }
     }
 
-    /// <summary>Back to the season's accent if one is on, else the chosen swatch.</summary>
-    private void RestoreThemeAccent()
+    /// <summary>Takes a cosmetic's real effect back off: hands the cursor back, or restores the background.</summary>
+    private void UndoCosmeticEffect(string id)
     {
-        if (_season != Season.None) { ApplyAccent(SeasonAccent(_season)); return; }
-        if (TryParseColor(_accentHex, out Color a)) ApplyAccent(a);
+        if (id.Length == 0) return;
+
+        if (RewardCosmetics.IsCursor(id))
+        {
+            // Give the cursor back to the Crosshair page if it had one applied,
+            // otherwise put Roblox's own cursor back.
+            if (_pageCursorApplied && !IsDefaultSelected)
+            {
+                CursorApplyResult res = ApplyCurrentCrosshair();
+                _crosshairApplied = res.AnyWritten || CursorWriter.IsApplied();
+            }
+            else
+            {
+                CursorWriter.Remove();
+                _crosshairApplied = CursorWriter.IsApplied();
+            }
+            _cursorOwnedByReward = false;
+        }
+        else if (RewardCosmetics.IsWallpaper(id))
+        {
+            _wallpaperFile = Wallpaper.Resolve(_wallpaperBeforeCosmetic) != null ? _wallpaperBeforeCosmetic : "";
+            _wallpaperBeforeCosmetic = "";
+            ApplyWallpaper();
+        }
     }
+
+    private void SetRewardEquipStatus(string text)
+    {
+        if (RewardEquipStatus == null) return;
+        RewardEquipStatus.Text = text;
+        RewardEquipStatus.Visibility = text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>The display name for a cosmetic id, for status lines.</summary>
+    private static string NameOf(string id) => WheelCatalog.Find(r => r.Id == id)?.Name ?? "new";
+
+    /// <summary>The user-facing word for a cosmetic kind — crosshairs read as "Cursor".</summary>
+    private static string KindWord(RewardKind kind) => kind switch
+    {
+        RewardKind.Wallpaper => "Wallpaper",
+        _ => "Cursor"   // Cursor and Crosshair both apply as the in-game cursor
+    };
 
     private void ShowRewardResult(Reward reward)
     {
@@ -407,7 +522,7 @@ public partial class MainWindow
         {
             if (!reward.Collectible) continue;
             bool have = _owned.Contains(reward.Id);
-            bool equipped = have && _equippedCosmetic == reward.Id;
+            bool equipped = have && (_equippedCursor == reward.Id || _equippedWallpaper == reward.Id);
             Color rc = SignatureColor(reward);
 
             var chip = new Border
@@ -425,7 +540,8 @@ public partial class MainWindow
             sp.Children.Add(new TextBlock { Text = have ? reward.Name : "Locked", FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Brush("TextBright") });
             sp.Children.Add(new TextBlock
             {
-                Text = equipped ? reward.Rarity + "  •  EQUIPPED" : reward.Rarity.ToString(),
+                Text = equipped ? $"{KindWord(reward.Kind)}  •  EQUIPPED"
+                                : $"{KindWord(reward.Kind)}  •  {reward.Rarity}",
                 FontSize = 10, Foreground = new SolidColorBrush(rc), Margin = new Thickness(0, 2, 0, 0)
             });
             chip.Child = sp;

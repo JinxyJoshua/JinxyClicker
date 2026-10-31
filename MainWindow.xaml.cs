@@ -2020,7 +2020,6 @@ public partial class MainWindow : Window
 
         if (!SelectAccent(s.AccentColor)) SelectAccent(DefaultAccent);
         LoadSeason(s.Season);
-        ApplyEquipped();   // an equipped reward cosmetic recolours over the theme/season
 
         // Clamped to the slider's own range rather than trusted: the floor is
         // what stops a stored zero from bringing back an invisible window.
@@ -2162,7 +2161,8 @@ public partial class MainWindow : Window
             RewardOwned = string.Join(",", _owned),
             RewardBought = _boughtSpins,
             RewardBoughtDate = _boughtDate,
-            RewardEquipped = _equippedCosmetic,
+            RewardEquippedCursor = _equippedCursor,
+            RewardEquippedWallpaper = _equippedWallpaper,
             RewardPremiumUntil = _rewardPremiumUntil?.ToString("o", System.Globalization.CultureInfo.InvariantCulture) ?? "",
             RewardModalShown = _rewardModalShownDate,
             WindowOpacity = OpacitySlider.Value,

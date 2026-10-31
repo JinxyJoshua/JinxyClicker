@@ -376,7 +376,13 @@ public sealed class AppSettings
     public string RewardOwned { get; set; } = "";
     public int RewardBought { get; set; }
     public string RewardBoughtDate { get; set; } = "";
+    /// <summary>Legacy single equip slot, kept so an old file migrates into the
+    /// two slots below on load. No longer written.</summary>
     public string RewardEquipped { get; set; } = "";
+    /// <summary>The equipped cursor and wallpaper cosmetics — independent slots,
+    /// so a won cursor and a won wallpaper can both be on at once.</summary>
+    public string RewardEquippedCursor { get; set; } = "";
+    public string RewardEquippedWallpaper { get; set; } = "";
     public string RewardPremiumUntil { get; set; } = "";
     public string RewardModalShown { get; set; } = "";
 

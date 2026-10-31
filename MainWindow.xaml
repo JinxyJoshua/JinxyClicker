@@ -1253,6 +1253,8 @@
                                 <StackPanel>
                                     <TextBlock Text="COLLECTION" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"/>
                                     <WrapPanel x:Name="CollectionPanel"/>
+                                    <TextBlock x:Name="RewardEquipStatus" Text="" Visibility="Collapsed" TextWrapping="Wrap"
+                                               Foreground="{StaticResource Accent}" FontSize="11" FontWeight="SemiBold" Margin="2,4,0,0"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
