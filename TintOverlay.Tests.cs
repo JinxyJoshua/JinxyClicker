@@ -61,6 +61,7 @@ public class ColorLooksTests
         {
             Assert.False(string.IsNullOrWhiteSpace(l.Id));
             Assert.False(string.IsNullOrWhiteSpace(l.Name));
+            Assert.False(string.IsNullOrWhiteSpace(l.Blurb));
             Assert.NotNull(TintStyles.ById(l.TintId));
             Assert.InRange(l.Intensity, 0, 100);
             Assert.InRange(l.Vignette, 0, 100);

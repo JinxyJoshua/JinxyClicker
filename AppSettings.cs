@@ -299,6 +299,9 @@ public sealed class AppSettings
 
     /// <summary>Screen Tint vignette strength, 0–100 (0 = no vignette).</summary>
     public double TintVignette { get; set; }
+
+    /// <summary>The id of the selected Look card, or null once the sliders are nudged off it.</summary>
+    public string? TintLook { get; set; }
     public bool TintOnlyRoblox { get; set; } = true;
 
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>

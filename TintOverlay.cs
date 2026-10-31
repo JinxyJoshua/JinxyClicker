@@ -54,21 +54,25 @@ public static class TintStyles
 
 /// <summary>
 /// A one-tap "look": a tint colour, its strength and a vignette amount applied
-/// together. The pieces are the plain tint and vignette controls — a look is
-/// just a named starting point a player can then nudge.
+/// together, with a short name and blurb for its card. The pieces are the plain
+/// tint and vignette controls — a look is just a named starting point a player
+/// can then nudge with the sliders.
 /// </summary>
-public sealed record ColorLook(string Id, string Name, string TintId, double Intensity, double Vignette);
+public sealed record ColorLook(string Id, string Name, string Blurb, string TintId, double Intensity, double Vignette);
 
-/// <summary>The built-in looks shown as one-tap buttons on the Screen tab.</summary>
+/// <summary>The built-in looks shown as preview cards on the Screen tab.</summary>
 public static class ColorLooks
 {
     public static readonly IReadOnlyList<ColorLook> All = new[]
     {
-        new ColorLook("cinematic", "Cinematic", "cool",  28, 72),   // cool cast, deep edges
-        new ColorLook("cozy",      "Cozy",      "warm",  40, 26),   // warm, gentle edges
-        new ColorLook("focus",     "Focus",     "dim",   20, 58),   // neutral, pulls the eye in
-        new ColorLook("moody",     "Moody",     "night", 46, 78),   // dark amber, heavy edges
-        new ColorLook("faded",     "Faded",     "dusk",  18, 34)    // soft purple, light edges
+        new ColorLook("vivid",     "Vivid",     "A warm, punchy lift.",        "warm", 15, 0),
+        new ColorLook("clarity",   "Clarity",   "Cool and crisp.",             "cool", 13, 0),
+        new ColorLook("cinematic", "Cinematic", "Cool and moody, deep edges.", "cool", 26, 72),
+        new ColorLook("sunset",    "Sunset",    "Golden-hour warmth.",         "warm", 34, 30),
+        new ColorLook("arctic",    "Arctic",    "Cold, clean blues.",          "cool", 30, 18),
+        new ColorLook("retro",     "Retro",     "Faded film, warm-purple.",    "dusk", 24, 40),
+        new ColorLook("noir",      "Noir",      "Dark, with heavy edges.",     "dim",  40, 80),
+        new ColorLook("dream",     "Dream",     "Soft purple glow.",           "dusk", 18, 34)
     };
 
     public static ColorLook? ById(string? id) =>

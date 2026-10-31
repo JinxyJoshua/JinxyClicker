@@ -3803,56 +3803,56 @@
 
                     <StackPanel x:Name="ModTabScreen" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
+                            <!-- Header: icon chip + title + subtitle, with the on/off switch. -->
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="SCREEN TINT" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border Width="30" Height="30" CornerRadius="8" Background="{StaticResource Accent}"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Screen Tint" FontSize="15" FontWeight="Bold"
+                                               Foreground="{StaticResource TextBright}"/>
+                                    <TextBlock Text="A colour look laid over Roblox" Foreground="{StaticResource TextMuted}"
+                                               FontSize="11"/>
+                                </StackPanel>
                                 <CheckBox x:Name="TintToggle" DockPanel.Dock="Right" Margin="0"
                                           VerticalAlignment="Center"
                                           Checked="TintToggle_Changed" Unchecked="TintToggle_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="Lays a soft colour over Roblox — warm it for late play, cool it, dim it, or give it a cast. Only shows while Roblox is the window you're in, never over the rest of your desktop. It's a light veil, not a filter: it can't change contrast or wash colour out, and it never reads the game."
+                            <TextBlock Text="Only shows while Roblox is the window you're in, never over the rest of your desktop. It's a light veil, not a filter: it can tint, dim and vignette, but it can't boost contrast or saturation, and it never reads the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                       TextWrapping="Wrap" Margin="0,14,0,0"/>
 
                             <TextBlock Text="LOOKS" Foreground="{StaticResource TextMuted}" FontSize="9"
-                                       FontWeight="Bold" Margin="0,14,0,0"/>
-                            <TextBlock Text="One tap sets a colour and a vignette together — then nudge the sliders."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,2,0,0"/>
-                            <WrapPanel x:Name="TintLookRow" Margin="0,8,0,0"/>
+                                       FontWeight="Bold" Margin="0,18,0,0"/>
+                            <WrapPanel x:Name="TintLookGrid" Margin="0,10,0,0"/>
 
-                            <TextBlock Text="COLOUR" Foreground="{StaticResource TextMuted}" FontSize="9"
-                                       FontWeight="Bold" Margin="0,10,0,0"/>
-                            <WrapPanel x:Name="TintPresetRow" Margin="0,8,0,0"/>
+                            <!-- Fine-tune: label + live value above a full-width slider. -->
+                            <DockPanel LastChildFill="False" Margin="0,18,0,0">
+                                <TextBlock Text="STRENGTH" FontSize="9" FontWeight="Bold"
+                                           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TintStrengthValue" DockPanel.Dock="Right" Text="50%"
+                                           FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Slider x:Name="TintIntensitySlider" Minimum="0" Maximum="100" Value="50" Margin="0,8,0,0"
+                                    ValueChanged="TintIntensity_Changed"
+                                    Thumb.DragCompleted="TintIntensity_DragCompleted"/>
 
-                            <Grid Margin="0,14,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="STRENGTH" FontSize="9" FontWeight="Bold"
-                                           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-                                <Slider Grid.Column="1" x:Name="TintIntensitySlider" Minimum="0" Maximum="100" Value="50"
-                                        VerticalAlignment="Center"
-                                        ValueChanged="TintIntensity_Changed"
-                                        Thumb.DragCompleted="TintIntensity_DragCompleted"/>
-                            </Grid>
-
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="VIGNETTE" FontSize="9" FontWeight="Bold"
-                                           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-                                <Slider Grid.Column="1" x:Name="TintVignetteSlider" Minimum="0" Maximum="100" Value="0"
-                                        VerticalAlignment="Center"
-                                        ValueChanged="TintVignette_Changed"
-                                        Thumb.DragCompleted="TintVignette_DragCompleted"/>
-                            </Grid>
+                            <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                <TextBlock Text="VIGNETTE" FontSize="9" FontWeight="Bold"
+                                           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TintVignetteValue" DockPanel.Dock="Right" Text="Off"
+                                           FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Slider x:Name="TintVignetteSlider" Minimum="0" Maximum="100" Value="0" Margin="0,8,0,0"
+                                    ValueChanged="TintVignette_Changed"
+                                    Thumb.DragCompleted="TintVignette_DragCompleted"/>
                         </StackPanel>
                     </Border>
 
