@@ -100,25 +100,14 @@ public partial class MainWindow
     /// </summary>
     public void StopFpsForUpdate() => StopFpsHelper();
 
-    private void NavKeystrokes_Click(object sender, RoutedEventArgs e)
-    {
-        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
-        ShowPage(NavKeystrokes, PageKeystrokes, "Keystrokes", "On-screen keys and CPS overlay");
-        ApplyKeystrokesPro();
-    }
-
     private void ApplyKeystrokesPro()
     {
         bool pro = IsPro;
 
-        // The tab stays visible so Free users see the feature, but its content is
-        // never shown — clicking it (or a pass expiring here) sends them to the key
-        // page instead.
+        // The Keystrokes card lives on the Overlays page now, which Free users can
+        // open — so the card simply greys out rather than redirecting the page.
         if (KeystrokesLockNote is not null) KeystrokesLockNote.Visibility = Visibility.Collapsed;
         if (KeystrokesProPanel is not null) KeystrokesProPanel.IsEnabled = pro;
-
-        if (!pro && PageKeystrokes is { Visibility: Visibility.Visible })
-            ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
 
         ApplyKeystrokesState();
     }

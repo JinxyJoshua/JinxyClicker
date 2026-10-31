@@ -1212,8 +1212,6 @@
                             Click="NavLowerPing_Click"/>
                     <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
                             Click="NavSocd_Click"/>
-                    <Button x:Name="NavKeystrokes" app:NavIcon.Glyph="&#xE765;" Content="KEYSTROKES" Style="{StaticResource NavButton}"
-                            Click="NavKeystrokes_Click"/>
                     <Button x:Name="NavOverlays" app:NavIcon.Glyph="&#xE7F4;" Content="OVERLAYS" Style="{StaticResource NavButton}"
                             Click="NavOverlays_Click"/>
                     <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
@@ -2551,56 +2549,6 @@
 
                 </StackPanel>
 
-                <StackPanel x:Name="PageKeystrokes" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE765;"/>
-                                </Border>
-                                <TextBlock DockPanel.Dock="Left" Text="Keystrokes overlay" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
-                                <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                            </DockPanel>
-                            <TextBlock Text="A sleek keyboard + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams. Click-through, so it never blocks the game."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
-                            <TextBlock x:Name="KeystrokesLockNote" Visibility="Collapsed"
-                                       Text="Keystrokes overlay is a Plus feature. Unlock it on the PLUS page."
-                                       Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                            <StackPanel x:Name="KeystrokesProPanel" Margin="0,4,0,0">
-                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
-                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                                        <TextBlock Text="Show overlay" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                        <TextBlock Text="Shows the WASD + mouse + CPS panel on screen" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
-                                    </StackPanel>
-                                    <CheckBox x:Name="KeystrokesCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
-                                              Checked="KeystrokesEnabled_Changed" Unchecked="KeystrokesEnabled_Changed"/>
-                                </DockPanel>
-                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
-                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                                        <TextBlock Text="Panel background" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                        <TextBlock Text="Off = clean Medal-style — just the keys, no card behind them" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
-                                    </StackPanel>
-                                    <CheckBox x:Name="KeystrokesBgCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center" IsChecked="True"
-                                              Checked="KeystrokesBackground_Changed" Unchecked="KeystrokesBackground_Changed"/>
-                                </DockPanel>
-                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
-                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="440">
-                                        <TextBlock Text="Show in-game FPS" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                        <TextBlock Text="Shows Roblox's real FPS on the right of the overlay. Needs Jinxy to run as admin — turning this on offers to restart elevated." Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                    </StackPanel>
-                                    <CheckBox x:Name="KeystrokesFpsCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
-                                              Checked="KeystrokesFps_Changed" Unchecked="KeystrokesFps_Changed"/>
-                                </DockPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                    <Button x:Name="KeystrokesMoveButton" Content="Move overlay" Style="{StaticResource ChipButton}" Padding="14,7" Click="KeystrokesMove_Click"/>
-                                    <TextBlock x:Name="KeystrokesHint" Text="" Foreground="{StaticResource TextMuted}" FontSize="12"
-                                               VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" MaxWidth="380"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
                 <!-- Overlays: a styled preview of every on-screen widget, plus a
                      grid of toggles. The preview and the cards are built in code
                      (MainWindow.Overlays.cs) so they reuse the real overlay look. -->
@@ -2649,6 +2597,55 @@
                                 </StackPanel>
                             </StackPanel>
                             <WrapPanel x:Name="OverlayToggleGrid"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Keystrokes overlay (Plus), merged in from its own page. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE765;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="Keystrokes overlay" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="A sleek keyboard + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams. Click-through, so it never blocks the game."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="KeystrokesLockNote" Visibility="Collapsed"
+                                       Text="Keystrokes overlay is a Plus feature. Unlock it on the PLUS page."
+                                       Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            <StackPanel x:Name="KeystrokesProPanel" Margin="0,4,0,0">
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="Show overlay" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Shows the WASD + mouse + CPS panel on screen" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="KeystrokesCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                              Checked="KeystrokesEnabled_Changed" Unchecked="KeystrokesEnabled_Changed"/>
+                                </DockPanel>
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="Panel background" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Off = clean Medal-style — just the keys, no card behind them" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="KeystrokesBgCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center" IsChecked="True"
+                                              Checked="KeystrokesBackground_Changed" Unchecked="KeystrokesBackground_Changed"/>
+                                </DockPanel>
+                                <DockPanel LastChildFill="False" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="440">
+                                        <TextBlock Text="Show in-game FPS" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                        <TextBlock Text="Shows Roblox's real FPS on the right of the overlay. Needs Jinxy to run as admin — turning this on offers to restart elevated." Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="KeystrokesFpsCheck" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"
+                                              Checked="KeystrokesFps_Changed" Unchecked="KeystrokesFps_Changed"/>
+                                </DockPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                    <Button x:Name="KeystrokesMoveButton" Content="Move overlay" Style="{StaticResource ChipButton}" Padding="14,7" Click="KeystrokesMove_Click"/>
+                                    <TextBlock x:Name="KeystrokesHint" Text="" Foreground="{StaticResource TextMuted}" FontSize="12"
+                                               VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" MaxWidth="380"/>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

@@ -47,7 +47,6 @@ public partial class MainWindow
     private static readonly (string Key, string Glyph, string Name, string Blurb, string Sample, Color Accent)[] OverlayCatalog =
     {
         ("cps",        "", "CPS",        "Clicks per second, with a live graph",   "142",       OvPurple),
-        ("keystrokes", "", "Keystrokes", "WASD + mouse that light up as you play",  "W A S D",   OvRed),
         ("fps",        "", "FPS",        "Roblox's real frame rate",                "146 FPS",   OvGreen),
         ("system",     "", "System",     "CPU and RAM load, machine-wide",          "CPU 18%",   OvBlue),
         ("music",      "", "Music",      "The track playing on the Music page",     "Now playing", OvPurple),
@@ -59,6 +58,7 @@ public partial class MainWindow
         ShowPage(NavOverlays, PageOverlays, "Overlays", "The widgets you show on screen");
         BuildOverlaysPage();
         RefreshOverlayToggles();
+        ApplyKeystrokesPro();   // the Keystrokes card lives here now; keep its gating
     }
 
     /// <summary>Reads the saved on/off state for the three pills and applies it.</summary>
