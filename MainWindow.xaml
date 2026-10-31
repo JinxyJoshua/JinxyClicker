@@ -1185,7 +1185,7 @@
 
                                 <Border Grid.Column="0" Background="{StaticResource Panel2}" CornerRadius="8" Padding="16">
                                     <Grid Width="360" Height="376">
-                                        <Path Fill="#45B7FF" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                        <Path Fill="#E6E6F0" HorizontalAlignment="Center" VerticalAlignment="Top"
                                               Data="M 0,0 L 16,0 L 8,18 Z" Panel.ZIndex="3" Margin="0,2,0,0"/>
                                         <Canvas x:Name="WheelSectors" Width="350" Height="350" VerticalAlignment="Top" Margin="0,16,0,0"
                                                 RenderTransformOrigin="0.5,0.5">
@@ -1194,20 +1194,21 @@
                                             </Canvas.RenderTransform>
                                         </Canvas>
                                         <Button x:Name="SpinButton" Width="104" Height="104" Click="Spin_Click" Content="SPIN"
-                                                Cursor="Hand" Foreground="White" FontWeight="Black" FontSize="18" VerticalAlignment="Top"
-                                                Margin="0,32,0,0" Panel.ZIndex="2">
+                                                Cursor="Hand" Foreground="White" FontWeight="Black" FontSize="18"
+                                                VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,139,0,0" Panel.ZIndex="2">
                                             <Button.Template>
                                                 <ControlTemplate TargetType="Button">
                                                     <Grid>
                                                         <Ellipse>
                                                             <Ellipse.Fill>
                                                                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                                    <GradientStop Color="#5AC8FF" Offset="0"/>
-                                                                    <GradientStop Color="#2E90FF" Offset="1"/>
+                                                                    <GradientStop Color="#3C3652" Offset="0"/>
+                                                                    <GradientStop Color="#242131" Offset="1"/>
                                                                 </LinearGradientBrush>
                                                             </Ellipse.Fill>
                                                         </Ellipse>
-                                                        <Ellipse Fill="#22FFFFFF"/>
+                                                        <Ellipse Fill="#14FFFFFF"/>
+                                                        <Ellipse Stroke="#66A78BFA" StrokeThickness="3"/>
                                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Grid>
                                                 </ControlTemplate>
@@ -1223,7 +1224,7 @@
                                             <StackPanel x:Name="OddsPanel"/>
                                             <TextBlock x:Name="RewardPityText" Text="Legendary guaranteed within 28 spins" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,8,0,4"/>
                                             <Border Height="6" CornerRadius="3" Background="{StaticResource Panel}" Width="260" HorizontalAlignment="Left">
-                                                <Border x:Name="RewardPityBar" Width="0" CornerRadius="3" HorizontalAlignment="Left" Background="#45B7FF"/>
+                                                <Border x:Name="RewardPityBar" Width="0" CornerRadius="3" HorizontalAlignment="Left" Background="#A78BFA"/>
                                             </Border>
                                         </StackPanel>
                                     </Border>
@@ -1235,7 +1236,7 @@
                                     </DockPanel>
 
                                     <Border x:Name="RewardResultCard" Visibility="Collapsed" Background="{StaticResource Panel2}" CornerRadius="8"
-                                            BorderThickness="2" BorderBrush="#45B7FF" Padding="18" Margin="0,14,0,0">
+                                            BorderThickness="2" BorderBrush="#A78BFA" Padding="18" Margin="0,14,0,0">
                                         <StackPanel>
                                             <TextBlock x:Name="RewardResultRarity" Text="" FontSize="10" FontWeight="Bold"/>
                                             <TextBlock x:Name="RewardResultName" Text="" FontSize="20" FontWeight="Black" Foreground="{StaticResource TextBright}" Margin="0,2,0,0"/>
