@@ -1216,6 +1216,8 @@
                             Click="NavOverlays_Click"/>
                     <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
                             Click="NavClipStudio_Click"/>
+                    <Button x:Name="NavEditor" app:NavIcon.Glyph="&#xE714;" Content="VIDEO EDITOR" Style="{StaticResource NavButton}"
+                            Click="NavEditor_Click"/>
                     <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
                             Click="NavSetups_Click"/>
                     <Button x:Name="NavMod" app:NavIcon.Glyph="&#xE8F1;" Content="MOD" Style="{StaticResource NavButton}"
@@ -4254,6 +4256,119 @@
                             <ItemsControl x:Name="ClipList"/>
                         </StackPanel>
                     </Border>
+                </StackPanel>
+
+                <!-- Video editor (stage 1): add clips, preview with trim, arrange a
+                     single track, export via MontageMaker. Timeline built in code. -->
+                <StackPanel x:Name="PageEditor" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="14" Margin="0,0,0,14">
+                        <StackPanel>
+                            <Border Height="300" CornerRadius="8" Background="#0A0A10" ClipToBounds="True"
+                                    BorderBrush="{StaticResource Outline}" BorderThickness="1">
+                                <Grid>
+                                    <MediaElement x:Name="EditorPreview" LoadedBehavior="Manual" ScrubbingEnabled="True"
+                                                  Stretch="Uniform"/>
+                                    <TextBlock Text="Add a clip, then select it to preview" Foreground="{StaticResource TextMuted}"
+                                               FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               IsHitTestVisible="False"/>
+                                </Grid>
+                            </Border>
+                            <DockPanel LastChildFill="True" Margin="0,10,0,0">
+                                <Button x:Name="EditorPlayButton" DockPanel.Dock="Left" Content="Play" Width="78" Height="32"
+                                        IsEnabled="False" Click="EditorPlay_Click"/>
+                                <TextBlock x:Name="EditorTimeText" DockPanel.Dock="Right" Text="0.0 / 0.0" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextMuted}" FontSize="11" Margin="12,0,0,0"/>
+                                <Slider x:Name="EditorSeek" Minimum="0" Maximum="1" VerticalAlignment="Center" Margin="12,0,0,0"
+                                        ValueChanged="EditorSeek_Changed"
+                                        Thumb.DragStarted="EditorSeek_DragStarted" Thumb.DragCompleted="EditorSeek_DragCompleted"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE714;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Timeline"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Your clips, left to right"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <WrapPanel Margin="0,0,0,10">
+                                <Button Content="Add clips" Click="EditorAdd_Click" Style="{StaticResource AccentButton}" Height="32" Padding="14,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorSplitButton" Content="Split" Click="EditorSplit_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorLeftButton" Content="◀ Move" Click="EditorMoveLeft_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorRightButton" Content="Move ▶" Click="EditorMoveRight_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorRemoveButton" Content="Remove" Click="EditorRemove_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,0,8"/>
+                            </WrapPanel>
+
+                            <Border Background="{StaticResource Panel2}" CornerRadius="8" Padding="8" MinHeight="76">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                    <StackPanel x:Name="EditorTimeline" Orientation="Horizontal"/>
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8B2;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Trim"/>
+                                    <TextBlock x:Name="EditorTrimText" Style="{StaticResource CardSubtitle}" Text="Select a clip to trim it"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock Text="START" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,0,0,2"/>
+                            <Slider x:Name="EditorTrimIn" Minimum="0" Maximum="1" ValueChanged="EditorTrimIn_Changed" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
+                            <TextBlock Text="END" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,10,0,2"/>
+                            <Slider x:Name="EditorTrimOut" Minimum="0" Maximum="1" ValueChanged="EditorTrimOut_Changed" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
+                            <TextBlock Text="Split cuts the selected clip at the preview position. Trimmed clips export at their trimmed length."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,12,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7FC;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Export"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Stitch the track into one MP4"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,4,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="Shape" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <RadioButton Content="Landscape" GroupName="EditorShape" Tag="landscape" IsChecked="True" Style="{StaticResource SegmentButton}" MinWidth="120" Checked="EditorShape_Checked"/>
+                                <RadioButton Content="Vertical" GroupName="EditorShape" Tag="vertical" Margin="0" Style="{StaticResource SegmentButton}" MinWidth="120" Checked="EditorShape_Checked"/>
+                            </DockPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <TextBlock DockPanel.Dock="Left" Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
+                                <Button DockPanel.Dock="Left" Content="Choose&#8230;" Click="EditorChooseMusic_Click" Height="30" Padding="12,0" Margin="12,0,0,0"/>
+                                <Button DockPanel.Dock="Left" Content="Clear" Click="EditorClearMusic_Click" Height="30" Padding="12,0" Margin="8,0,0,0"/>
+                                <TextBlock x:Name="EditorMusicText" DockPanel.Dock="Left" Text="No music" Foreground="{StaticResource TextMuted}" FontSize="12"
+                                           VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220"/>
+                            </DockPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Button x:Name="EditorExportButton" Content="Export video" Click="EditorExport_Click" Style="{StaticResource AccentButton}"
+                                        Height="38" Padding="20,0" IsEnabled="False"/>
+                                <TextBlock x:Name="EditorStatus" Text="" Foreground="{StaticResource TextMuted}" FontSize="12"
+                                           VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap" MaxWidth="420"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageHistory" Visibility="Collapsed">
