@@ -1973,6 +1973,7 @@ public partial class MainWindow : Window
         LoadGraphicsQuality(s);   // Tweaks: graphics quality slider
         LoadTint(s);              // Plus: screen tint overlay
         LoadOverlaySettings(s);   // Overlays page: FPS / system / music pills
+        LoadClipFeedback(s);      // Recorder: clip-saved note + sound
 
         SetClickMode(s.HoldMode);
 
@@ -2205,6 +2206,13 @@ public partial class MainWindow : Window
             KeystrokesX = _keystrokesX,
             KeystrokesY = _keystrokesY,
             ClipFolder = ClipFolderBox.Text.Trim(),
+            ClipNoteEnabled = _clipNoteEnabled,
+            ClipNoteText = _clipNoteText,
+            ClipNoteCorner = _clipNoteCorner,
+            ClipSoundEnabled = _clipSoundEnabled,
+            ClipSound = _clipSoundName,
+            ClipSoundFile = _clipSoundFile,
+            ClipSoundVolume = _clipSoundVolume,
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
             // something to read if that file is ever removed.
@@ -4562,8 +4570,11 @@ public partial class MainWindow : Window
     private void NotifyRecording() =>
         Toast.Notify("● Recording", Color.FromRgb(0xFF, 0x4B, 0x52), _captureDisplay);
 
-    private void NotifySaved() =>
-        Toast.Notify("✓ Saved", Color.FromRgb(0x5B, 0xE5, 0x8B), _captureDisplay);
+    private void NotifySaved()
+    {
+        ShowClipNote();
+        PlayClipFeedbackSound();
+    }
 
     private void OpenClipFolder_Click(object sender, RoutedEventArgs e)
     {

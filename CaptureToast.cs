@@ -71,7 +71,7 @@ public sealed class CaptureToast : Window
     /// <param name="accent">Dot colour, so the two states read apart at a glance.</param>
     /// <param name="display">The monitor being captured, or null for the primary.</param>
     /// <param name="seconds">How long it stays before fading.</param>
-    public void Notify(string text, Color accent, DisplayInfo? display, double seconds = 2.0)
+    public void Notify(string text, Color accent, DisplayInfo? display, double seconds = 2.0, int corner = 0)
     {
         _label.Text = text;
         _label.Foreground = new SolidColorBrush(accent);
@@ -81,7 +81,7 @@ public sealed class CaptureToast : Window
         if (!IsVisible) Show();
 
         UpdateLayout();
-        PlaceTopLeft(display);
+        Place(display, corner);
 
         BeginAnimation(OpacityProperty, null);
         Opacity = 1;
@@ -91,7 +91,8 @@ public sealed class CaptureToast : Window
         _hideTimer.Start();
     }
 
-    private void PlaceTopLeft(DisplayInfo? display)
+    // corner: 0 = top-left, 1 = top-right, 2 = bottom-left, 3 = bottom-right.
+    private void Place(DisplayInfo? display, int corner)
     {
         const int margin = 24;
 
@@ -107,15 +108,25 @@ public sealed class CaptureToast : Window
             if (scaleY <= 0) scaleY = 1;
         }
 
+        double left, top, width, height;
         if (display != null)
         {
-            Left = display.X / scaleX + margin;
-            Top = display.Y / scaleY + margin;
-            return;
+            left = display.X / scaleX;
+            top = display.Y / scaleY;
+            width = display.Width / scaleX;
+            height = display.Height / scaleY;
+        }
+        else
+        {
+            Rect wa = SystemParameters.WorkArea;
+            left = wa.Left; top = wa.Top; width = wa.Width; height = wa.Height;
         }
 
-        Left = SystemParameters.WorkArea.Left + margin;
-        Top = SystemParameters.WorkArea.Top + margin;
+        bool right = corner == 1 || corner == 3;
+        bool bottom = corner == 2 || corner == 3;
+
+        Left = right ? left + width - ActualWidth - margin : left + margin;
+        Top = bottom ? top + height - ActualHeight - margin : top + margin;
     }
 
     private void FadeOut()

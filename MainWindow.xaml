@@ -4400,10 +4400,11 @@
 
                 <StackPanel x:Name="PageRecorder" Visibility="Collapsed">
 
-                    <UniformGrid x:Name="PageRecorderBar" Columns="3" Margin="0,0,0,14">
+                    <UniformGrid x:Name="PageRecorderBar" Columns="4" Margin="0,0,0,14">
                         <RadioButton Content="Record" GroupName="PageRecorderTab" Tag="PageRecorder_record" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Replay" GroupName="PageRecorderTab" Tag="PageRecorder_replay" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
-                        <RadioButton Content="Share" GroupName="PageRecorderTab" Tag="PageRecorder_share" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Share" GroupName="PageRecorderTab" Tag="PageRecorder_share" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Feedback" GroupName="PageRecorderTab" Tag="PageRecorder_feedback" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                     </UniformGrid>
 
                     <StackPanel x:Name="PageRecorder_record">
@@ -4562,6 +4563,88 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageRecorder_feedback" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE73E;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Clip feedback"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Know it worked without leaving the game"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,6,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="On-screen note" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="A small card in the corner when a clip saves" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="ClipNoteCheck" DockPanel.Dock="Right" IsChecked="True" VerticalAlignment="Center" Margin="0"
+                                          Checked="ClipNote_Changed" Unchecked="ClipNote_Changed"/>
+                            </DockPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Note text" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="What it says, e.g. &quot;Clip saved&quot;" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <TextBox x:Name="ClipNoteTextBox" DockPanel.Dock="Right" Width="210" MaxLength="40" VerticalAlignment="Center"
+                                         Style="{StaticResource InputField}" TextChanged="ClipNoteText_Changed"/>
+                            </DockPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Where" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="The corner the note appears in" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="ClipNoteCornerBox" DockPanel.Dock="Right" Width="160" VerticalAlignment="Center"
+                                          Style="{StaticResource DarkCombo}" SelectionChanged="ClipNoteCorner_Changed">
+                                    <ComboBoxItem Content="Top left"/>
+                                    <ComboBoxItem Content="Top right"/>
+                                    <ComboBoxItem Content="Bottom left"/>
+                                    <ComboBoxItem Content="Bottom right"/>
+                                </ComboBox>
+                            </DockPanel>
+
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Sound" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="A short sound when a clip is saved" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="ClipSoundCheck" DockPanel.Dock="Right" IsChecked="True" VerticalAlignment="Center" Margin="0"
+                                          Checked="ClipSound_Changed" Unchecked="ClipSound_Changed"/>
+                            </DockPanel>
+
+                            <TextBlock Text="WHICH SOUND" FontSize="9" FontWeight="Bold" Margin="0,16,0,6" Foreground="{StaticResource TextMuted}"/>
+                            <WrapPanel>
+                                <RadioButton x:Name="ClipSoundChime" Content="Chime" GroupName="ClipSound" Tag="chime" IsChecked="True" Style="{StaticResource SegmentButton}" MinWidth="92" Checked="ClipSoundChoice_Checked"/>
+                                <RadioButton x:Name="ClipSoundPop" Content="Pop" GroupName="ClipSound" Tag="pop" Style="{StaticResource SegmentButton}" MinWidth="92" Checked="ClipSoundChoice_Checked"/>
+                                <RadioButton x:Name="ClipSoundShutter" Content="Shutter" GroupName="ClipSound" Tag="shutter" Style="{StaticResource SegmentButton}" MinWidth="92" Checked="ClipSoundChoice_Checked"/>
+                                <RadioButton x:Name="ClipSoundOwn" Content="Your own" GroupName="ClipSound" Tag="own" Style="{StaticResource SegmentButton}" MinWidth="92" Margin="0" Checked="ClipSoundChoice_Checked"/>
+                            </WrapPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="360">
+                                    <TextBlock Text="Your own sound" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock x:Name="ClipSoundFileText" Text="No file chosen" Foreground="{StaticResource TextMuted}" FontSize="11"
+                                               TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <Button DockPanel.Dock="Right" Content="Choose&#8230;" Click="ClipChooseSound_Click" Height="32" Padding="14,0" VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <TextBlock Text="VOLUME" FontSize="9" FontWeight="Bold" Margin="0,16,0,4" Foreground="{StaticResource TextMuted}"/>
+                            <Slider x:Name="ClipVolumeSlider" Minimum="0" Maximum="100" Value="80"
+                                    ValueChanged="ClipVolume_Changed" Thumb.DragCompleted="ClipVolume_DragCompleted"/>
+
+                            <Button Content="Try it" Click="ClipTry_Click" Style="{StaticResource ChipButton}" Padding="16,7" HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                        </StackPanel>
+                    </Border>
                     </StackPanel>
 
                 </StackPanel>

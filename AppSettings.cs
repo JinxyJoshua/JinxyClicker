@@ -373,6 +373,17 @@ public sealed class AppSettings
     /// <summary>Where clips are written. Null or empty means the Videos folder.</summary>
     public string? ClipFolder { get; set; }
 
+    /// <summary>Clip feedback: the on-screen note and the sound played when a clip saves.</summary>
+    public bool ClipNoteEnabled { get; set; } = true;
+    public string ClipNoteText { get; set; } = "Clip saved";
+    /// <summary>0 = top-left, 1 = top-right, 2 = bottom-left, 3 = bottom-right.</summary>
+    public int ClipNoteCorner { get; set; } = 1;
+    public bool ClipSoundEnabled { get; set; } = true;
+    /// <summary>"chime", "pop", "shutter" or "own".</summary>
+    public string ClipSound { get; set; } = "chime";
+    public string? ClipSoundFile { get; set; }
+    public double ClipSoundVolume { get; set; } = 80;
+
     /// <summary>
     /// Whether the auto switcher may run at all.
     /// </summary>
