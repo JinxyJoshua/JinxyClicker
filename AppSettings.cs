@@ -383,6 +383,9 @@ public sealed class AppSettings
     /// so a won cursor and a won wallpaper can both be on at once.</summary>
     public string RewardEquippedCursor { get; set; } = "";
     public string RewardEquippedWallpaper { get; set; } = "";
+    /// <summary>The user's own wallpaper from before a wallpaper cosmetic was
+    /// equipped, so un-equipping restores it even after a restart.</summary>
+    public string RewardWallpaperPrev { get; set; } = "";
     public string RewardPremiumUntil { get; set; } = "";
     public string RewardModalShown { get; set; } = "";
 

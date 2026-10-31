@@ -56,6 +56,19 @@ public class WallpaperTests
         Assert.Equal(first, second);
     }
 
+    /// <summary>
+    /// A reward wallpaper is stored under its own name, separate from the user's
+    /// chosen wallpaper — so equipping one never overwrites the picture the user
+    /// set, and un-equipping can restore it even after a restart.
+    /// </summary>
+    [Fact]
+    public void RewardWallpaperUsesItsOwnFileNotTheUsers()
+    {
+        Assert.NotEqual(Wallpaper.StoredNameFor(@"C:\a\sunset.png"), Wallpaper.RewardWallpaperName);
+        Assert.Equal(Wallpaper.RewardWallpaperName, Path.GetFileName(Wallpaper.RewardWallpaperName)); // a bare name
+        Assert.EndsWith(".png", Wallpaper.RewardWallpaperName);
+    }
+
     /// <summary>The extension survives, because the decoder is chosen from it.</summary>
     [Theory]
     [InlineData(@"C:\a\sunset.PNG", ".png")]

@@ -23,6 +23,18 @@ public static class Wallpaper
     /// <summary>The stored copy's name, minus the extension carried from the source.</summary>
     private const string StoredStem = "wallpaper";
 
+    /// <summary>
+    /// The file a won wallpaper cosmetic is rendered into — deliberately its own
+    /// name, separate from the user's <see cref="StoredStem"/> copy.
+    /// </summary>
+    /// <remarks>
+    /// A reward wallpaper never writes over the picture the user chose, so
+    /// un-equipping it simply points back at <c>wallpaper.*</c>, which is still on
+    /// disk — a restore that holds across a restart. <see cref="Clear"/> only
+    /// removes the user's stem, so choosing a new wallpaper leaves this untouched.
+    /// </remarks>
+    public static string RewardWallpaperName => "reward-wallpaper.png";
+
     /// <summary>Filter string for the file picker, built from the same list.</summary>
     public static string FileFilter =>
         "Images|" + string.Join(";", Allowed.Select(e => "*" + e)) + "|All files|*.*";
@@ -87,6 +99,27 @@ public static class Wallpaper
             }
 
             return name;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Writes a rendered reward wallpaper into its own file and returns its name.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="Store"/> it does not <see cref="Clear"/> first, so the
+    /// user's own wallpaper copy is left in place next to it.
+    /// </remarks>
+    public static string? StoreRewardPng(byte[] png)
+    {
+        try
+        {
+            string target = SettingsPath.For(RewardWallpaperName);
+            File.WriteAllBytes(target, png);
+            return RewardWallpaperName;
         }
         catch
         {

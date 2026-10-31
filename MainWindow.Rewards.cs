@@ -114,6 +114,7 @@ public partial class MainWindow
         _boughtSpins = _boughtDate == Today ? Math.Max(0, s.RewardBought) : 0;
         _equippedCursor = s.RewardEquippedCursor ?? "";
         _equippedWallpaper = s.RewardEquippedWallpaper ?? "";
+        _wallpaperBeforeCosmetic = s.RewardWallpaperPrev ?? "";
         // Migrate an old single-slot equip into whichever slot its kind belongs to.
         if (!string.IsNullOrEmpty(s.RewardEquipped))
         {
@@ -421,8 +422,13 @@ public partial class MainWindow
 
         if (RewardCosmetics.Wallpaper(id) is { } design)
         {
-            _wallpaperBeforeCosmetic = _wallpaperFile;
-            string? stored = WallpaperGallery.Install(design);
+            // Only snapshot the user's own wallpaper the first time a cosmetic takes
+            // the slot, so swapping one reward wallpaper for another still restores
+            // the user's picture (not the previous reward) on un-equip.
+            if (_wallpaperFile != Wallpaper.RewardWallpaperName)
+                _wallpaperBeforeCosmetic = _wallpaperFile;
+
+            string? stored = WallpaperGallery.InstallReward(design);
             if (stored != null) { _wallpaperFile = stored; ApplyWallpaper(); }
 
             if (fromUser)
@@ -459,6 +465,19 @@ public partial class MainWindow
             _wallpaperBeforeCosmetic = "";
             ApplyWallpaper();
         }
+    }
+
+    /// <summary>
+    /// Called when the user sets or clears their own wallpaper: any equipped
+    /// wallpaper cosmetic is no longer what's showing, so drop it and forget the
+    /// old restore baseline (their new choice is the baseline now).
+    /// </summary>
+    private void ClearWallpaperCosmeticEquip()
+    {
+        if (_equippedWallpaper.Length == 0 && _wallpaperBeforeCosmetic.Length == 0) return;
+        _equippedWallpaper = "";
+        _wallpaperBeforeCosmetic = "";
+        BuildCollection();
     }
 
     private void SetRewardEquipStatus(string text)

@@ -2163,6 +2163,7 @@ public partial class MainWindow : Window
             RewardBoughtDate = _boughtDate,
             RewardEquippedCursor = _equippedCursor,
             RewardEquippedWallpaper = _equippedWallpaper,
+            RewardWallpaperPrev = _wallpaperBeforeCosmetic,
             RewardPremiumUntil = _rewardPremiumUntil?.ToString("o", System.Globalization.CultureInfo.InvariantCulture) ?? "",
             RewardModalShown = _rewardModalShownDate,
             WindowOpacity = OpacitySlider.Value,
@@ -4703,6 +4704,7 @@ public partial class MainWindow : Window
         _wallpaperFile = stored;
         _settingsDirty = true;
 
+        ClearWallpaperCosmeticEquip();
         ApplyWallpaper();
     }
 
@@ -4805,6 +4807,7 @@ public partial class MainWindow : Window
         _wallpaperFile = stored;
         _settingsDirty = true;
 
+        ClearWallpaperCosmeticEquip();
         ApplyWallpaper();
     }
 
@@ -4815,6 +4818,7 @@ public partial class MainWindow : Window
         _wallpaperFile = "";
         _settingsDirty = true;
 
+        ClearWallpaperCosmeticEquip();
         ApplyWallpaper();
     }
 
