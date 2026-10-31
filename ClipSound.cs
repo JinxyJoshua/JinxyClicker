@@ -44,7 +44,7 @@ public sealed class ClipSound
 
     private string? BuiltinPath(string choice)
     {
-        string name = choice is "pop" or "shutter" ? choice : "chime";
+        string name = choice is "pop" or "shutter" or "unlock" ? choice : "chime";
         string path = Path.Combine(_dir, name + ".wav");
         try
         {
@@ -58,10 +58,17 @@ public sealed class ClipSound
     {
         "pop" => Tone(1000, 0.07, 0, decay: true),
         "shutter" => Shutter(),
+        // A bright rising D-major arpeggio with bell decay — the "you unlocked
+        // something" sparkle, more celebratory than the two-bell save chime.
+        "unlock" => Mix(
+            Mix(Tone(587.33, 0.45, 0.00, decay: true, amp: 0.42),    // D5
+                Tone(739.99, 0.45, 0.09, decay: true, amp: 0.42)),   // F#5
+            Mix(Tone(880.00, 0.50, 0.18, decay: true, amp: 0.45),    // A5
+                Tone(1174.66, 0.60, 0.27, decay: true, amp: 0.48))), // D6 sparkle
         _ => Mix(Tone(880, 0.16, 0), Tone(1318.5, 0.26, 0.10))   // two gentle bells
     };
 
-    private static float[] Tone(double freq, double seconds, double startSeconds, bool decay = false)
+    private static float[] Tone(double freq, double seconds, double startSeconds, bool decay = false, double amp = 0.6)
     {
         int start = (int)(startSeconds * Rate);
         int len = (int)(seconds * Rate);
@@ -70,7 +77,7 @@ public sealed class ClipSound
         {
             double t = i / (double)Rate;
             double env = decay ? Math.Exp(-t / (seconds * 0.4)) : Envelope(i, len);
-            s[start + i] = (float)(Math.Sin(2 * Math.PI * freq * t) * 0.6 * env);
+            s[start + i] = (float)(Math.Sin(2 * Math.PI * freq * t) * amp * env);
         }
         return s;
     }

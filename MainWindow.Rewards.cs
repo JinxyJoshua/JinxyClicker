@@ -334,9 +334,17 @@ public partial class MainWindow
         _settingsDirty = true;
         SaveAppSettings();
 
+        if (newUnlock) PlayUnlockSound();
         ShowRewardResult(reward, newUnlock);
         RefreshRewardsHeader();
         BuildCollection(newUnlock ? reward.Id : null);   // pulse the chip that just unlocked
+    }
+
+    /// <summary>The unlock sparkle — reuses the clip-feedback sound engine's "unlock" chime.</summary>
+    private void PlayUnlockSound()
+    {
+        try { (_clipSoundPlayer ??= new ClipSound()).Play("unlock", null, 0.6); }
+        catch { /* a cosmetic unlocks whether or not the chime plays */ }
     }
 
     private void GrantReward(Reward reward)
