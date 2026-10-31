@@ -4400,9 +4400,10 @@
 
                 <StackPanel x:Name="PageRecorder" Visibility="Collapsed">
 
-                    <UniformGrid x:Name="PageRecorderBar" Columns="4" Margin="0,0,0,14">
+                    <UniformGrid x:Name="PageRecorderBar" Columns="5" Margin="0,0,0,14">
                         <RadioButton Content="Record" GroupName="PageRecorderTab" Tag="PageRecorder_record" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Replay" GroupName="PageRecorderTab" Tag="PageRecorder_replay" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Quality" GroupName="PageRecorderTab" Tag="PageRecorder_quality" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Share" GroupName="PageRecorderTab" Tag="PageRecorder_share" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Feedback" GroupName="PageRecorderTab" Tag="PageRecorder_feedback" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                     </UniformGrid>
@@ -4563,6 +4564,53 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageRecorder_quality" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7F4;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Picture quality"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Sharper video, bigger files"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <WrapPanel Margin="0,8,0,0">
+                                <RadioButton x:Name="QualityLight" Content="Light" GroupName="RecordQuality" Tag="light" Style="{StaticResource SegmentButton}" MinWidth="112" Checked="RecordQuality_Checked"/>
+                                <RadioButton x:Name="QualityBalanced" Content="Balanced" GroupName="RecordQuality" Tag="balanced" IsChecked="True" Style="{StaticResource SegmentButton}" MinWidth="112" Checked="RecordQuality_Checked"/>
+                                <RadioButton x:Name="QualityHigh" Content="High" GroupName="RecordQuality" Tag="high" Style="{StaticResource SegmentButton}" MinWidth="112" Margin="0" Checked="RecordQuality_Checked"/>
+                            </WrapPanel>
+                            <TextBlock Text="Light saves space, High keeps detail in fast motion, Balanced is the default. Resolution and frame rate are set on the Record tab."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7FC;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Files"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Where clips are saved"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,6,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Sort by app" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="A folder per game inside your clips folder" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="RecordSortByAppCheck" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0"
+                                          Checked="RecordSortByApp_Changed" Unchecked="RecordSortByApp_Changed"/>
+                            </DockPanel>
+                            <TextBlock Text="Your clips folder is set on the Record tab. MP4 clips play everywhere; deleted clips go to the Recycle Bin."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
                     </StackPanel>
 
                     <StackPanel x:Name="PageRecorder_feedback" Visibility="Collapsed">

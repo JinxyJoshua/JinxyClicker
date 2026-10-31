@@ -733,7 +733,7 @@ public partial class MainWindow : Window
 
         ShowReplayStatus("Saving…", isError: false);
 
-        string? path = await _replay.SaveLastAsync(ReplaySeconds, ClipFolder);
+        string? path = await _replay.SaveLastAsync(ReplaySeconds, EffectiveClipFolder());
 
         if (path == null)
         {
@@ -1974,6 +1974,7 @@ public partial class MainWindow : Window
         LoadTint(s);              // Plus: screen tint overlay
         LoadOverlaySettings(s);   // Overlays page: FPS / system / music pills
         LoadClipFeedback(s);      // Recorder: clip-saved note + sound
+        LoadRecordQuality(s);     // Recorder: picture quality + sort by app
 
         SetClickMode(s.HoldMode);
 
@@ -2213,6 +2214,8 @@ public partial class MainWindow : Window
             ClipSound = _clipSoundName,
             ClipSoundFile = _clipSoundFile,
             ClipSoundVolume = _clipSoundVolume,
+            RecordPictureQuality = _recordQuality,
+            RecordSortByApp = _recordSortByApp,
             // Written back as they were read. The switchers live in their own
             // file now; these are kept only so the one-time migration still has
             // something to read if that file is ever removed.
@@ -4544,7 +4547,7 @@ public partial class MainWindow : Window
 
         try
         {
-            _recorder.Start(ClipFolder, RecordFps, _captureDisplay);
+            _recorder.Start(EffectiveClipFolder(), RecordFps, _captureDisplay);
 
             RecordButton.Content = "Stop recording";
             ShowRecordStatus("Recording the whole screen — everything visible is captured.", isError: false);

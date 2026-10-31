@@ -67,12 +67,19 @@ public static class CaptureBackend
     /// <summary>Or above it, however large. 4K60 would otherwise ask for 45.</summary>
     public const int MaximumMbit = 40;
 
+    /// <summary>
+    /// Picture-quality multiplier on the bitrate: 1.0 is Balanced, lower is Light
+    /// (smaller files), higher is High (sharper). The clamp still applies, so it
+    /// can never blow past the ceiling or drop below the floor.
+    /// </summary>
+    public static double QualityMultiplier { get; set; } = 1.0;
+
     /// <summary>The bitrate for a capture of this size and rate, in megabits.</summary>
     public static int BitrateMbit(int width, int height, int fps)
     {
         if (width <= 0 || height <= 0 || fps <= 0) return MinimumMbit;
 
-        double megabits = (double)width * height * fps * BitsPerPixelPerFrame / 1_000_000.0;
+        double megabits = (double)width * height * fps * BitsPerPixelPerFrame * QualityMultiplier / 1_000_000.0;
 
         return (int)Math.Round(Math.Clamp(megabits, MinimumMbit, MaximumMbit));
     }

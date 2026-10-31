@@ -384,6 +384,11 @@ public sealed class AppSettings
     public string? ClipSoundFile { get; set; }
     public double ClipSoundVolume { get; set; } = 80;
 
+    /// <summary>Capture picture quality: "light", "balanced" or "high" (a bitrate tilt).</summary>
+    public string RecordPictureQuality { get; set; } = "balanced";
+    /// <summary>Save clips into a per-app subfolder.</summary>
+    public bool RecordSortByApp { get; set; }
+
     /// <summary>
     /// Whether the auto switcher may run at all.
     /// </summary>
