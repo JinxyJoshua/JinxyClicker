@@ -366,6 +366,15 @@ public sealed class AppSettings
     /// <summary>Seasonal theme: None, Fall, Winter, Spring or Summer.</summary>
     public string Season { get; set; } = "None";
 
+    /// <summary>Daily Rewards: Stardust balance, streak, last-spin date, pity counter,
+    /// spins used today, and a CSV of owned cosmetic ids.</summary>
+    public int Stardust { get; set; }
+    public int RewardStreak { get; set; }
+    public string RewardLastSpin { get; set; } = "";
+    public int RewardPity { get; set; }
+    public int RewardSpinsToday { get; set; }
+    public string RewardOwned { get; set; } = "";
+
     /// <summary>Window opacity, 0.4 to 1. Clamped to the slider on load, so a
     /// hand-edited zero cannot produce a window nobody can see.</summary>
     public double WindowOpacity { get; set; } = 1.0;
