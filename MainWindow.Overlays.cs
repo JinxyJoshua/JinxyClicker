@@ -26,6 +26,11 @@ public partial class MainWindow
     private bool _ovFps, _ovSystem, _ovMusic;
     private bool _overlaysBuilt;
     private bool _syncingOverlayToggles;
+    private bool _overlayMoveMode;
+    private bool _cpsMovedHooked;
+
+    // Dragged positions; null means "use the default corner".
+    private double? _cpsX, _cpsY, _fpsX, _fpsY, _sysX, _sysY, _musX, _musY;
 
     private DispatcherTimer? _infoOverlayTimer;
     private readonly Dictionary<string, CheckBox> _overlayToggles = new();
@@ -62,6 +67,13 @@ public partial class MainWindow
         _ovFps = s.OverlayFps;
         _ovSystem = s.OverlaySystem;
         _ovMusic = s.OverlayMusic;
+
+        _cpsX = s.OverlayCpsX; _cpsY = s.OverlayCpsY;
+        _fpsX = s.OverlayFpsX; _fpsY = s.OverlayFpsY;
+        _sysX = s.OverlaySystemX; _sysY = s.OverlaySystemY;
+        _musX = s.OverlayMusicX; _musY = s.OverlayMusicY;
+
+        _overlay?.SetSavedPosition(_cpsX, _cpsY);
         ApplyInfoOverlays();
         if (_overlaysBuilt) RefreshOverlayToggles();
     }
@@ -357,18 +369,21 @@ public partial class MainWindow
 
     private void UpdateInfoOverlays()
     {
-        bool front = RobloxForeground.IsFront();
+        // In move mode the pills stay on screen (and where they were dragged) even
+        // when Roblox isn't in front, so they can be arranged against the desktop.
+        bool front = _overlayMoveMode || RobloxForeground.IsFront();
         bool streamer = StreamerModeCheck?.IsChecked == true;
 
         if (_ovFps)
         {
-            _fpsOverlay ??= new FpsOverlay();
+            if (_fpsOverlay == null) { _fpsOverlay = new FpsOverlay(); _fpsOverlay.Moved += SaveFpsPos; }
             _fpsOverlay.StreamerMode = streamer;
+            _fpsOverlay.SetMoveMode(_overlayMoveMode);
             if (front)
             {
                 _fpsOverlay.SetFps(FpsShared.ReadFps());
                 if (!_fpsOverlay.IsVisible) _fpsOverlay.Show();
-                _fpsOverlay.PlaceDefault();
+                if (!_overlayMoveMode) PlacePill(_fpsOverlay, _fpsX, _fpsY, _fpsOverlay.PlaceDefault);
             }
             else _fpsOverlay.Hide();
         }
@@ -376,8 +391,9 @@ public partial class MainWindow
 
         if (_ovSystem)
         {
-            _systemOverlay ??= new SystemOverlay();
+            if (_systemOverlay == null) { _systemOverlay = new SystemOverlay(); _systemOverlay.Moved += SaveSystemPos; }
             _systemOverlay.StreamerMode = streamer;
+            _systemOverlay.SetMoveMode(_overlayMoveMode);
             if (front)
             {
                 double? cpu = ReadSystemCpuPercent();
@@ -386,7 +402,7 @@ public partial class MainWindow
                 double? ramPct = used.HasValue && total is > 0 ? used.Value / total.Value * 100 : null;
                 _systemOverlay.SetStats(cpu, ramPct);
                 if (!_systemOverlay.IsVisible) _systemOverlay.Show();
-                _systemOverlay.PlaceDefault();
+                if (!_overlayMoveMode) PlacePill(_systemOverlay, _sysX, _sysY, _systemOverlay.PlaceDefault);
             }
             else _systemOverlay.Hide();
         }
@@ -394,8 +410,9 @@ public partial class MainWindow
 
         if (_ovMusic)
         {
-            _musicOverlay ??= new MusicOverlay();
+            if (_musicOverlay == null) { _musicOverlay = new MusicOverlay(); _musicOverlay.Moved += SaveMusicPos; }
             _musicOverlay.StreamerMode = streamer;
+            _musicOverlay.SetMoveMode(_overlayMoveMode);
 
             long now = Environment.TickCount64;
             if (now - _lastMusicProbe > 2000) { _lastMusicProbe = now; _ = ProbeMusicTitleAsync(); }
@@ -404,11 +421,79 @@ public partial class MainWindow
             {
                 _musicOverlay.SetTitle(_musicTitle);
                 if (!_musicOverlay.IsVisible) _musicOverlay.Show();
-                _musicOverlay.PlaceDefault();
+                if (!_overlayMoveMode) PlacePill(_musicOverlay, _musX, _musY, _musicOverlay.PlaceDefault);
             }
             else _musicOverlay.Hide();
         }
         else _musicOverlay?.Hide();
+    }
+
+    private void SaveFpsPos() { if (_fpsOverlay != null) { _fpsX = _fpsOverlay.Left; _fpsY = _fpsOverlay.Top; SaveAppSettings(); } }
+    private void SaveSystemPos() { if (_systemOverlay != null) { _sysX = _systemOverlay.Left; _sysY = _systemOverlay.Top; SaveAppSettings(); } }
+    private void SaveMusicPos() { if (_musicOverlay != null) { _musX = _musicOverlay.Left; _musY = _musicOverlay.Top; SaveAppSettings(); } }
+
+    // Sets a window to a saved spot (clamped on-screen), or its default corner.
+    private static void PlacePill(Window w, double? x, double? y, Action placeDefault)
+    {
+        if (x is { } px && y is { } py)
+        {
+            w.UpdateLayout();
+            Rect wa = SystemParameters.WorkArea;
+            w.Left = Math.Max(wa.Left, Math.Min(px, wa.Right - w.ActualWidth));
+            w.Top = Math.Max(wa.Top, Math.Min(py, wa.Bottom - w.ActualHeight));
+        }
+        else placeDefault();
+    }
+
+    /// <summary>
+    /// Flips drag mode on every movable overlay. While on, the enabled overlays
+    /// sit on screen regardless of whether Roblox is in front and can be dragged;
+    /// clicking Done restores click-through and remembers where each one landed.
+    /// </summary>
+    private void OverlayMove_Click(object sender, RoutedEventArgs e)
+    {
+        _overlayMoveMode = !_overlayMoveMode;
+
+        if (_overlayMoveMode)
+        {
+            // Make sure the CPS card is on screen too, so it can be positioned even
+            // when the clicker isn't running.
+            if (OverlayCheck?.IsChecked == true)
+            {
+                _overlay ??= new ClickOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
+                if (!_cpsMovedHooked) { _overlay.Moved += SaveCpsPos; _cpsMovedHooked = true; }
+                _overlay.SetSavedPosition(_cpsX, _cpsY);
+                _overlay.Update(ClickDiagnostics.Current());
+                _overlay.SetMoveMode(true);
+            }
+            StartInfoOverlayTimerForMove();
+        }
+        else
+        {
+            if (_overlay != null)
+            {
+                _overlay.SetMoveMode(false);
+                // Leave it up only if a run is actually driving it.
+                if (_overlayTimer?.IsEnabled != true) _overlay.Hide();
+            }
+            ApplyInfoOverlays();   // reasserts positions and hides pills if Roblox isn't front
+        }
+
+        UpdateInfoOverlays();
+        if (OverlayMoveButton != null)
+            OverlayMoveButton.Content = _overlayMoveMode ? "Done moving" : "Move overlays";
+        if (OverlayMoveHint != null)
+            OverlayMoveHint.Visibility = _overlayMoveMode ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void SaveCpsPos() { if (_overlay != null) { _cpsX = _overlay.Left; _cpsY = _overlay.Top; SaveAppSettings(); } }
+
+    // Move mode needs the feed timer running even if no pill was enabled, so the
+    // pills it shows keep their data fresh while being dragged.
+    private void StartInfoOverlayTimerForMove()
+    {
+        _infoOverlayTimer ??= CreateInfoOverlayTimer();
+        if (!_infoOverlayTimer.IsEnabled) _infoOverlayTimer.Start();
     }
 
     private async Task ProbeMusicTitleAsync()

@@ -21,6 +21,10 @@ public abstract class PillOverlayBase : Window
     protected readonly StackPanel Body;
 
     private bool _streamerMode;
+    private bool _moveMode;
+
+    /// <summary>Raised after the user finishes dragging the pill, so its new spot can be saved.</summary>
+    public event Action? Moved;
 
     protected PillOverlayBase(string glyph, Color accent)
     {
@@ -66,6 +70,26 @@ public abstract class PillOverlayBase : Window
             MakeClickThrough();
             ApplyCaptureVisibility();
         };
+
+        // Only grabbable while in move mode; otherwise the window is click-through
+        // and never receives the button down at all.
+        MouseLeftButtonDown += (_, _) =>
+        {
+            if (!_moveMode) return;
+            try { DragMove(); } catch { }
+            Moved?.Invoke();
+        };
+    }
+
+    /// <summary>
+    /// Drops click-through so the pill can be dragged, or restores it. While on,
+    /// the pill stays put rather than snapping back to its default corner.
+    /// </summary>
+    public void SetMoveMode(bool on)
+    {
+        _moveMode = on;
+        IsHitTestVisible = on;
+        if (on) RemoveClickThrough(); else MakeClickThrough();
     }
 
     /// <summary>Hides it from capture while leaving it on the monitor.</summary>
@@ -132,6 +156,18 @@ public abstract class PillOverlayBase : Window
             if (handle == IntPtr.Zero) return;
             int style = GetWindowLong(handle, GWL_EXSTYLE);
             SetWindowLong(handle, GWL_EXSTYLE, style | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+        }
+        catch { }
+    }
+
+    private void RemoveClickThrough()
+    {
+        try
+        {
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            if (handle == IntPtr.Zero) return;
+            int style = GetWindowLong(handle, GWL_EXSTYLE);
+            SetWindowLong(handle, GWL_EXSTYLE, style & ~WS_EX_TRANSPARENT);
         }
         catch { }
     }

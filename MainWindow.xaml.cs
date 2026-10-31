@@ -2165,6 +2165,10 @@ public partial class MainWindow : Window
             OverlayFps = _ovFps,
             OverlaySystem = _ovSystem,
             OverlayMusic = _ovMusic,
+            OverlayCpsX = _cpsX, OverlayCpsY = _cpsY,
+            OverlayFpsX = _fpsX, OverlayFpsY = _fpsY,
+            OverlaySystemX = _sysX, OverlaySystemY = _sysY,
+            OverlayMusicX = _musX, OverlayMusicY = _musY,
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,
@@ -5696,6 +5700,7 @@ public partial class MainWindow : Window
         if (OverlayCheck?.IsChecked != true) return;
 
         _overlay ??= new ClickOverlay { StreamerMode = StreamerModeCheck.IsChecked == true };
+        _overlay.SetSavedPosition(_cpsX, _cpsY);
 
         _overlay.Update(ClickDiagnostics.Current());
 

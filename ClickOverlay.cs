@@ -46,6 +46,11 @@ public sealed class ClickOverlay : Window
     private readonly Queue<double> _history = new();
 
     private bool _streamerMode;
+    private bool _moveMode;
+    private double? _savedX, _savedY;
+
+    /// <summary>Raised after the user finishes dragging the card, so its spot can be saved.</summary>
+    public event Action? Moved;
 
     // Calm accent while clicking is tidy; a warm red when it isn't — the same
     // two-state colouring the detail line used, now carried by the graph too.
@@ -164,6 +169,28 @@ public sealed class ClickOverlay : Window
             MakeClickThrough();
             ApplyCaptureVisibility();
         };
+
+        MouseLeftButtonDown += (_, _) =>
+        {
+            if (!_moveMode) return;
+            try { DragMove(); } catch { }
+            Moved?.Invoke();
+        };
+    }
+
+    /// <summary>Drops click-through so the card can be dragged, or restores it.</summary>
+    public void SetMoveMode(bool on)
+    {
+        _moveMode = on;
+        IsHitTestVisible = on;
+        if (on) RemoveClickThrough(); else MakeClickThrough();
+    }
+
+    /// <summary>A remembered spot, or null to fall back to the top-right corner.</summary>
+    public void SetSavedPosition(double? x, double? y)
+    {
+        _savedX = x;
+        _savedY = y;
     }
 
     /// <summary>Hides it from capture while leaving it on the monitor.</summary>
@@ -211,7 +238,7 @@ public sealed class ClickOverlay : Window
         if (!IsVisible) Show();
 
         UpdateLayout();
-        PlaceTopRight();
+        if (!_moveMode) Place();
     }
 
     // Maps the rolling CPS history onto the graph area. The vertical scale floors
@@ -255,10 +282,17 @@ public sealed class ClickOverlay : Window
     /// corner would obscure each other whenever a macro is running — which is
     /// most of the time this is on.
     /// </remarks>
-    private void PlaceTopRight()
+    private void Place()
     {
-        const int margin = 24;
+        if (_savedX is { } x && _savedY is { } y)
+        {
+            Rect wa = SystemParameters.WorkArea;
+            Left = Math.Max(wa.Left, Math.Min(x, wa.Right - ActualWidth));
+            Top = Math.Max(wa.Top, Math.Min(y, wa.Bottom - ActualHeight));
+            return;
+        }
 
+        const int margin = 24;
         Left = SystemParameters.WorkArea.Right - ActualWidth - margin;
         Top = SystemParameters.WorkArea.Top + margin;
     }
@@ -296,6 +330,19 @@ public sealed class ClickOverlay : Window
         {
             // An overlay that cannot be styled is still a usable overlay.
         }
+    }
+
+    private void RemoveClickThrough()
+    {
+        try
+        {
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            if (handle == IntPtr.Zero) return;
+
+            int style = GetWindowLong(handle, GWL_EXSTYLE);
+            SetWindowLong(handle, GWL_EXSTYLE, style & ~WS_EX_TRANSPARENT);
+        }
+        catch { }
     }
 
     private const int GWL_EXSTYLE = -20;

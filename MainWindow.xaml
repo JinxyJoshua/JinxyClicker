@@ -2624,6 +2624,15 @@
                             </Border>
                             <TextBlock Text="Overlays only show while Roblox is in front, never take clicks or focus, and Streamer mode hides them from capture."
                                        Style="{StaticResource CardSubtitle}" Margin="4,10,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="2,12,0,0">
+                                <Button x:Name="OverlayMoveButton" Content="Move overlays"
+                                        Style="{StaticResource ChipButton}" Padding="14,7"
+                                        Click="OverlayMove_Click"/>
+                                <TextBlock x:Name="OverlayMoveHint" Visibility="Collapsed"
+                                           Text="Drag each overlay where you want it, then click Done moving."
+                                           Style="{StaticResource CardSubtitle}" VerticalAlignment="Center"
+                                           Margin="12,0,0,0"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
