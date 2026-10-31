@@ -449,7 +449,7 @@ public sealed class ScoreOverlay : PillOverlayBase
 {
     private readonly StackPanel _row;
     private readonly Image _awayLogo, _homeLogo;
-    private readonly TextBlock _awayAbbr, _homeAbbr, _awayScore, _homeScore, _status, _awayPoss, _homePoss;
+    private readonly TextBlock _awayAbbr, _homeAbbr, _awayScore, _homeScore, _status, _awayPoss, _homePoss, _awayRank, _homeRank;
     private readonly TextBlock _message;
     private static readonly Dictionary<string, BitmapImage> LogoCache = new();
 
@@ -458,7 +458,8 @@ public sealed class ScoreOverlay : PillOverlayBase
         Body.Children.Clear();   // this overlay is a score bug, not an icon+text pill
 
         _awayLogo = Logo();
-        _awayAbbr = Abbr(); _awayAbbr.Margin = new Thickness(6, 0, 0, 0);
+        _awayRank = RankText(); _awayRank.Margin = new Thickness(5, 2, 0, 0);
+        _awayAbbr = Abbr(); _awayAbbr.Margin = new Thickness(4, 0, 0, 0);
         _awayPoss = PossDot();
         _awayScore = Num(); _awayScore.Margin = new Thickness(6, 0, 0, 0);
 
@@ -472,11 +473,13 @@ public sealed class ScoreOverlay : PillOverlayBase
 
         _homeScore = Num(); _homeScore.Margin = new Thickness(0, 0, 6, 0);
         _homePoss = PossDot();
-        _homeAbbr = Abbr(); _homeAbbr.Margin = new Thickness(0, 0, 6, 0);
+        _homeAbbr = Abbr();
+        _homeRank = RankText(); _homeRank.Margin = new Thickness(4, 2, 6, 0);
         _homeLogo = Logo();
 
         _row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         _row.Children.Add(_awayLogo);
+        _row.Children.Add(_awayRank);
         _row.Children.Add(_awayAbbr);
         _row.Children.Add(_awayPoss);
         _row.Children.Add(_awayScore);
@@ -484,6 +487,7 @@ public sealed class ScoreOverlay : PillOverlayBase
         _row.Children.Add(_homeScore);
         _row.Children.Add(_homePoss);
         _row.Children.Add(_homeAbbr);
+        _row.Children.Add(_homeRank);
         _row.Children.Add(_homeLogo);
 
         _message = new TextBlock
@@ -501,11 +505,13 @@ public sealed class ScoreOverlay : PillOverlayBase
     public void SetGame(GameInfo g)
     {
         _awayAbbr.Text = Short(g.AwayAbbr);
+        _awayRank.Text = Rank(g.AwayRank);
         _awayLogo.Source = LoadLogo(g.AwayLogo);
         _awayScore.Text = g.AwayScore.ToString();
         _awayPoss.Visibility = g.AwayHasBall ? Visibility.Visible : Visibility.Collapsed;
 
         _homeAbbr.Text = Short(g.HomeAbbr);
+        _homeRank.Text = Rank(g.HomeRank);
         _homeLogo.Source = LoadLogo(g.HomeLogo);
         _homeScore.Text = g.HomeScore.ToString();
         _homePoss.Visibility = g.HomeHasBall ? Visibility.Visible : Visibility.Collapsed;
@@ -550,6 +556,16 @@ public sealed class ScoreOverlay : PillOverlayBase
         VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0),
         Visibility = Visibility.Collapsed, ToolTip = "Has the ball"
     };
+
+    private static TextBlock RankText() => new()
+    {
+        Text = "", FontSize = 10, FontWeight = FontWeights.Bold,
+        Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD1, 0x6A)),
+        VerticalAlignment = VerticalAlignment.Top
+    };
+
+    /// <summary>The AP rank as display text ("3"), or blank when unranked.</summary>
+    private static string Rank(int rank) => rank is >= 1 and <= 25 ? rank.ToString() : "";
 
     private static TextBlock Num() => new()
     {

@@ -759,14 +759,12 @@ public partial class MainWindow
             if (_scoreOverlay == null) { _scoreOverlay = new ScoreOverlay(); _scoreOverlay.Moved += SaveScorePos; }
             _scoreOverlay.StreamerMode = streamer;
             if (_scoreGame is { } sg) _scoreOverlay.SetGame(sg);
-            else _scoreOverlay.SetMessage(_scoreLoading ? "Loading score…" : "Pick a game on the Overlays page");
+            else _scoreOverlay.SetMessage(_scoreLoading ? "Loading score…" : "Pick a game on the Scoreboard tab");
             _scoreOverlay.SetMoveMode(_overlayMoveMode);
-            if (front)
-            {
-                if (!_scoreOverlay.IsVisible) _scoreOverlay.Show();
-                if (!_overlayMoveMode) PlacePill(_scoreOverlay, _scoreX, _scoreY, _scoreOverlay.PlaceDefault);
-            }
-            else _scoreOverlay.Hide();
+            // The live scoreboard stays up whenever it's on, not only over Roblox, so
+            // clicking a game opens it right away even while you're in the app.
+            if (!_scoreOverlay.IsVisible) _scoreOverlay.Show();
+            if (!_overlayMoveMode) PlacePill(_scoreOverlay, _scoreX, _scoreY, _scoreOverlay.PlaceDefault);
         }
         else _scoreOverlay?.Hide();
 
@@ -893,15 +891,12 @@ public partial class MainWindow
     private Border BuildScoreRow(GameInfo g)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        row.Children.Add(new TextBlock
-        {
-            Text = g.BestRank <= 25 ? "#" + g.BestRank : "", Width = 32, FontSize = 11, FontWeight = FontWeights.Bold,
-            Foreground = Brush("Accent"), VerticalAlignment = VerticalAlignment.Center
-        });
+        row.Children.Add(RankBadge(g.AwayRank));
         row.Children.Add(RowLogo(g.AwayLogo));
         row.Children.Add(RowText(g.AwayAbbr, 46, true));
         row.Children.Add(RowText(g.State == "pre" ? "" : g.AwayScore.ToString(), 28, true));
         row.Children.Add(RowText("@", 18, false));
+        row.Children.Add(RankBadge(g.HomeRank));
         row.Children.Add(RowLogo(g.HomeLogo));
         row.Children.Add(RowText(g.HomeAbbr, 46, true));
         row.Children.Add(RowText(g.State == "pre" ? "" : g.HomeScore.ToString(), 28, true));
@@ -939,6 +934,15 @@ public partial class MainWindow
     {
         Text = text, Width = width, FontSize = 13, FontWeight = bright ? FontWeights.Bold : FontWeights.Normal,
         Foreground = bright ? Brush("TextBright") : Brush("TextMuted"), VerticalAlignment = VerticalAlignment.Center
+    };
+
+    /// <summary>A small right-aligned rank number before a team, blank when unranked.</summary>
+    private TextBlock RankBadge(int rank) => new()
+    {
+        Text = rank is >= 1 and <= 25 ? rank.ToString() : "",
+        Width = 22, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = Brush("Accent"),
+        TextAlignment = TextAlignment.Right, Margin = new Thickness(0, 0, 5, 0),
+        VerticalAlignment = VerticalAlignment.Center
     };
 
     private void HighlightScoreRow()
