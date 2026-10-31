@@ -11,8 +11,14 @@ namespace JinxyClicker;
 
 public enum MontageShape { Landscape, Vertical }
 
-/// <summary>A clip in a montage, with an optional trim window (seconds).</summary>
-public readonly record struct MontageClip(string Path, double? StartSec = null, double? EndSec = null);
+/// <summary>
+/// A clip in a montage, with an optional trim window (seconds), a playback speed
+/// (1 = normal, 2 = twice as fast), and an optional pre-rendered caption image that
+/// is overlaid on the clip for its whole length.
+/// </summary>
+public readonly record struct MontageClip(
+    string Path, double? StartSec = null, double? EndSec = null,
+    double Speed = 1.0, string? CaptionImagePath = null);
 
 /// <summary>
 /// The look of a montage beyond the clips themselves: shape, an optional intro
@@ -47,10 +53,28 @@ public static partial class MontageMaker
         int w = options.Shape == MontageShape.Vertical ? 1080 : 1920;
         int h = options.Shape == MontageShape.Vertical ? 1920 : 1080;
 
+        // Caption images (when a clip has one) are added as inputs AFTER the clips and
+        // music, so the title/clip/music input indices never shift. A montage with no
+        // captions and every clip at speed 1 therefore builds the exact same command as
+        // before — the new paths are entered only by the clips that opt in.
+        int capBase = baseIdx + clips.Count + (hasMusic ? 1 : 0);
+        var capIdx = new int[clips.Count];
+        var clipLen = new double[clips.Count];
+        int capNext = capBase;
+        for (int i = 0; i < clips.Count; i++)
+        {
+            clipLen[i] = EffectiveDuration(clips[i], clipDurations, i);
+            bool wantsCaption = !string.IsNullOrWhiteSpace(clips[i].CaptionImagePath) && clipLen[i] > 0.05;
+            capIdx[i] = wantsCaption ? capNext++ : -1;
+        }
+
         var sb = new StringBuilder("-y ");
         if (hasTitle) sb.Append($"-loop 1 -t {Fmt(options.TitleSeconds)} -i \"{options.TitleImagePath}\" ");
         foreach (MontageClip clip in clips) sb.Append($"-i \"{clip.Path}\" ");
         if (hasMusic) sb.Append($"-stream_loop -1 -i \"{musicPath}\" ");
+        for (int i = 0; i < clips.Count; i++)
+            if (capIdx[i] >= 0)
+                sb.Append($"-loop 1 -t {Fmt(clipLen[i])} -i \"{clips[i].CaptionImagePath}\" ");
 
         string fit = options.Shape == MontageShape.Vertical
             ? $"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
@@ -70,9 +94,18 @@ public static partial class MontageMaker
         }
         for (int i = 0; i < clips.Count; i++)
         {
-            filter.Append($"[{baseIdx + i}:v]{TrimFilter(clips[i])}{fit},setsar=1,fps=30[v{i}];");
+            // Speed: after the trim resets PTS, scale it (PTS/2 plays twice as fast).
+            string speed = clips[i].Speed > 0 && Math.Abs(clips[i].Speed - 1.0) > 0.001
+                ? $"setpts=PTS/{Fmt(clips[i].Speed)}," : "";
+            bool cap = capIdx[i] >= 0;
+            // With a caption, the clip is built into a scratch label and the caption image
+            // (rendered at the full frame size) is overlaid onto it to produce [v{i}].
+            string core = cap ? $"[vc{i}]" : $"[v{i}]";
+            filter.Append($"[{baseIdx + i}:v]{TrimFilter(clips[i])}{speed}{fit},setsar=1,fps=30{core};");
+            if (cap)
+                filter.Append($"{core}[{capIdx[i]}:v]overlay=0:0[v{i}];");
             labels.Add($"[v{i}]");
-            durations.Add(EffectiveDuration(clips[i], clipDurations, i));
+            durations.Add(clipLen[i]);
         }
 
         // Crossfade needs each clip's real length; without it, fall back to hard
@@ -112,13 +145,18 @@ public static partial class MontageMaker
         return sb.ToString();
     }
 
-    /// <summary>How long a clip plays after its trim, falling back to its full length.</summary>
+    /// <summary>
+    /// How long a clip plays on screen: its trimmed length divided by its speed
+    /// (2x speed halves the duration), falling back to its full length.
+    /// </summary>
     private static double EffectiveDuration(MontageClip clip, IReadOnlyList<double>? durations, int i)
     {
         double full = durations is not null && i < durations.Count ? durations[i] : 0;
         double start = clip.StartSec ?? 0;
         double end = clip.EndSec ?? full;
-        return Math.Max(0, end - start);
+        double len = Math.Max(0, end - start);
+        double speed = clip.Speed > 0 ? clip.Speed : 1.0;
+        return len / speed;
     }
 
     private static string TrimFilter(MontageClip clip)

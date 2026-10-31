@@ -74,6 +74,77 @@ public class MontageMakerTests
         Assert.DoesNotContain("[1:v]trim", args);
     }
 
+    // ---- per-clip speed (Stage 3) ----
+
+    [Fact]
+    public void Speed_scales_pts_on_the_sped_clip_only()
+    {
+        var clips = new List<MontageClip>
+        {
+            new(@"C:\c\a.mp4", 0, 8, Speed: 2.0),
+            new(@"C:\c\b.mp4")
+        };
+        string args = MontageMaker.BuildArgs(clips, null, Land(), @"C:\out.mp4");
+        Assert.Contains("setpts=PTS/2,scale=", args);   // clip a is sped up 2x
+        Assert.Contains("[1:v]scale=", args);           // clip b is untouched (no speed setpts)
+    }
+
+    [Fact]
+    public void Default_speed_adds_no_pts_scaling()
+    {
+        string args = MontageMaker.BuildArgs(TwoClips, null, Land(), @"C:\out.mp4");
+        Assert.DoesNotContain("setpts=PTS/", args);     // PTS-STARTPTS only ever comes from a trim
+    }
+
+    [Fact]
+    public void Speed_shortens_the_crossfade_offset()
+    {
+        var clips = new List<MontageClip>
+        {
+            new(@"C:\c\a.mp4", 0, 8, Speed: 2.0),   // 8s kept, 2x -> 4s on screen
+            new(@"C:\c\b.mp4")
+        };
+        var durs = new List<double> { 8, 6 };
+        string args = MontageMaker.BuildArgs(clips, null, Land(crossfade: true), @"C:\out.mp4", durs);
+        Assert.Contains("offset=3.5[outv]", args);      // 4 (on screen) - 0.5 fade, not 8 - 0.5
+    }
+
+    // ---- per-clip caption overlays (Stage 3) ----
+
+    [Fact]
+    public void Caption_adds_a_looped_overlay_input_after_the_clips()
+    {
+        var clips = new List<MontageClip>
+        {
+            new(@"C:\c\a.mp4", 0, 5, CaptionImagePath: @"C:\cap\a.png"),
+            new(@"C:\c\b.mp4", 0, 5)
+        };
+        string args = MontageMaker.BuildArgs(clips, null, Land(), @"C:\out.mp4");
+        Assert.Contains("-loop 1 -t 5 -i \"C:\\cap\\a.png\"", args); // caption held for the clip's length
+        Assert.Contains("[vc0];", args);                            // clip a built into a scratch label
+        Assert.Contains("[vc0][2:v]overlay=0:0[v0];", args);        // caption (input 2) overlaid -> [v0]
+    }
+
+    [Fact]
+    public void Caption_input_indexes_after_the_music()
+    {
+        var clips = new List<MontageClip>
+        {
+            new(@"C:\c\a.mp4", 0, 5, CaptionImagePath: @"C:\cap\a.png")
+        };
+        string args = MontageMaker.BuildArgs(clips, @"C:\m\song.mp3", Land(), @"C:\out.mp4");
+        Assert.Contains("-map \"1:a\"", args);               // music is input 1 (right after the clip)
+        Assert.Contains("[vc0][2:v]overlay=0:0[v0]", args);  // caption is input 2 (after clip + music)
+    }
+
+    [Fact]
+    public void No_caption_has_no_overlay_or_extra_input()
+    {
+        string args = MontageMaker.BuildArgs(TwoClips, null, Land(), @"C:\out.mp4");
+        Assert.DoesNotContain("overlay", args);
+        Assert.DoesNotContain("[vc0]", args);
+    }
+
     // ---- title card ----
 
     [Fact]

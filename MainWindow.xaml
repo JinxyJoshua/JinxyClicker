@@ -4348,7 +4348,9 @@
                                 <Button x:Name="EditorSplitButton" Content="Split" Click="EditorSplit_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,8,8"/>
                                 <Button x:Name="EditorLeftButton" Content="◀ Move" Click="EditorMoveLeft_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
                                 <Button x:Name="EditorRightButton" Content="Move ▶" Click="EditorMoveRight_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
-                                <Button x:Name="EditorRemoveButton" Content="Remove" Click="EditorRemove_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,0,8"/>
+                                <Button x:Name="EditorRemoveButton" Content="Remove" Click="EditorRemove_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,16,8"/>
+                                <Button x:Name="EditorUndoButton" Content="Undo" Click="EditorUndo_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorRedoButton" Content="Redo" Click="EditorRedo_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,0,8"/>
                             </WrapPanel>
 
                             <Border Background="{StaticResource Panel2}" CornerRadius="8" Padding="8" MinHeight="76">
@@ -4371,10 +4373,22 @@
                                 </StackPanel>
                             </StackPanel>
                             <TextBlock Text="START" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,0,0,2"/>
-                            <Slider x:Name="EditorTrimIn" Minimum="0" Maximum="1" ValueChanged="EditorTrimIn_Changed" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
+                            <Slider x:Name="EditorTrimIn" Minimum="0" Maximum="1" ValueChanged="EditorTrimIn_Changed" Thumb.DragStarted="EditorClip_DragStarted" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
                             <TextBlock Text="END" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,10,0,2"/>
-                            <Slider x:Name="EditorTrimOut" Minimum="0" Maximum="1" ValueChanged="EditorTrimOut_Changed" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
-                            <TextBlock Text="Split cuts the selected clip at the preview position. Trimmed clips export at their trimmed length."
+                            <Slider x:Name="EditorTrimOut" Minimum="0" Maximum="1" ValueChanged="EditorTrimOut_Changed" Thumb.DragStarted="EditorClip_DragStarted" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
+
+                            <DockPanel Margin="2,16,0,2" LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Text="SPEED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="EditorSpeedText" DockPanel.Dock="Right" Text="1.0×" FontSize="11" Foreground="{StaticResource TextSoft}" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Slider x:Name="EditorSpeed" Minimum="0.25" Maximum="3" Value="1" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                    ValueChanged="EditorSpeed_Changed" Thumb.DragStarted="EditorClip_DragStarted"/>
+
+                            <TextBlock Text="CAPTION" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,14,0,2"/>
+                            <TextBox x:Name="EditorCaptionBox" MaxLength="80" Style="{StaticResource InputField}"
+                                     GotKeyboardFocus="EditorCaption_GotFocus" TextChanged="EditorCaption_Changed"/>
+
+                            <TextBlock Text="Speed plays the clip faster or slower. Caption burns text onto the bottom of this clip. Split cuts at the preview position."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,12,0,0"/>
                         </StackPanel>
                     </Border>
