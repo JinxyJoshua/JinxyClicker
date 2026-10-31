@@ -1803,8 +1803,15 @@
                             BorderThickness="1" BorderBrush="{StaticResource Outline}"
                             Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="REGISTRATION" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,12">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE945;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Registration"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Land the most hits the game will accept"/>
+                                </StackPanel>
+                            </DockPanel>
 
                             <!-- Auto-tune -->
                             <Grid Margin="0,12,0,0">
@@ -1838,11 +1845,18 @@
                             BorderThickness="1" BorderBrush="{StaticResource Outline}"
                             Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="COMBAT PROFILES" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="One-click setting bundles. The registration ceiling is the same for every sword, so these tune your rate and blocking for the situation — not fake per-weapon speed."
+                            <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Combat profiles"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="One-click setting bundles for the situation"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock Text="The registration ceiling is the same for every sword, so these tune your rate and blocking for the situation — not fake per-weapon speed."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,12"/>
+                                       TextWrapping="Wrap" Margin="0,0,0,12"/>
                             <StackPanel x:Name="CombatProfileRow" Orientation="Horizontal"/>
                         </StackPanel>
                     </Border>
@@ -1942,10 +1956,15 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="NETWORK TWEAKS" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
-                            <TextBlock Text="Turn these on individually, or let the switch above do all of them."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,4,0,0"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE774;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Network tweaks"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Turn these on individually, or use the switch above"/>
+                                </StackPanel>
+                            </DockPanel>
                             <ItemsControl x:Name="LowerPingTweakList" Margin="0,8,0,0"
                                           ItemTemplate="{StaticResource TweakToggleRow}"/>
                         </StackPanel>
@@ -1959,9 +1978,13 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="CLICK PRESETS — CPS / CDC"
-                                           Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Click presets"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Saved CPS / duty-cycle combos"/>
+                                </StackPanel>
                                 <TextBlock x:Name="PresetAppliedText" DockPanel.Dock="Right"
                                            Text="No preset applied" FontSize="11"
                                            Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
@@ -2039,8 +2062,14 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="CUSTOM PRESET" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE713;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Custom preset"/>
+                                </StackPanel>
+                            </DockPanel>
                             <TextBlock x:Name="CustomPresetHint"
                                        Text="Name it, set CPS and CDC, and it is saved between sessions"
                                        Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,2,0,0"/>
@@ -2091,11 +2120,14 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="MACROS" Style="{StaticResource CardLabel}"/>
+                            <Border Style="{StaticResource CardIconChip}">
+                                <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE765;"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center" Margin="11,0,0,0">
+                                <TextBlock Text="Macros" Style="{StaticResource CardTitle}"/>
                                 <TextBlock x:Name="MacrosHotkeyKillNote"
                                            Text="Switch every macro off at once, without losing what they are set to."
-                                           Style="{StaticResource CardHint}"/>
+                                           Style="{StaticResource CardSubtitle}"/>
                             </StackPanel>
                             <Button x:Name="MacrosHotkeysOffButton" DockPanel.Dock="Right"
                                     Content="TURN HOTKEYS ON" Visibility="Collapsed"
@@ -2112,8 +2144,12 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="RUNNING" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE768;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Running"/>
+                                </StackPanel>
                                 <Button x:Name="StopAllMacrosButton" DockPanel.Dock="Right"
                                         Content="Stop all" Click="StopAllMacros_Click"
                                         Padding="14,6" FontSize="11"/>
@@ -2135,8 +2171,14 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="NEW MACRO" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE765;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="New macro"/>
+                                </StackPanel>
+                            </DockPanel>
                             <TextBlock Text="One letter or digit per box. Fill the second and the macro alternates between the two; leave it empty and it just spams the first."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -2210,11 +2252,14 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="SWITCHERS" Style="{StaticResource CardLabel}"/>
+                            <Border Style="{StaticResource CardIconChip}">
+                                <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8AB;"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center" Margin="11,0,0,0">
+                                <TextBlock Text="Switchers" Style="{StaticResource CardTitle}"/>
                                 <TextBlock x:Name="SwitcherHotkeyKillNote"
                                            Text="Switch every auto switcher off at once, without losing what it is set to."
-                                           Style="{StaticResource CardHint}"/>
+                                           Style="{StaticResource CardSubtitle}"/>
                             </StackPanel>
                             <Button x:Name="SwitcherHotkeysOffButton" DockPanel.Dock="Right"
                                     Content="TURN HOTKEYS ON" Visibility="Collapsed"
@@ -2245,7 +2290,14 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="NEW SWITCHER" Style="{StaticResource CardLabel}"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8AB;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="New switcher"/>
+                                </StackPanel>
+                            </DockPanel>
                             <TextBlock Text="Swaps between two hotbar slots on a timer &#8212; sword and crossbow, or pickaxe and gumdrop. Name it and you can keep as many as you like, and run several at once."
                                        Style="{StaticResource CardHint}" Margin="0,0,0,14"/>
 
@@ -2365,8 +2417,16 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="MODE" Style="{StaticResource CardLabel}"/>
-                            <UniformGrid Columns="3" Margin="0,10,0,0">
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE71D;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="App targeting"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Where the clicker is allowed to fire"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <UniformGrid Columns="3" Margin="0,4,0,0">
                                 <RadioButton x:Name="AppTargetOff" Content="Off" GroupName="AppTarget"
                                              Tag="Off" IsChecked="True" Style="{StaticResource SegmentButton}"
                                              Checked="AppTargetMode_Checked"/>
@@ -2392,8 +2452,11 @@
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock x:Name="AppTargetActiveHeading" Text="WHITELIST"
-                                           Style="{StaticResource CardLabel}" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE73E;"/>
+                                </Border>
+                                <TextBlock x:Name="AppTargetActiveHeading" Text="WHITELIST" DockPanel.Dock="Left"
+                                           Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="AppTargetActiveCount" DockPanel.Dock="Right" Text="0 apps"
                                            Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center"/>
                             </DockPanel>
@@ -2416,7 +2479,10 @@
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="RUNNING APPS" Style="{StaticResource CardLabel}" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE72C;"/>
+                                </Border>
+                                <TextBlock Text="Running apps" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <Button Content="Refresh" DockPanel.Dock="Right" Click="AppTargetRefresh_Click"
                                         Height="30" Padding="14,0" Margin="0"/>
                             </DockPanel>
@@ -2431,7 +2497,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE962;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="SOCD cleaner" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Text="Cleans opposing movement keys so holding both doesn't fight — tap the opposite key and you snap straight to it instead of standing still, like Snap Tap keyboards. Pick WASD to clean both strafe axes, or Custom for one pair you choose. A single key moves you as normal; it's a keyboard input tool and doesn't read the game."
@@ -2484,7 +2553,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock DockPanel.Dock="Left" Text="KEYSTROKES OVERLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE765;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="Keystrokes overlay" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Text="A sleek keyboard + mouse + live CPS display that lights up in your accent colour as you play — built for recordings and streams. Click-through, so it never blocks the game."
@@ -2531,7 +2603,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock DockPanel.Dock="Left" Text="SEND FEEDBACK" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE939;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="Send feedback" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="STRAIGHT TO THE DEV" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Text="Found a bug, want a feature, or have an idea to make Jinxy better? Send it right here — no GitHub, no account, no sign-in."
@@ -2579,8 +2654,10 @@
                             BorderBrush="#332A52" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="KIT RANDOMIZER" Style="{StaticResource CardLabel}"
-                                           VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE72C;"/>
+                                </Border>
+                                <TextBlock Text="Kit randomizer" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="KitsRemainingText" DockPanel.Dock="Right"
                                            Text="0 KITS REMAINING" FontSize="10" FontWeight="Bold"
                                            Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
@@ -2988,7 +3065,12 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Text="IN-GAME CROSSHAIR" Style="{StaticResource CardLabel}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE1D1;"/>
+                                    </Border>
+                                    <TextBlock Text="In-game crosshair" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                </StackPanel>
                                 <TextBlock Text="Puts a crosshair in place of Roblox's mouse cursor, so it becomes the real cursor you aim with &#8212; in every installed version, and in Bloxstrap, Fishstrap and Froststrap mods if you use them. Fully reversible."
                                            Style="{StaticResource CardHint}" TextWrapping="Wrap" MaxWidth="560"/>
 
@@ -3035,7 +3117,12 @@
                     <StackPanel x:Name="PageCrosshair_gallery" Visibility="Collapsed">
                     <Border Style="{StaticResource ControlCard}">
                         <StackPanel>
-                            <TextBlock Text="GALLERY" Style="{StaticResource CardLabel}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE1D1;"/>
+                                </Border>
+                                <TextBlock Text="Gallery" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Tap one to preview it, then Apply to Roblox. Keep the size small for a precise dot, or turn it up to see it easily."
                                        Style="{StaticResource CardHint}" Margin="0,4,0,0"/>
                             <WrapPanel x:Name="CrosshairGalleryPanel" Margin="0,12,0,0"/>
@@ -3053,7 +3140,12 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="MAKE YOUR OWN" Style="{StaticResource CardLabel}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE713;"/>
+                                    </Border>
+                                    <TextBlock Text="Make your own" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                </StackPanel>
                                 <TextBlock Text="Pick a shape and colours, then add it — or import your own crosshair image. Each one gets its own size like the rest."
                                            Style="{StaticResource CardHint}" Margin="0,4,0,0"/>
 
@@ -3177,8 +3269,12 @@
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <StackPanel DockPanel.Dock="Left" MaxWidth="440">
-                                    <TextBlock Text="SERVER REGION OVERLAY" Foreground="{StaticResource TextMuted}"
-                                               FontSize="11" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <Border Style="{StaticResource CardIconChip}">
+                                            <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE774;"/>
+                                        </Border>
+                                        <TextBlock Text="Server region overlay" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                    </StackPanel>
                                     <TextBlock Text="Off unless you turn it on. When you join a game, a small banner names the region of the server you're on — read from Roblox's own log, not the game itself."
                                                Foreground="{StaticResource TextMuted}" FontSize="11"
                                                TextWrapping="Wrap" Margin="0,3,0,0"/>
@@ -3200,8 +3296,12 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="HOW LONG IT SHOWS" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE916;"/>
+                                    </Border>
+                                    <TextBlock Text="How long it shows" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                </StackPanel>
                                 <TextBlock Text="Keep it on the whole time, or let it pop up on joining and tuck itself away."
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
                                            TextWrapping="Wrap" Margin="0,3,0,0" MaxWidth="320"/>
@@ -3225,8 +3325,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="CURRENT SERVER" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE774;"/>
+                                </Border>
+                                <TextBlock Text="Current server" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock x:Name="ServerRegionStatusText" Text="Open a game to see your server region"
                                        FontSize="22" FontWeight="Black" Margin="0,6,0,0"
                                        TextWrapping="Wrap"/>
@@ -3250,8 +3354,14 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="WINDOWS SYSTEM TWEAKS" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Windows system tweaks" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                            </DockPanel>
                             <TextBlock Text="Each tweak reads your current setting before changing it, so Revert puts back exactly what you had — not a guessed default."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -3271,8 +3381,14 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="PERFORMANCE" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE945;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Performance" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                            </DockPanel>
 
                             <ItemsControl x:Name="TweakList" Margin="0,4,0,0"
                                           ItemTemplate="{StaticResource TweakRow}"/>
@@ -3320,8 +3436,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="TEMP FILE CLEANER" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <TextBlock Text="Temp file cleaner" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Deletes files in your temp folders that nothing has touched for a day. Nothing outside those folders is looked at."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -3544,8 +3664,10 @@
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="GRAPHICS QUALITY" Foreground="{StaticResource TextMuted}"
-                                               FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7F4;"/>
+                                    </Border>
+                                    <TextBlock Text="Graphics quality" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                     <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="7,1"
                                             Margin="10,0,0,0" VerticalAlignment="Center">
                                         <TextBlock x:Name="QualityBadgeText" Text="Balanced" FontSize="9"
@@ -3670,8 +3792,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="FPS LIMIT" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE945;"/>
+                                </Border>
+                                <TextBlock Text="FPS limit" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="FpsCapStateText" DockPanel.Dock="Right" Text=""
                                            FontSize="11" Foreground="{StaticResource TextMuted}"
                                            VerticalAlignment="Center"/>
@@ -3756,8 +3880,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="FPS BOOST FASTFLAGS" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <TextBlock Text="FPS boost FastFlags" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="FlagStateText" DockPanel.Dock="Right" Text=""
                                            FontSize="11" Foreground="{StaticResource TextMuted}"
                                            VerticalAlignment="Center"/>
@@ -3789,8 +3915,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="WHAT THIS SETS" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <TextBlock Text="What this sets" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
 
                             <ItemsControl x:Name="FlagList" Margin="0,4,0,0">
                                 <ItemsControl.ItemTemplate>
@@ -3822,7 +3952,12 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="470">
-                                <TextBlock Text="GRAY SKY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7F4;"/>
+                                    </Border>
+                                    <TextBlock Text="Gray sky" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                </StackPanel>
                                 <TextBlock Text="Replaces the sky with a flat gray — clearer sightlines and a little less to render. One tap, no FastFlags to edit. Takes effect next time you launch Roblox. A game that sets its own skybox overrides it."
                                            Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock x:Name="GraySkyStatus" Text="" Foreground="{StaticResource TextMuted}"
@@ -3836,8 +3971,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE945;"/>
+                                </Border>
+                                <TextBlock Text="Roblox priority" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <CheckBox x:Name="RobloxPriority" DockPanel.Dock="Right" Margin="0"
                                           VerticalAlignment="Center"
                                           Checked="RobloxPriority_Changed" Unchecked="RobloxPriority_Changed"/>
@@ -3863,8 +4000,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="CUSTOM FONT" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <TextBlock Text="Custom font" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="FontStateText" DockPanel.Dock="Right" Text=""
                                            FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
                             </DockPanel>
@@ -3961,7 +4100,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="MOUSE &amp; SENSITIVITY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE962;"/>
+                                </Border>
+                                <TextBlock Text="Mouse &amp; sensitivity" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Windows pointer speed and acceleration, plus your Roblox in-game sensitivity. Windows settings apply instantly; Roblox sens applies on your next launch."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -4017,7 +4161,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="MAKE A MONTAGE" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8B2;"/>
+                                </Border>
+                                <TextBlock Text="Make a montage" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Stitches your ticked clips into one video with music, in the order shown below. Use the arrows to reorder, Trim to keep just the good seconds, and the checkbox to leave a clip out. Clip your moments in-game with your clip hotkey."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <!-- Music -->
@@ -4072,7 +4221,15 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="YOUR CLIPS  (montage plays top to bottom)" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE714;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Your clips" Style="{StaticResource CardTitle}"/>
+                                    <TextBlock Text="Montage plays top to bottom" Style="{StaticResource CardSubtitle}"/>
+                                </StackPanel>
+                            </StackPanel>
                             <ItemsControl x:Name="ClipList"/>
                         </StackPanel>
                     </Border>
@@ -4089,8 +4246,12 @@
                     <StackPanel x:Name="PageHistory_alltime">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="ALL TIME" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE81C;"/>
+                                </Border>
+                                <TextBlock Text="All time" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock x:Name="HistoryTotalText" Text="0s" FontSize="34" FontWeight="Bold"
                                        Foreground="{StaticResource Accent}" Margin="0,6,0,0"/>
                             <TextBlock Text="Counted only while clicks are actually being sent — not while the app is merely open, and not while hold mode is armed with the key up."
@@ -4135,9 +4296,13 @@
                     <StackPanel x:Name="PageHistory_session" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="THIS SESSION" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
-                            <UniformGrid Columns="3" Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE81C;"/>
+                                </Border>
+                                <TextBlock Text="This session" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
+                            <UniformGrid Columns="3" Margin="0,4,0,0">
                                 <StackPanel Margin="0,0,7,0">
                                     <TextBlock Text="TIME" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold"/>
@@ -4166,8 +4331,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="BY DAY" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE81C;"/>
+                                </Border>
+                                <TextBlock Text="By day" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <Button DockPanel.Dock="Right" Content="Reset history"
                                         Click="ResetHistory_Click" Padding="10,5" Margin="0" FontSize="11"/>
                             </DockPanel>
@@ -4221,8 +4388,12 @@
                     <StackPanel x:Name="PageRecorder_record">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="RECORD" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE714;"/>
+                                </Border>
+                                <TextBlock Text="Record" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock x:Name="RecorderEngineText" Text=""
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -4266,8 +4437,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="INSTANT REPLAY" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE768;"/>
+                                </Border>
+                                <TextBlock Text="Instant replay" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <CheckBox x:Name="ReplayEnabled" DockPanel.Dock="Right" Margin="0"
                                           VerticalAlignment="Center"
                                           Checked="ReplayEnabled_Changed" Unchecked="ReplayEnabled_Changed"/>
@@ -4312,8 +4485,12 @@
                     <StackPanel x:Name="PageRecorder_share" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="SHARE A CLIP" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE714;"/>
+                                </Border>
+                                <TextBlock Text="Share a clip" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Pick a clip and get a link back, instead of handing someone a file."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -4340,8 +4517,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="LINK" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE72C;"/>
+                                </Border>
+                                <TextBlock Text="Link" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
 
                             <DockPanel LastChildFill="False" Margin="0,10,0,0">
                                 <!-- MinWidth so swapping in "Copied" on click does
@@ -4372,7 +4553,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel x:Name="SetupsProPanel">
-                            <TextBlock Text="PLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE768;"/>
+                                </Border>
+                                <TextBlock Text="Play" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then launches straight into your game. Sign into the Roblox app once and it joins automatically."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
@@ -4398,7 +4584,10 @@
                     <Border x:Name="RecentGamesCard" Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock DockPanel.Dock="Left" Text="RECENTLY PLAYED" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE81C;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="Recently played" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <Button x:Name="RefreshRecentButton" DockPanel.Dock="Right" Content="Refresh" Style="{StaticResource ChipButton}" Padding="12,5" Click="RefreshRecent_Click"/>
                             </DockPanel>
                             <TextBlock Text="Click a game to apply your setup and launch straight into it." Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
@@ -4413,7 +4602,12 @@
 
                     <Border x:Name="SetupsListCard" Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <TextBlock Text="YOUR SETUPS" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7FC;"/>
+                                </Border>
+                                <TextBlock Text="Your setups" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="A setup remembers your crosshair, click preset, FastFlags, and theme. Save your current look, then switch between setups in one tap."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
@@ -4439,8 +4633,12 @@
                     <StackPanel x:Name="PageTheme_color">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="MODE" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE790;"/>
+                                </Border>
+                                <TextBlock Text="Appearance" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
 
                             <TextBlock Text="Swaps the backgrounds, text and controls. The accent is unaffected — it stays whichever colour is chosen below."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
@@ -4459,8 +4657,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="ACCENT COLOR" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE790;"/>
+                                </Border>
+                                <TextBlock Text="Accent color" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
 
                             <TextBlock Text="Recolors the buttons, highlights and status marks. Backgrounds and text stay as they are."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
@@ -4532,8 +4734,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="WINDOW OPACITY" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7F4;"/>
+                                </Border>
+                                <TextBlock Text="Window opacity" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="OpacityValueText" DockPanel.Dock="Right" Text="100%"
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
                                            VerticalAlignment="Center"/>
@@ -4552,8 +4756,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock Text="WALLPAPER" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE790;"/>
+                                </Border>
+                                <TextBlock Text="Wallpaper" Style="{StaticResource CardTitle}" DockPanel.Dock="Left" Margin="11,0,0,0"/>
                                 <TextBlock x:Name="WallpaperNameText" DockPanel.Dock="Right"
                                            Text="No wallpaper set"
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
@@ -4658,8 +4864,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="YOUR PLAN" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <TextBlock Text="Your plan" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock x:Name="ProStatusText" Text="Free version"
                                        Foreground="{StaticResource TextSoft}" FontSize="18"
                                        FontWeight="Bold" Margin="0,8,0,0"/>
@@ -4668,8 +4878,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="ACTIVATE A KEY" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE713;"/>
+                                </Border>
+                                <TextBlock Text="Activate a key" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="Copy your key, then click &quot;Paste &amp; activate&quot; &#8212; it pulls the whole key from your clipboard for you. Lifetime keys and day, weekend and month passes all work here."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,8,0,0"/>
@@ -4695,8 +4909,12 @@
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="WHAT PLUS UNLOCKS" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <TextBlock Text="What Plus unlocks" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                            </StackPanel>
                             <TextBlock Text="&#8226;  Clip Studio &#8212; auto-montage of your best moments, auto-clip and export"
                                        Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"/>
                             <TextBlock Text="&#8226;  BedWars timer overlay &#8212; generator and event countdowns"
@@ -4718,7 +4936,10 @@
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
-                                <TextBlock DockPanel.Dock="Left" Text="AIM TRAINER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE1D2;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="Aim trainer" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock Text="Practise your aim and clicking right here — reaction, flick accuracy, tracking and a CPS test. Nothing touches the game."
