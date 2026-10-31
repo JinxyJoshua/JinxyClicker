@@ -39,6 +39,8 @@ public partial class MainWindow
     private List<GameInfo> _scoreGames = new();                           // latest fetched list
     private bool _scoreLiveOnly;                                          // filter: only in-progress games
     private readonly HashSet<string> _favorites = new();                 // favorite team abbreviations
+    private readonly Dictionary<ScoreLeague, List<TeamInfo>> _teamCache = new();   // full team lists per league
+    private List<TeamInfo> _teams = new();                               // current league's teams
     private static readonly SolidColorBrush FavYellow = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xDD, 0x4A)));
 
     private static SolidColorBrush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
@@ -107,6 +109,7 @@ public partial class MainWindow
         if (ScoreLiveOnlyCheck != null) ScoreLiveOnlyCheck.IsChecked = _scoreLiveOnly;
         if (_scoreGames.Count == 0) await LoadScoreGamesAsync();
         else BuildScoreList();
+        await LoadTeamsAsync();
     }
 
     private void LoadOverlaySettings(AppSettings s)
@@ -892,6 +895,7 @@ public partial class MainWindow
         if (ScoreLeagueCombo?.SelectedItem is ComboBoxItem { Tag: ScoreLeague l }) _scoreLeague = l;
         SaveAppSettings();
         await LoadScoreGamesAsync();
+        await LoadTeamsAsync();
     }
 
     private async void ScoreRefresh_Click(object sender, RoutedEventArgs e) => await LoadScoreGamesAsync();
@@ -1043,7 +1047,88 @@ public partial class MainWindow
         if (!_favorites.Remove(abbr)) _favorites.Add(abbr);
         SaveAppSettings();
         BuildScoreList();
+        BuildTeamList();       // update the picker's stars
         ApplyInfoOverlays();   // recolour any open bugs
+    }
+
+    // ---- full team picker (favorite any team, even one not playing today) ----
+
+    private async System.Threading.Tasks.Task LoadTeamsAsync()
+    {
+        if (!_teamCache.TryGetValue(_scoreLeague, out List<TeamInfo>? teams))
+        {
+            teams = await SportsScores.GetTeamsAsync(_scoreLeague);
+            if (teams.Count > 0) _teamCache[_scoreLeague] = teams;
+        }
+        _teams = teams ?? new List<TeamInfo>();
+        BuildTeamList();
+    }
+
+    private void ScoreTeamSearch_Changed(object sender, TextChangedEventArgs e) => BuildTeamList();
+
+    /// <summary>Shows current favorites when the search is empty, else matching teams.</summary>
+    private void BuildTeamList()
+    {
+        if (ScoreTeamList == null) return;
+        ScoreTeamList.Children.Clear();
+
+        string q = (ScoreTeamSearch?.Text ?? "").Trim();
+        List<TeamInfo> show;
+        if (q.Length == 0)
+        {
+            show = _teams.FindAll(t => _favorites.Contains(t.Abbr));
+            if (show.Count == 0)
+            {
+                ScoreTeamList.Children.Add(TeamHint(_teams.Count == 0
+                    ? "Loading teams…"
+                    : $"Type to search {_teams.Count} teams, then tap ★ to favorite."));
+                return;
+            }
+        }
+        else
+        {
+            show = _teams.FindAll(t =>
+                t.Abbr.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                t.Name.Contains(q, StringComparison.OrdinalIgnoreCase));
+            if (show.Count == 0) { ScoreTeamList.Children.Add(TeamHint($"No teams match “{q}”.")); return; }
+            if (show.Count > 60) show = show.GetRange(0, 60);
+        }
+
+        foreach (TeamInfo t in show)
+            ScoreTeamList.Children.Add(BuildTeamRow(t));
+    }
+
+    private TextBlock TeamHint(string text) => new()
+    {
+        Text = text, Foreground = Brush("TextMuted"), FontSize = 12, Margin = new Thickness(2, 4, 0, 0)
+    };
+
+    private Border BuildTeamRow(TeamInfo t)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(FavStar(t.Abbr));
+        row.Children.Add(RowLogo(t.Logo));
+        row.Children.Add(new TextBlock
+        {
+            Text = t.Abbr, Width = 58, FontSize = 13, FontWeight = FontWeights.Bold,
+            Foreground = _favorites.Contains(t.Abbr) ? FavYellow : Brush("TextBright"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = t.Name, FontSize = 12, Foreground = Brush("TextSoft"),
+            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
+        });
+
+        var border = new Border
+        {
+            Background = Brush("Panel2"), CornerRadius = new CornerRadius(7),
+            BorderBrush = Brush("Outline"), BorderThickness = new Thickness(1),
+            Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 6),
+            Cursor = System.Windows.Input.Cursors.Hand, Child = row
+        };
+        border.MouseLeftButtonUp += (_, _) => ToggleFavorite(t.Abbr);
+        return border;
     }
 
     /// <summary>A small right-aligned rank number before a team, blank when unranked.</summary>

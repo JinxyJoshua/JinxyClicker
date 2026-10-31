@@ -29,6 +29,9 @@ public sealed record GameInfo(
     public bool HomeHasBall => PossessionId.Length > 0 && PossessionId == HomeId;
 }
 
+/// <summary>A team in the favorites picker: abbreviation, full name, logo URL.</summary>
+public sealed record TeamInfo(string Abbr, string Name, string Logo);
+
 /// <summary>
 /// Reads live scores from ESPN's public scoreboard API. The HTTP fetch and the JSON
 /// parsing are separate so the parsing — the part that actually breaks when a payload
@@ -92,6 +95,52 @@ public static class SportsScores
         List<GameInfo> ranked = all.FindAll(g => g.BestRank <= 25);
         ranked.Sort((a, b) => a.BestRank.CompareTo(b.BestRank));
         return ranked;
+    }
+
+    /// <summary>Every team in a league (for the favorites picker), or empty on failure.</summary>
+    public static async Task<List<TeamInfo>> GetTeamsAsync(ScoreLeague league)
+    {
+        try
+        {
+            string url = $"https://site.api.espn.com/apis/site/v2/sports/{PathFor(league)}/teams?limit=1000";
+            return ParseTeams(await Http.GetStringAsync(url).ConfigureAwait(false));
+        }
+        catch
+        {
+            return new List<TeamInfo>();
+        }
+    }
+
+    /// <summary>Parses an ESPN teams payload. Never throws; a bad entry is skipped.</summary>
+    public static List<TeamInfo> ParseTeams(string json)
+    {
+        var teams = new List<TeamInfo>();
+        if (string.IsNullOrWhiteSpace(json)) return teams;
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("sports", out JsonElement sports)
+                || sports.ValueKind != JsonValueKind.Array || sports.GetArrayLength() == 0) return teams;
+            if (!sports[0].TryGetProperty("leagues", out JsonElement leagues)
+                || leagues.ValueKind != JsonValueKind.Array || leagues.GetArrayLength() == 0) return teams;
+            if (!leagues[0].TryGetProperty("teams", out JsonElement arr)
+                || arr.ValueKind != JsonValueKind.Array) return teams;
+
+            foreach (JsonElement t in arr.EnumerateArray())
+            {
+                if (!t.TryGetProperty("team", out JsonElement team)) continue;
+                string abbr = Str(team, "abbreviation");
+                if (abbr.Length == 0) continue;
+                string name = Str(team, "displayName");
+                string logo = "";
+                if (team.TryGetProperty("logos", out JsonElement logos)
+                    && logos.ValueKind == JsonValueKind.Array && logos.GetArrayLength() > 0)
+                    logo = Str(logos[0], "href");
+                teams.Add(new TeamInfo(abbr, name.Length == 0 ? abbr : name, logo));
+            }
+        }
+        catch { }
+        return teams;
     }
 
     /// <summary>Re-reads a single game by id, or null if it is no longer listed.</summary>

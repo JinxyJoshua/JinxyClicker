@@ -2668,6 +2668,25 @@
                         </StackPanel>
                     </Border>
 
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Favorite teams"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Search any team and star it &#x2014; favorites stay on top even when they aren't playing"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock Text="TYPE A TEAM NAME OR ABBREVIATION" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,0,0,4"/>
+                            <TextBox x:Name="ScoreTeamSearch" Style="{StaticResource InputField}" TextChanged="ScoreTeamSearch_Changed"/>
+                            <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                                <StackPanel x:Name="ScoreTeamList"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
 
                 <StackPanel x:Name="PageFeedback" Visibility="Collapsed">

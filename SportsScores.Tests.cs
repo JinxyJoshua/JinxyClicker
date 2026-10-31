@@ -146,6 +146,37 @@ public class SportsScoresTests
         Assert.Empty(SportsScores.ParseScoreboard(json));
     }
 
+    private const string TeamsSample = @"{
+      ""sports"": [{ ""leagues"": [{ ""teams"": [
+        { ""team"": { ""abbreviation"": ""UGA"", ""displayName"": ""Georgia Bulldogs"",
+          ""logos"": [{ ""href"": ""https://a.espncdn.com/i/teamlogos/ncaa/500/61.png"" }] } },
+        { ""team"": { ""abbreviation"": ""FLA"", ""displayName"": ""Florida Gators"", ""logos"": [] } },
+        { ""team"": { ""displayName"": ""No Abbr U"" } }
+      ] }] }]
+    }";
+
+    [Fact]
+    public void Parses_teams_with_name_and_logo()
+    {
+        var teams = SportsScores.ParseTeams(TeamsSample);
+        Assert.Equal(2, teams.Count);   // the entry with no abbreviation is skipped
+        TeamInfo uga = teams.First(t => t.Abbr == "UGA");
+        Assert.Equal("Georgia Bulldogs", uga.Name);
+        Assert.EndsWith("/61.png", uga.Logo);
+        TeamInfo fla = teams.First(t => t.Abbr == "FLA");
+        Assert.Equal("", fla.Logo);     // empty logos array -> no logo
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("nope")]
+    [InlineData("{}")]
+    [InlineData("{\"sports\":[]}")]
+    public void Bad_team_payloads_yield_empty(string json)
+    {
+        Assert.Empty(SportsScores.ParseTeams(json));
+    }
+
     [Fact]
     public void Skips_an_event_missing_a_competitor()
     {
