@@ -36,7 +36,8 @@ public partial class MainWindow
     private readonly List<string> _scoreFollowed = new();                 // event ids shown on screen
     private readonly Dictionary<string, ScoreOverlay> _scoreOverlays = new();
     private readonly Dictionary<string, (double X, double Y)> _scorePos = new(); // dragged positions (session)
-    private List<GameInfo> _scoreGames = new();                           // latest fetched list
+    private List<GameInfo> _scoreGames = new();                           // games shown in the list (Top 25 for CFB)
+    private List<GameInfo> _allGames = new();                             // the full scoreboard, for the picker's matchups
     private bool _scoreLiveOnly;                                          // filter: only in-progress games
     private readonly HashSet<string> _favorites = new();                 // favorite team abbreviations
     private readonly Dictionary<ScoreLeague, List<TeamInfo>> _teamCache = new();   // full team lists per league
@@ -107,8 +108,7 @@ public partial class MainWindow
         PopulateLeagueCombo();
         SyncScoreShowToggle();
         if (ScoreLiveOnlyCheck != null) ScoreLiveOnlyCheck.IsChecked = _scoreLiveOnly;
-        if (_scoreGames.Count == 0) await LoadScoreGamesAsync();
-        else BuildScoreList();
+        await LoadScoreGamesAsync();   // always refresh the full scoreboard (feeds the picker's matchups)
         await LoadTeamsAsync();
     }
 
@@ -920,14 +920,15 @@ public partial class MainWindow
         SetScoreStatus("Loading games…");
         if (ScoreRefreshButton != null) ScoreRefreshButton.IsEnabled = false;
 
-        List<GameInfo> games = _scoreLeague == ScoreLeague.CollegeFootball
-            ? await SportsScores.GetTop25GamesAsync()
-            : await SportsScores.GetGamesAsync(_scoreLeague);
+        List<GameInfo> all = await SportsScores.GetGamesAsync(_scoreLeague);
 
         _scoreLoading = false;
         if (ScoreRefreshButton != null) ScoreRefreshButton.IsEnabled = true;
-        _scoreGames = games;
+        _allGames = all;
+        _scoreGames = _scoreLeague == ScoreLeague.CollegeFootball ? Top25(all) : all;
+        List<GameInfo> games = _scoreGames;
         BuildScoreList();
+        BuildTeamList();       // matchups in the picker depend on the full scoreboard
         ApplyInfoOverlays();   // refresh any followed bugs with the new data
 
         if (games.Count == 0)
@@ -1116,9 +1117,25 @@ public partial class MainWindow
         });
         row.Children.Add(new TextBlock
         {
-            Text = t.Name, FontSize = 12, Foreground = Brush("TextSoft"),
+            Text = t.Name, Width = 180, FontSize = 12, Foreground = Brush("TextSoft"),
             VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
         });
+
+        // Show who this team is playing today (click the matchup to add that game).
+        GameInfo? game = _allGames.Find(g => g.AwayAbbr == t.Abbr || g.HomeAbbr == t.Abbr);
+        var m = new TextBlock
+        {
+            Text = game != null ? MatchupText(t.Abbr, game) : "not playing today",
+            FontSize = 11, Foreground = game != null ? Brush("TextSoft") : Brush("TextMuted"),
+            VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        if (game != null)
+        {
+            m.Cursor = System.Windows.Input.Cursors.Hand;
+            m.ToolTip = "Show this game on screen";
+            m.MouseLeftButtonUp += (_, e) => { e.Handled = true; OnScoreRowClick(game.Id); };
+        }
+        row.Children.Add(m);
 
         var border = new Border
         {
@@ -1129,6 +1146,20 @@ public partial class MainWindow
         };
         border.MouseLeftButtonUp += (_, _) => ToggleFavorite(t.Abbr);
         return border;
+    }
+
+    /// <summary>"@ UGA · 3:30 PM", or with the score once it is underway.</summary>
+    private static string MatchupText(string abbr, GameInfo g)
+    {
+        bool away = g.AwayAbbr == abbr;
+        string opp = away ? g.HomeAbbr : g.AwayAbbr;
+        string head = (away ? "@ " : "vs ") + opp;
+        string status = g.Final ? "Final" : g.StatusText;
+        if (g.State == "pre")
+            return $"{head}  ·  {status}";
+        int me = away ? g.AwayScore : g.HomeScore;
+        int them = away ? g.HomeScore : g.AwayScore;
+        return $"{head}  {me}-{them}  ·  {status}";
     }
 
     /// <summary>A small right-aligned rank number before a team, blank when unranked.</summary>
@@ -1205,13 +1236,21 @@ public partial class MainWindow
     /// <summary>Re-reads the list so the list and every followed bug stay live.</summary>
     private async System.Threading.Tasks.Task RefreshScoreAsync()
     {
-        List<GameInfo> games = _scoreLeague == ScoreLeague.CollegeFootball
-            ? await SportsScores.GetTop25GamesAsync()
-            : await SportsScores.GetGamesAsync(_scoreLeague);
-        if (games.Count == 0) return;
-        _scoreGames = games;
+        List<GameInfo> all = await SportsScores.GetGamesAsync(_scoreLeague);
+        if (all.Count == 0) return;
+        _allGames = all;
+        _scoreGames = _scoreLeague == ScoreLeague.CollegeFootball ? Top25(all) : all;
         BuildScoreList();
+        BuildTeamList();
         ApplyInfoOverlays();   // push fresh scores into every open bug
+    }
+
+    /// <summary>The ranked (AP Top 25) games from a full scoreboard, best rank first.</summary>
+    private static List<GameInfo> Top25(List<GameInfo> all)
+    {
+        List<GameInfo> ranked = all.FindAll(g => g.BestRank <= 25);
+        ranked.Sort((a, b) => a.BestRank.CompareTo(b.BestRank));
+        return ranked;
     }
 
     private async System.Threading.Tasks.Task RestoreScoreSelectionAsync() => await LoadScoreGamesAsync();
