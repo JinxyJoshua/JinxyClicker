@@ -20,6 +20,7 @@ namespace JinxyClicker;
 public partial class MainWindow
 {
     private TintOverlay? _tint;
+    private ScreenGrade? _grade;
     private DispatcherTimer? _tintTimer;
     private bool _tintCardsBuilt;
 
@@ -119,11 +120,12 @@ public partial class MainWindow
         return card;
     }
 
-    // A small sample scene (sky, ground, a few blocks) with the look's tint and
-    // vignette laid over it, so each card shows what the look does.
+    // A small sample scene (sky, ground, a few blocks) with the look's real grade
+    // applied to the colours, so each card shows exactly what the look does.
     private UIElement BuildLookPreview(ColorLook look)
     {
         const double w = 136, h = 78;
+        float[] m = GradeLooks.For(look.Id);
         var grid = new Grid
         {
             Width = w, Height = h,
@@ -132,33 +134,25 @@ public partial class MainWindow
 
         grid.Children.Add(new Rectangle
         {
-            Fill = new LinearGradientBrush(Color.FromRgb(0x8F, 0xC6, 0xFF), Color.FromRgb(0xDD, 0xEE, 0xFF), 90)
+            Fill = new LinearGradientBrush(Graded(m, 0x8F, 0xC6, 0xFF), Graded(m, 0xDD, 0xEE, 0xFF), 90)
         });
         grid.Children.Add(new Ellipse
         {
-            Width = 20, Height = 20, Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0xE9, 0xB2)),
+            Width = 20, Height = 20, Fill = new SolidColorBrush(Graded(m, 0xFF, 0xE9, 0xB2)),
             HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 8, 16, 0)
         });
         grid.Children.Add(new Rectangle
         {
             Height = 28, VerticalAlignment = VerticalAlignment.Bottom,
-            Fill = new SolidColorBrush(Color.FromRgb(0x4E, 0x9A, 0x43))
+            Fill = new SolidColorBrush(Graded(m, 0x4E, 0x9A, 0x43))
         });
 
         var blocks = new Canvas();
-        AddBlock(blocks, 18, 40, 16, 20, Color.FromRgb(0xE0, 0x4F, 0x4F));
-        AddBlock(blocks, 52, 32, 18, 28, Color.FromRgb(0x4F, 0x8B, 0xE0));
-        AddBlock(blocks, 92, 36, 15, 24, Color.FromRgb(0x9B, 0x5F, 0xD6));
+        AddBlock(blocks, 18, 40, 16, 20, Graded(m, 0xE0, 0x4F, 0x4F));
+        AddBlock(blocks, 52, 32, 18, 28, Graded(m, 0x4F, 0x8B, 0xE0));
+        AddBlock(blocks, 92, 36, 15, 24, Graded(m, 0x9B, 0x5F, 0xD6));
         grid.Children.Add(blocks);
-
-        // Tint veil — a touch stronger than the live value so even gentle looks read.
-        TintPreset preset = TintStyles.ById(look.TintId) ?? TintStyles.All[0];
-        byte a = TintStyles.AlphaFor(Math.Max(look.Intensity, 24));
-        grid.Children.Add(new Rectangle
-        {
-            Fill = new SolidColorBrush(Color.FromArgb(a, preset.R, preset.G, preset.B))
-        });
 
         byte v = TintStyles.VignetteAlphaFor(look.Vignette);
         if (v > 0)
@@ -183,6 +177,13 @@ public partial class MainWindow
         Canvas.SetLeft(r, left);
         Canvas.SetTop(r, top);
         canvas.Children.Add(r);
+    }
+
+    // Runs one sample colour through a look's grade, for the preview thumbnails.
+    private static Color Graded(float[] m, byte r, byte g, byte b)
+    {
+        var (gr, gg, gb) = GradeMatrix.ApplyToColor(m, r / 255.0, g / 255.0, b / 255.0);
+        return Color.FromRgb((byte)Math.Round(gr * 255), (byte)Math.Round(gg * 255), (byte)Math.Round(gb * 255));
     }
 
     private void ApplyLook(string id)
@@ -255,8 +256,9 @@ public partial class MainWindow
     private void StopTintTimer() => _tintTimer?.Stop();
 
     /// <summary>
-    /// Shows, hides or recolours the veil. Only ever shown while Roblox is the
-    /// foreground window, so it never tints the rest of the desktop.
+    /// Applies the colour grade and vignette, or clears them. Only ever on while
+    /// Roblox is the foreground window — the grade covers the whole screen, so it
+    /// is lifted the moment you tab away from the game.
     /// </summary>
     private void UpdateTintNow()
     {
@@ -264,16 +266,25 @@ public partial class MainWindow
 
         if (!shouldShow)
         {
+            _grade?.Reset();
             _tint?.Hide();
             return;
         }
 
-        _tint ??= new TintOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
+        // The real colour grade for the chosen look, scaled by Strength.
+        _grade ??= new ScreenGrade();
+        _grade.Apply(GradeLooks.Lerp(_tintLookId, _tintIntensity / 100.0));
 
-        TintPreset preset = TintStyles.ById(_tintPresetId) ?? TintStyles.All[0];
-        _tint.SetTint(preset, _tintIntensity);
-        _tint.SetVignette(_tintVignette);
-        if (!_tint.IsVisible) _tint.Show();
+        // Vignette darkens the edges, which a colour matrix can't do, so it stays a
+        // light overlay. The old flat colour wash is gone — the grade does colour now.
+        if (_tintVignette >= 1)
+        {
+            _tint ??= new TintOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
+            _tint.SetTint(TintStyles.All[0], 0);
+            _tint.SetVignette(_tintVignette);
+            if (!_tint.IsVisible) _tint.Show();
+        }
+        else _tint?.Hide();
     }
 
     private void TintToggle_Changed(object sender, RoutedEventArgs e)
@@ -291,8 +302,7 @@ public partial class MainWindow
         UpdateTintValues();
         if (_applyingLook) return;
 
-        _tintLookId = null;   // nudged off the look
-        LightTintPreset();
+        // Strength scales the selected look's grade — it stays selected.
         UpdateTintNow();   // live
     }
 
@@ -304,8 +314,6 @@ public partial class MainWindow
         UpdateTintValues();
         if (_applyingLook) return;
 
-        _tintLookId = null;
-        LightTintPreset();
         UpdateTintNow();   // live
     }
 
@@ -315,6 +323,7 @@ public partial class MainWindow
     private void CloseTint()
     {
         StopTintTimer();
+        try { _grade?.Dispose(); } catch { }   // clears the screen grade on exit
         try { _tint?.Close(); } catch { }
     }
 }

@@ -23,6 +23,8 @@
     <Compile Include="../OverlayReadout.Tests.cs" />
     <Compile Include="../MusicNowPlaying.cs" />
     <Compile Include="../MusicNowPlaying.Tests.cs" />
+    <Compile Include="../GradeMatrix.cs" />
+    <Compile Include="../GradeMatrix.Tests.cs" />
     <Compile Include="../RobloxFonts.cs" />
     <Compile Include="../RobloxFonts.Tests.cs" />
     <Compile Include="../RobloxSens.cs" />
