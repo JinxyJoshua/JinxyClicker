@@ -1972,6 +1972,7 @@ public partial class MainWindow : Window
         LoadLowerPing(s);   // Plus: Lower Ping one-switch + cards
         LoadGraphicsQuality(s);   // Tweaks: graphics quality slider
         LoadTint(s);              // Plus: screen tint overlay
+        LoadOverlaySettings(s);   // Overlays page: FPS / system / music pills
 
         SetClickMode(s.HoldMode);
 
@@ -2161,6 +2162,9 @@ public partial class MainWindow : Window
             TintIntensity = _tintIntensity,
             TintVignette = _tintVignette,
             TintLook = _tintLookId,
+            OverlayFps = _ovFps,
+            OverlaySystem = _ovSystem,
+            OverlayMusic = _ovMusic,
             GamingModeSetFps = _gamingSetFps,
             GamingModePrevFpsCap = _gamingPrevFpsCap,
             GamingModeSetPriority = _gamingSetPriority,
@@ -5207,13 +5211,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavKeystrokes, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavKeystrokes, NavOverlays, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageKeystrokes, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageKeystrokes, PageOverlays, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
@@ -6199,6 +6203,7 @@ public partial class MainWindow : Window
         StopFpsHelper();         // let the elevated FPS helper exit
         CloseMusic();            // tear down the web view so its data folder is freed
         CloseTint();             // drop the tint veil so it can't linger or hold the app open
+        CloseInfoOverlays();     // and the FPS / system / music pills
 
         // Everything that is not already written the moment it changes gets
         // written here. Presets, hotkeys and tweak state save on edit, so this

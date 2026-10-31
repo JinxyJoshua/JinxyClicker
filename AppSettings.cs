@@ -304,6 +304,11 @@ public sealed class AppSettings
     public string? TintLook { get; set; }
     public bool TintOnlyRoblox { get; set; } = true;
 
+    /// <summary>Overlays page: which of the on-screen pills are switched on.</summary>
+    public bool OverlayFps { get; set; }
+    public bool OverlaySystem { get; set; }
+    public bool OverlayMusic { get; set; }
+
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }
 
