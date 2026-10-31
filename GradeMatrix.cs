@@ -105,14 +105,18 @@ public static class GradeLooks
 {
     public static float[] For(string? lookId) => lookId switch
     {
-        "vivid" => GradeMatrix.Compose(GradeMatrix.Saturation(1.45), GradeMatrix.Contrast(1.08), GradeMatrix.Brightness(0.02)),
-        "clarity" => GradeMatrix.Compose(GradeMatrix.Saturation(1.12), GradeMatrix.Contrast(1.14), GradeMatrix.Brightness(0.05)),
-        "cinematic" => GradeMatrix.Compose(GradeMatrix.Saturation(0.92), GradeMatrix.Contrast(1.24), GradeMatrix.Gain(1.06, 1.0, 0.93)),
-        "sunset" => GradeMatrix.Compose(GradeMatrix.Saturation(1.15), GradeMatrix.Gain(1.14, 1.0, 0.84), GradeMatrix.Brightness(0.02)),
-        "arctic" => GradeMatrix.Compose(GradeMatrix.Saturation(1.06), GradeMatrix.Gain(0.90, 0.98, 1.14), GradeMatrix.Contrast(1.05)),
-        "retro" => GradeMatrix.Compose(GradeMatrix.Saturation(0.78), GradeMatrix.Contrast(0.90), GradeMatrix.Gain(1.07, 1.0, 0.90), GradeMatrix.Brightness(0.05)),
-        "noir" => GradeMatrix.Compose(GradeMatrix.Saturation(0.0), GradeMatrix.Contrast(1.30)),
-        "dream" => GradeMatrix.Compose(GradeMatrix.Saturation(0.85), GradeMatrix.Contrast(0.88), GradeMatrix.Brightness(0.09), GradeMatrix.Gain(1.03, 1.0, 1.04)),
+        "punch" => GradeMatrix.Compose(GradeMatrix.Saturation(1.75), GradeMatrix.Contrast(1.12), GradeMatrix.Brightness(0.02)),
+        "crisp" => GradeMatrix.Compose(GradeMatrix.Saturation(1.18), GradeMatrix.Contrast(1.16), GradeMatrix.Brightness(0.06)),
+        "theater" => GradeMatrix.Compose(GradeMatrix.Saturation(0.90), GradeMatrix.Contrast(1.30), GradeMatrix.Gain(1.07, 1.0, 0.92)),
+        "amber" => GradeMatrix.Compose(GradeMatrix.Saturation(1.20), GradeMatrix.Gain(1.18, 1.0, 0.80), GradeMatrix.Brightness(0.02)),
+        "frost" => GradeMatrix.Compose(GradeMatrix.Saturation(1.10), GradeMatrix.Gain(0.86, 0.97, 1.20), GradeMatrix.Contrast(1.06)),
+        "faded" => GradeMatrix.Compose(GradeMatrix.Saturation(0.72), GradeMatrix.Contrast(0.85), GradeMatrix.Gain(1.07, 1.0, 0.90), GradeMatrix.Brightness(0.06)),
+        "ink" => GradeMatrix.Compose(GradeMatrix.Saturation(0.0), GradeMatrix.Contrast(1.38)),
+        "haze" => GradeMatrix.Compose(GradeMatrix.Saturation(0.82), GradeMatrix.Contrast(0.85), GradeMatrix.Brightness(0.10), GradeMatrix.Gain(1.04, 1.0, 1.06)),
+        "owl" => GradeMatrix.Compose(GradeMatrix.Brightness(0.14), GradeMatrix.Contrast(0.86), GradeMatrix.Saturation(1.06)),
+        "toxic" => GradeMatrix.Compose(GradeMatrix.Saturation(1.40), GradeMatrix.Gain(0.90, 1.16, 0.90), GradeMatrix.Contrast(1.10)),
+        "vapor" => GradeMatrix.Compose(GradeMatrix.Saturation(1.55), GradeMatrix.Gain(1.12, 0.94, 1.14), GradeMatrix.Contrast(1.06)),
+        "crimson" => GradeMatrix.Compose(GradeMatrix.Saturation(1.22), GradeMatrix.Gain(1.20, 0.90, 0.90), GradeMatrix.Contrast(1.16), GradeMatrix.Brightness(-0.01)),
         _ => GradeMatrix.Identity()
     };
 

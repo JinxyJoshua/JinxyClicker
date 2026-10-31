@@ -55,9 +55,9 @@ public class GradeMatrixTests
     }
 
     [Fact]
-    public void NoirDrainsColourToGrey()
+    public void InkDrainsColourToGrey()
     {
-        var (r, g, b) = GradeMatrix.ApplyToColor(GradeLooks.For("noir"), 0.9, 0.2, 0.3);
+        var (r, g, b) = GradeMatrix.ApplyToColor(GradeLooks.For("ink"), 0.9, 0.2, 0.3);
         Assert.True(System.Math.Abs(r - g) < 0.02 && System.Math.Abs(g - b) < 0.02);
     }
 
@@ -87,6 +87,6 @@ public class GradeMatrixTests
     {
         float[] id = GradeMatrix.Identity();
         for (int i = 0; i < 25; i++)
-            Assert.Equal(id[i], GradeLooks.Lerp("vivid", 0.0)[i], 4);
+            Assert.Equal(id[i], GradeLooks.Lerp("punch", 0.0)[i], 4);
     }
 }

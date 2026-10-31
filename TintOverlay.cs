@@ -65,14 +65,18 @@ public static class ColorLooks
 {
     public static readonly IReadOnlyList<ColorLook> All = new[]
     {
-        new ColorLook("vivid",     "Vivid",     "A warm, punchy lift.",        "warm", 15, 0),
-        new ColorLook("clarity",   "Clarity",   "Cool and crisp.",             "cool", 13, 0),
-        new ColorLook("cinematic", "Cinematic", "Cool and moody, deep edges.", "cool", 26, 72),
-        new ColorLook("sunset",    "Sunset",    "Golden-hour warmth.",         "warm", 34, 30),
-        new ColorLook("arctic",    "Arctic",    "Cold, clean blues.",          "cool", 30, 18),
-        new ColorLook("retro",     "Retro",     "Faded film, warm-purple.",    "dusk", 24, 40),
-        new ColorLook("noir",      "Noir",      "Dark, with heavy edges.",     "dim",  40, 80),
-        new ColorLook("dream",     "Dream",     "Soft purple glow.",           "dusk", 18, 34)
+        new ColorLook("punch",   "Punch",     "Colours cranked all the way up.",        "warm", 90, 0),
+        new ColorLook("crisp",   "Crisp",     "Bright and clean for spotting players.", "cool", 80, 0),
+        new ColorLook("theater", "Theater",   "Moody contrast with a warm tilt.",       "warm", 85, 30),
+        new ColorLook("amber",   "Amber",     "Warm golden-hour glow.",                 "warm", 80, 20),
+        new ColorLook("frost",   "Frost",     "Cool, icy blues.",                       "cool", 80, 12),
+        new ColorLook("faded",   "Faded",     "Washed film with warm light.",           "dusk", 80, 30),
+        new ColorLook("ink",     "Ink",       "Black and white, hard shadows.",         "dim",  90, 40),
+        new ColorLook("haze",    "Haze",      "Soft pastel dream.",                     "dusk", 75, 20),
+        new ColorLook("owl",     "Night Owl", "Lifts the shadows so dark maps read.",   "dim",  85, 0),
+        new ColorLook("toxic",   "Toxic",     "Eerie radioactive green.",               "cool", 85, 25),
+        new ColorLook("vapor",   "Vapor",     "Hot pink and cyan, dialled up.",         "dusk", 90, 20),
+        new ColorLook("crimson", "Crimson",   "Deep red and moody.",                    "warm", 85, 30)
     };
 
     public static ColorLook? ById(string? id) =>
