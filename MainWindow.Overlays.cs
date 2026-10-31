@@ -27,25 +27,31 @@ public partial class MainWindow
     private MouseOverlay? _mouseOverlay;
     private ClockOverlay? _clockOverlay;
     private WatermarkOverlay? _watermarkOverlay;
-    private ScoreOverlay? _scoreOverlay;
 
     private bool _ovFps, _ovSystem, _ovMusic, _ovMouse, _ovClock, _ovWatermark, _ovScore;
     private bool _overlayShowAlways;   // true = over any window, false = only while Roblox is front
     private bool _applyingOverlayShow;
     private string _watermarkText = "Jinxy";
-    private ScoreLeague _scoreLeague = ScoreLeague.NFL;
-    private string? _scoreGameId;        // the ESPN event id we are following
-    private GameInfo? _scoreGame;        // its latest state, refreshed on a timer
-    private List<GameInfo> _scoreGames = new();
+    private ScoreLeague _scoreLeague = ScoreLeague.CollegeFootball;
+    private readonly List<string> _scoreFollowed = new();                 // event ids shown on screen
+    private readonly Dictionary<string, ScoreOverlay> _scoreOverlays = new();
+    private readonly Dictionary<string, (double X, double Y)> _scorePos = new(); // dragged positions (session)
+    private List<GameInfo> _scoreGames = new();                           // latest fetched list
+    private bool _scoreLiveOnly;                                          // filter: only in-progress games
+    private readonly HashSet<string> _favorites = new();                 // favorite team abbreviations
+    private static readonly SolidColorBrush FavYellow = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xDD, 0x4A)));
+
+    private static SolidColorBrush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
     private DispatcherTimer? _scoreTimer;
     private bool _scoreLoading;
-    private bool _applyingScoreUi;       // suppresses combo handlers while we populate them
+    private bool _applyingScoreUi;       // suppresses control handlers while we populate them
 
     private static readonly Color OvGold = Color.FromRgb(0xFF, 0xD1, 0x6A);
 
     private bool _overlaysBuilt;
     private bool _syncingOverlayToggles;
     private bool _overlayMoveMode;
+    private bool _scoreMoveMode;   // the Scoreboard's own move mode, independent of the other overlays
     private bool _cpsMovedHooked;
 
     // Dragged positions; null means "use the default corner".
@@ -78,7 +84,6 @@ public partial class MainWindow
         ("system",     "", "System",     "CPU 18%",     OvBlue,   false),
         ("mouse",      "", "Mouse",      "L M R 4 5",   OvBlue,   false),
         ("clock",      "", "Clock",      "9:41",        OvPurple, false),
-        ("score",      "", "Score",      "SF 24 · 20 SEA",       OvGold,   false),
         ("watermark",  "", "Watermark",  "Your name",   OvPurple, false),
         ("keystrokes", "", "Keystrokes", "W A S D",     OvRed,    true),
         ("music",      "", "Music",      "Now playing", OvPurple, false),
@@ -96,10 +101,11 @@ public partial class MainWindow
 
     private async void NavScore_Click(object sender, RoutedEventArgs e)
     {
-        ShowPage(NavScore, PageScore, "Scoreboard", "Follow a live game's score on screen");
+        ShowPage(NavScore, PageScore, "Scoreboard", "Follow live game scores on screen");
         PopulateLeagueCombo();
         SyncScoreShowToggle();
-        if (_scoreGames.Count == 0) await LoadScoreGamesAsync(_scoreGameId);
+        if (ScoreLiveOnlyCheck != null) ScoreLiveOnlyCheck.IsChecked = _scoreLiveOnly;
+        if (_scoreGames.Count == 0) await LoadScoreGamesAsync();
         else BuildScoreList();
     }
 
@@ -115,14 +121,23 @@ public partial class MainWindow
         _overlayShowAlways = s.OverlayShowAlways;
         _watermarkText = string.IsNullOrWhiteSpace(s.OverlayWatermarkText) ? "Jinxy" : s.OverlayWatermarkText;
         _scoreLeague = ParseLeague(s.OverlayScoreLeague);
-        _scoreGameId = string.IsNullOrWhiteSpace(s.OverlayScoreGameId) ? null : s.OverlayScoreGameId;
+        _scoreLiveOnly = s.OverlayScoreLiveOnly;
+        _favorites.Clear();
+        if (!string.IsNullOrWhiteSpace(s.OverlayScoreFavorites))
+            foreach (string t in s.OverlayScoreFavorites.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                _favorites.Add(t.ToUpperInvariant());
+        _scoreFollowed.Clear();
+        if (!string.IsNullOrWhiteSpace(s.OverlayScoreGameId))
+            foreach (string id in s.OverlayScoreGameId.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                if (!_scoreFollowed.Contains(id)) _scoreFollowed.Add(id);
 
         _applyingScoreUi = true;
         PopulateLeagueCombo();
+        if (ScoreLiveOnlyCheck != null) ScoreLiveOnlyCheck.IsChecked = _scoreLiveOnly;
         _applyingScoreUi = false;
 
-        // Re-follow the saved game (loads today's list, then re-selects it).
-        if (_scoreGameId != null) _ = RestoreScoreSelectionAsync();
+        // Re-follow the saved games (loads today's list, then re-attaches overlays).
+        if (_scoreFollowed.Count > 0) _ = RestoreScoreSelectionAsync();
 
         _applyingOverlayShow = true;
         if (OverlayShowEverywhere != null) OverlayShowEverywhere.IsChecked = _overlayShowAlways;
@@ -188,7 +203,6 @@ public partial class MainWindow
         AddReplica("server", PreviewPill("", "EU West", OvBlue), draggable: false);
         AddReplica("music", PreviewPill("", "Now playing", OvPurple), true);
         AddReplica("clock", PreviewPill("", "9:41", OvPurple), true);
-        AddReplica("score", PreviewPill("", "0 : 0", OvGold), true);
         AddReplica("keystrokes", PreviewKeys(), true);
         AddReplica("mouse", PreviewPill("", "L M R 4 5", OvBlue), true);
         AddReplica("watermark", PreviewPill("", _watermarkText, OvPurple), true);
@@ -604,7 +618,6 @@ public partial class MainWindow
             case "mouse": _ovMouse = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "clock": _ovClock = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "watermark": _ovWatermark = on; ApplyInfoOverlays(); SaveAppSettings(); break;
-            case "score": _ovScore = on; SyncScoreShowToggle(); ApplyInfoOverlays(); SaveAppSettings(); break;
             case "music": _ovMusic = on; ApplyInfoOverlays(); SaveAppSettings(); break;
         }
 
@@ -624,7 +637,6 @@ public partial class MainWindow
         SetToggle("mouse", _ovMouse);
         SetToggle("clock", _ovClock);
         SetToggle("watermark", _ovWatermark);
-        SetToggle("score", _ovScore);
         SetToggle("music", _ovMusic);
         _syncingOverlayToggles = false;
         RefreshPreview();
@@ -754,19 +766,37 @@ public partial class MainWindow
         }
         else _watermarkOverlay?.Hide();
 
+        // Score: one overlay per followed game. Close any whose game is no longer followed.
+        foreach (string id in new List<string>(_scoreOverlays.Keys))
+            if (!_ovScore || !_scoreFollowed.Contains(id))
+            {
+                try { _scoreOverlays[id].Hide(); _scoreOverlays[id].Close(); } catch { }
+                _scoreOverlays.Remove(id);
+            }
+
+        // The live scoreboards stay up whenever Score is on, not only over Roblox, so
+        // clicking a game opens its bug right away even while you're in the app.
         if (_ovScore)
         {
-            if (_scoreOverlay == null) { _scoreOverlay = new ScoreOverlay(); _scoreOverlay.Moved += SaveScorePos; }
-            _scoreOverlay.StreamerMode = streamer;
-            if (_scoreGame is { } sg) _scoreOverlay.SetGame(sg);
-            else _scoreOverlay.SetMessage(_scoreLoading ? "Loading score…" : "Pick a game on the Scoreboard tab");
-            _scoreOverlay.SetMoveMode(_overlayMoveMode);
-            // The live scoreboard stays up whenever it's on, not only over Roblox, so
-            // clicking a game opens it right away even while you're in the app.
-            if (!_scoreOverlay.IsVisible) _scoreOverlay.Show();
-            if (!_overlayMoveMode) PlacePill(_scoreOverlay, _scoreX, _scoreY, _scoreOverlay.PlaceDefault);
+            for (int i = 0; i < _scoreFollowed.Count; i++)
+            {
+                string id = _scoreFollowed[i];
+                if (!_scoreOverlays.TryGetValue(id, out ScoreOverlay? ov))
+                {
+                    ov = new ScoreOverlay();
+                    string gid = id;
+                    ov.Moved += () => SaveScoreOverlayPos(gid);
+                    _scoreOverlays[id] = ov;
+                }
+                ov.StreamerMode = streamer;
+                GameInfo? g = _scoreGames.Find(x => x.Id == id);
+                if (g != null) ov.SetGame(g, _favorites.Contains(g.AwayAbbr), _favorites.Contains(g.HomeAbbr));
+                else ov.SetMessage(_scoreLoading ? "Loading score…" : "Game not on today");
+                ov.SetMoveMode(_scoreMoveMode);
+                if (!ov.IsVisible) ov.Show();
+                if (!_scoreMoveMode) PlaceScoreOverlay(ov, id, i);
+            }
         }
-        else _scoreOverlay?.Hide();
 
         if (_ovMusic)
         {
@@ -820,7 +850,26 @@ public partial class MainWindow
     private void SaveMousePos() { if (_mouseOverlay != null) { _mouseX = _mouseOverlay.Left; _mouseY = _mouseOverlay.Top; SaveAppSettings(); } }
     private void SaveClockPos() { if (_clockOverlay != null) { _clockX = _clockOverlay.Left; _clockY = _clockOverlay.Top; SaveAppSettings(); } }
     private void SaveWmPos() { if (_watermarkOverlay != null) { _wmX = _watermarkOverlay.Left; _wmY = _watermarkOverlay.Top; SaveAppSettings(); } }
-    private void SaveScorePos() { if (_scoreOverlay != null) { _scoreX = _scoreOverlay.Left; _scoreY = _scoreOverlay.Top; SaveAppSettings(); } }
+    // A dragged score bug remembers its spot for the session (games change daily, so
+    // positions aren't persisted); the first one also seeds the saved stack anchor.
+    private void SaveScoreOverlayPos(string id)
+    {
+        if (!_scoreOverlays.TryGetValue(id, out ScoreOverlay? ov)) return;
+        _scorePos[id] = (ov.Left, ov.Top);
+        if (_scoreFollowed.Count > 0 && _scoreFollowed[0] == id) { _scoreX = ov.Left; _scoreY = ov.Top; SaveAppSettings(); }
+    }
+
+    private void PlaceScoreOverlay(ScoreOverlay ov, string id, int index)
+    {
+        if (_scorePos.TryGetValue(id, out (double X, double Y) p)) { ov.Left = p.X; ov.Top = p.Y; return; }
+
+        // Default: stack from the saved anchor (or top-centre), one bug under another.
+        ov.UpdateLayout();
+        double baseX = _scoreX ?? SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - ov.ActualWidth) / 2;
+        double baseY = _scoreY ?? SystemParameters.WorkArea.Top + 120;
+        ov.Left = baseX;
+        ov.Top = baseY + index * (ov.ActualHeight + 8);
+    }
 
     // ---- Scoreboard tab: follow a real game's live score ----
 
@@ -842,14 +891,26 @@ public partial class MainWindow
         if (_applyingScoreUi) return;
         if (ScoreLeagueCombo?.SelectedItem is ComboBoxItem { Tag: ScoreLeague l }) _scoreLeague = l;
         SaveAppSettings();
-        await LoadScoreGamesAsync(null);
+        await LoadScoreGamesAsync();
     }
 
-    private async void ScoreRefresh_Click(object sender, RoutedEventArgs e) => await LoadScoreGamesAsync(_scoreGameId);
+    private async void ScoreRefresh_Click(object sender, RoutedEventArgs e) => await LoadScoreGamesAsync();
 
-    /// <summary>Fetches today's games (Top 25 for college football, else all), fills the
-    /// clickable list, and keeps following the selected game if it is still on.</summary>
-    private async System.Threading.Tasks.Task LoadScoreGamesAsync(string? selectId)
+    private void ScoreLiveOnly_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_applyingScoreUi) return;
+        _scoreLiveOnly = ScoreLiveOnlyCheck?.IsChecked == true;
+        BuildScoreList();
+        int shown = VisibleScoreGames().Count;
+        SetScoreStatus(_scoreLiveOnly
+            ? (shown == 0 ? "No games are live right now." : $"{shown} live now — click to add.")
+            : $"{_scoreGames.Count} game{(_scoreGames.Count == 1 ? "" : "s")} — click to add.");
+        SaveAppSettings();
+    }
+
+    /// <summary>Fetches today's games (Top 25 for college football, else all) and fills the
+    /// clickable list; every followed game keeps its own overlay.</summary>
+    private async System.Threading.Tasks.Task LoadScoreGamesAsync()
     {
         _scoreLoading = true;
         SetScoreStatus("Loading games…");
@@ -863,6 +924,7 @@ public partial class MainWindow
         if (ScoreRefreshButton != null) ScoreRefreshButton.IsEnabled = true;
         _scoreGames = games;
         BuildScoreList();
+        ApplyInfoOverlays();   // refresh any followed bugs with the new data
 
         if (games.Count == 0)
         {
@@ -871,19 +933,31 @@ public partial class MainWindow
                 : "No games found today for this league.");
             return;
         }
-        SetScoreStatus($"{games.Count} game{(games.Count == 1 ? "" : "s")} — click one to show it.");
-
-        string? target = selectId ?? _scoreGameId;
-        GameInfo? still = target == null ? null : games.Find(g => g.Id == target);
-        if (still != null) { _scoreGame = still; _scoreOverlay?.SetGame(still); HighlightScoreRow(); }
+        int shown = VisibleScoreGames().Count;
+        SetScoreStatus($"{shown} game{(shown == 1 ? "" : "s")} — click to add to your screen.");
     }
+
+    /// <summary>The games shown in the list: live-only filter applied, favourite-team
+    /// games pulled to the top (order preserved within each group).</summary>
+    private List<GameInfo> VisibleScoreGames()
+    {
+        List<GameInfo> src = _scoreLiveOnly ? _scoreGames.FindAll(g => g.InProgress) : _scoreGames;
+        if (_favorites.Count == 0) return src;
+        var fav = new List<GameInfo>();
+        var rest = new List<GameInfo>();
+        foreach (GameInfo g in src) (HasFavorite(g) ? fav : rest).Add(g);
+        fav.AddRange(rest);
+        return fav;
+    }
+
+    private bool HasFavorite(GameInfo g) => _favorites.Contains(g.AwayAbbr) || _favorites.Contains(g.HomeAbbr);
 
     /// <summary>Builds the clickable game rows: rank, team logos, abbreviations, score, status.</summary>
     private void BuildScoreList()
     {
         if (ScoreGameList == null) return;
         ScoreGameList.Children.Clear();
-        foreach (GameInfo g in _scoreGames)
+        foreach (GameInfo g in VisibleScoreGames())
             ScoreGameList.Children.Add(BuildScoreRow(g));
         HighlightScoreRow();
     }
@@ -891,14 +965,16 @@ public partial class MainWindow
     private Border BuildScoreRow(GameInfo g)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(FavStar(g.AwayAbbr));
         row.Children.Add(RankBadge(g.AwayRank));
         row.Children.Add(RowLogo(g.AwayLogo));
-        row.Children.Add(RowText(g.AwayAbbr, 46, true));
+        row.Children.Add(TeamText(g.AwayAbbr));
         row.Children.Add(RowText(g.State == "pre" ? "" : g.AwayScore.ToString(), 28, true));
         row.Children.Add(RowText("@", 18, false));
+        row.Children.Add(FavStar(g.HomeAbbr));
         row.Children.Add(RankBadge(g.HomeRank));
         row.Children.Add(RowLogo(g.HomeLogo));
-        row.Children.Add(RowText(g.HomeAbbr, 46, true));
+        row.Children.Add(TeamText(g.HomeAbbr));
         row.Children.Add(RowText(g.State == "pre" ? "" : g.HomeScore.ToString(), 28, true));
         row.Children.Add(new TextBlock
         {
@@ -936,6 +1012,40 @@ public partial class MainWindow
         Foreground = bright ? Brush("TextBright") : Brush("TextMuted"), VerticalAlignment = VerticalAlignment.Center
     };
 
+    /// <summary>A team's abbreviation, in yellow when it is a favorite.</summary>
+    private TextBlock TeamText(string abbr) => new()
+    {
+        Text = abbr, Width = 46, FontSize = 13, FontWeight = FontWeights.Bold,
+        Foreground = _favorites.Contains(abbr) ? FavYellow : Brush("TextBright"),
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
+    /// <summary>A star toggle that favorites/unfavorites a team without following the game.</summary>
+    private TextBlock FavStar(string abbr)
+    {
+        bool fav = _favorites.Contains(abbr);
+        var t = new TextBlock
+        {
+            Text = fav ? "★" : "☆",   // ★ filled / ☆ hollow
+            Width = 20, FontSize = 13, TextAlignment = TextAlignment.Center,
+            Foreground = fav ? FavYellow : Brush("TextMuted"), VerticalAlignment = VerticalAlignment.Center,
+            Cursor = System.Windows.Input.Cursors.Hand, ToolTip = (fav ? "Unfavorite " : "Favorite ") + abbr
+        };
+        t.MouseLeftButtonUp += (_, e) => { e.Handled = true; ToggleFavorite(abbr); };
+        return t;
+    }
+
+    /// <summary>Toggles a favorite team: re-sorts the list (favorites first) and recolours.</summary>
+    private void ToggleFavorite(string abbr)
+    {
+        if (string.IsNullOrWhiteSpace(abbr)) return;
+        abbr = abbr.ToUpperInvariant();
+        if (!_favorites.Remove(abbr)) _favorites.Add(abbr);
+        SaveAppSettings();
+        BuildScoreList();
+        ApplyInfoOverlays();   // recolour any open bugs
+    }
+
     /// <summary>A small right-aligned rank number before a team, blank when unranked.</summary>
     private TextBlock RankBadge(int rank) => new()
     {
@@ -951,40 +1061,47 @@ public partial class MainWindow
         foreach (object child in ScoreGameList.Children)
             if (child is Border { Tag: string id } b)
             {
-                bool on = id == _scoreGameId;
+                bool on = _scoreFollowed.Contains(id);
                 b.BorderBrush = on ? Brush("Accent") : Brush("Outline");
                 b.BorderThickness = new Thickness(on ? 2 : 1);
             }
     }
 
-    /// <summary>Clicking a game turns the score overlay on and follows that game.</summary>
+    /// <summary>Clicking a game toggles its bug — adds an overlay for it, or removes it if
+    /// it was already on. Score is on whenever at least one game is followed.</summary>
     private void OnScoreRowClick(string id)
     {
-        _ovScore = true;
-        SetToggle("score", true);
-        SyncScoreShowToggle();
-        SelectScoreGame(id);
-        ApplyInfoOverlays();
-    }
+        if (_scoreFollowed.Contains(id)) { _scoreFollowed.Remove(id); _scorePos.Remove(id); }
+        else _scoreFollowed.Add(id);
 
-    private void SelectScoreGame(string id)
-    {
-        _scoreGameId = id;
-        _scoreGame = _scoreGames.Find(g => g.Id == id);
-        if (_scoreGame is { } g) { _scoreOverlay?.SetGame(g); SetScoreStatus("Showing: " + g.ShortName); }
+        _ovScore = _scoreFollowed.Count > 0;
+        SyncScoreShowToggle();
         HighlightScoreRow();
         EnsureScoreTimer();
+        ApplyInfoOverlays();
         RefreshPreview();
         SaveAppSettings();
+
+        GameInfo? g = _scoreGames.Find(x => x.Id == id);
+        SetScoreStatus(_scoreFollowed.Count == 0
+            ? "No games on screen — click one to add it."
+            : $"Showing {_scoreFollowed.Count} game{(_scoreFollowed.Count == 1 ? "" : "s")}" + (g != null ? "  ·  " + g.ShortName : ""));
     }
 
     private void ScoreShow_Changed(object sender, RoutedEventArgs e)
     {
         _ovScore = ScoreShowCheck?.IsChecked == true;
-        SetToggle("score", _ovScore);
         ApplyInfoOverlays();
         RefreshPreview();
         SaveAppSettings();
+    }
+
+    /// <summary>Lets the bugs be dragged on screen (shared overlay move mode).</summary>
+    private void ScoreMove_Click(object sender, RoutedEventArgs e)
+    {
+        _scoreMoveMode = !_scoreMoveMode;
+        if (ScoreMoveButton != null) ScoreMoveButton.Content = _scoreMoveMode ? "Done moving" : "Move on screen";
+        UpdateInfoOverlays();
     }
 
     private void SyncScoreShowToggle()
@@ -1000,7 +1117,7 @@ public partial class MainWindow
         _scoreTimer.Start();
     }
 
-    /// <summary>Re-reads the list so both the overlay and the on-screen list stay live.</summary>
+    /// <summary>Re-reads the list so the list and every followed bug stay live.</summary>
     private async System.Threading.Tasks.Task RefreshScoreAsync()
     {
         List<GameInfo> games = _scoreLeague == ScoreLeague.CollegeFootball
@@ -1009,14 +1126,10 @@ public partial class MainWindow
         if (games.Count == 0) return;
         _scoreGames = games;
         BuildScoreList();
-        if (_scoreGameId != null)
-        {
-            GameInfo? g = games.Find(x => x.Id == _scoreGameId);
-            if (g != null) { _scoreGame = g; _scoreOverlay?.SetGame(g); }
-        }
+        ApplyInfoOverlays();   // push fresh scores into every open bug
     }
 
-    private async System.Threading.Tasks.Task RestoreScoreSelectionAsync() => await LoadScoreGamesAsync(_scoreGameId);
+    private async System.Threading.Tasks.Task RestoreScoreSelectionAsync() => await LoadScoreGamesAsync();
 
     private void SetScoreStatus(string text) { if (ScoreStatusText != null) ScoreStatusText.Text = text; }
 
@@ -1090,6 +1203,9 @@ public partial class MainWindow
         try { _mouseOverlay?.Close(); } catch { }
         try { _clockOverlay?.Close(); } catch { }
         try { _watermarkOverlay?.Close(); } catch { }
-        try { _scoreOverlay?.Close(); } catch { }
+        foreach (ScoreOverlay ov in _scoreOverlays.Values)
+            try { ov.Close(); } catch { }
+        _scoreOverlays.Clear();
+        _scoreTimer?.Stop();
     }
 }

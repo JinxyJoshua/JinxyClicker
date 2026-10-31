@@ -316,8 +316,10 @@ public sealed class AppSettings
     /// <summary>Score overlay: follows a real game's live score (ESPN). League name and
     /// the followed game's id; empty id means nothing is being followed yet.</summary>
     public bool OverlayScore { get; set; }
-    public string OverlayScoreLeague { get; set; } = "NFL";
-    public string OverlayScoreGameId { get; set; } = "";
+    public string OverlayScoreLeague { get; set; } = "CollegeFootball";
+    public string OverlayScoreGameId { get; set; } = "";   // CSV of followed ESPN event ids
+    public bool OverlayScoreLiveOnly { get; set; }
+    public string OverlayScoreFavorites { get; set; } = "";   // CSV of favorite team abbreviations
 
     /// <summary>True = overlays show over any window; false = only while Roblox is in front.</summary>
     public bool OverlayShowAlways { get; set; }

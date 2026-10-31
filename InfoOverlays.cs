@@ -501,16 +501,22 @@ public sealed class ScoreOverlay : PillOverlayBase
         Body.Children.Add(_message);
     }
 
-    /// <summary>Shows a live game. Final games read "FINAL"; others show the clock/kickoff.</summary>
-    public void SetGame(GameInfo g)
+    private static readonly SolidColorBrush FavBrush = MakeFrozen(Color.FromRgb(0xFF, 0xDD, 0x4A));
+    private static SolidColorBrush MakeFrozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
+
+    /// <summary>Shows a live game. Final games read "FINAL"; others show the clock/kickoff.
+    /// A favorite team's abbreviation is drawn in yellow.</summary>
+    public void SetGame(GameInfo g, bool awayFav = false, bool homeFav = false)
     {
         _awayAbbr.Text = Short(g.AwayAbbr);
+        _awayAbbr.Foreground = awayFav ? FavBrush : Brushes.White;
         _awayRank.Text = Rank(g.AwayRank);
         _awayLogo.Source = LoadLogo(g.AwayLogo);
         _awayScore.Text = g.AwayScore.ToString();
         _awayPoss.Visibility = g.AwayHasBall ? Visibility.Visible : Visibility.Collapsed;
 
         _homeAbbr.Text = Short(g.HomeAbbr);
+        _homeAbbr.Foreground = homeFav ? FavBrush : Brushes.White;
         _homeRank.Text = Rank(g.HomeRank);
         _homeLogo.Source = LoadLogo(g.HomeLogo);
         _homeScore.Text = g.HomeScore.ToString();
