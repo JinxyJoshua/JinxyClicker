@@ -336,7 +336,7 @@ public partial class MainWindow
 
         ShowRewardResult(reward, newUnlock);
         RefreshRewardsHeader();
-        BuildCollection();
+        BuildCollection(newUnlock ? reward.Id : null);   // pulse the chip that just unlocked
     }
 
     private void GrantReward(Reward reward)
@@ -594,7 +594,7 @@ public partial class MainWindow
         }
     }
 
-    private void BuildCollection()
+    private void BuildCollection(string? pulseId = null)
     {
         if (CollectionPanel == null) return;
         CollectionPanel.Children.Clear();
@@ -605,11 +605,12 @@ public partial class MainWindow
             bool equipped = have && (_equippedCursor == reward.Id || _equippedWallpaper == reward.Id);
             Color rc = SignatureColor(reward);
 
+            var restBorder = new SolidColorBrush(equipped ? rc : have ? Color.FromArgb(0x66, rc.R, rc.G, rc.B) : Color.FromArgb(0x44, 0xFF, 0xFF, 0xFF));
             var chip = new Border
             {
                 Width = 150, Height = 58, CornerRadius = new CornerRadius(8),
                 Background = Brush("Panel2"), Margin = new Thickness(0, 0, 10, 10),
-                BorderBrush = new SolidColorBrush(equipped ? rc : have ? Color.FromArgb(0x66, rc.R, rc.G, rc.B) : Color.FromArgb(0x44, 0xFF, 0xFF, 0xFF)),
+                BorderBrush = restBorder,
                 BorderThickness = new Thickness(equipped ? 2 : 1),
                 Padding = new Thickness(10, 8, 10, 8),
                 Opacity = have ? 1.0 : 0.45,
@@ -627,6 +628,36 @@ public partial class MainWindow
             chip.Child = sp;
             if (have) { string id = reward.Id; chip.MouseLeftButtonUp += (_, _) => EquipCosmetic(id); }
             CollectionPanel.Children.Add(chip);
+
+            if (reward.Id == pulseId) PulseChip(chip, restBorder, rc);
         }
+    }
+
+    /// <summary>
+    /// A gentle breath on a chip that just unlocked: a couple of scale pulses
+    /// and a one-shot border flash in the cosmetic's colour.
+    /// </summary>
+    private static void PulseChip(Border chip, SolidColorBrush border, Color color)
+    {
+        chip.RenderTransformOrigin = new Point(0.5, 0.5);
+        var scale = new ScaleTransform(1, 1);
+        chip.RenderTransform = scale;
+
+        var pulse = new DoubleAnimation(1.0, 1.06, TimeSpan.FromMilliseconds(280))
+        {
+            AutoReverse = true,
+            RepeatBehavior = new RepeatBehavior(2),
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
+
+        // Flash the border bright, then settle back to its resting colour.
+        var flash = new ColorAnimation(color, Color.FromArgb(border.Color.A, border.Color.R, border.Color.G, border.Color.B),
+            TimeSpan.FromMilliseconds(900))
+        {
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseOut }
+        };
+        border.BeginAnimation(SolidColorBrush.ColorProperty, flash);
     }
 }
