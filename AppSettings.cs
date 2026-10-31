@@ -313,6 +313,9 @@ public sealed class AppSettings
     public bool OverlayWatermark { get; set; }
     public string OverlayWatermarkText { get; set; } = "Jinxy";
 
+    /// <summary>True = overlays show over any window; false = only while Roblox is in front.</summary>
+    public bool OverlayShowAlways { get; set; }
+
     /// <summary>Dragged positions for the movable overlays; null means its default corner.</summary>
     public double? OverlayCpsX { get; set; }
     public double? OverlayCpsY { get; set; }

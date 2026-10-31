@@ -2169,6 +2169,7 @@ public partial class MainWindow : Window
             OverlayClock = _ovClock,
             OverlayWatermark = _ovWatermark,
             OverlayWatermarkText = _watermarkText,
+            OverlayShowAlways = _overlayShowAlways,
             OverlayCpsX = _cpsX, OverlayCpsY = _cpsY,
             OverlayFpsX = _fpsX, OverlayFpsY = _fpsY,
             OverlaySystemX = _sysX, OverlaySystemY = _sysY,

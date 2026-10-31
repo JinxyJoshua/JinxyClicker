@@ -2570,17 +2570,20 @@
                                     BorderBrush="{StaticResource Outline}" BorderThickness="1">
                                 <Grid x:Name="OverlayPreviewHost"/>
                             </Border>
-                            <TextBlock Text="Shows over Roblox while it's in front. Never takes clicks."
-                                       Style="{StaticResource CardSubtitle}" Margin="4,10,0,0"/>
-                            <StackPanel Orientation="Horizontal" Margin="2,12,0,0">
-                                <Button x:Name="OverlayMoveButton" Content="Move overlays"
-                                        Style="{StaticResource ChipButton}" Padding="14,7"
-                                        Click="OverlayMove_Click"/>
-                                <TextBlock x:Name="OverlayMoveHint" Visibility="Collapsed"
-                                           Text="Drag each overlay where you want it, then click Done moving."
-                                           Style="{StaticResource CardSubtitle}" VerticalAlignment="Center"
-                                           Margin="12,0,0,0"/>
-                            </StackPanel>
+                            <DockPanel LastChildFill="False" Margin="2,12,0,0">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Show" Style="{StaticResource CardSubtitle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <RadioButton x:Name="OverlayShowRoblox" Content="Only Roblox" Tag="roblox" GroupName="OverlayShow"
+                                                 IsChecked="True" Style="{StaticResource SegmentButton}" MinWidth="112" Checked="OverlayShowMode_Checked"/>
+                                    <RadioButton x:Name="OverlayShowEverywhere" Content="Windows too" Tag="always" GroupName="OverlayShow"
+                                                 Style="{StaticResource SegmentButton}" MinWidth="112" Margin="0" Checked="OverlayShowMode_Checked"/>
+                                </StackPanel>
+                                <Button x:Name="OverlayMoveButton" DockPanel.Dock="Right" Content="Move overlays"
+                                        Style="{StaticResource ChipButton}" Padding="14,7" Click="OverlayMove_Click"/>
+                            </DockPanel>
+                            <TextBlock x:Name="OverlayMoveHint" Visibility="Collapsed"
+                                       Text="Drag each overlay where you want it, then click Done moving."
+                                       Style="{StaticResource CardSubtitle}" Margin="2,8,0,0"/>
                         </StackPanel>
                     </Border>
 

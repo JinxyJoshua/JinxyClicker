@@ -28,6 +28,8 @@ public partial class MainWindow
     private WatermarkOverlay? _watermarkOverlay;
 
     private bool _ovFps, _ovSystem, _ovMusic, _ovMouse, _ovClock, _ovWatermark;
+    private bool _overlayShowAlways;   // true = over any window, false = only while Roblox is front
+    private bool _applyingOverlayShow;
     private string _watermarkText = "Jinxy";
 
     private bool _overlaysBuilt;
@@ -89,7 +91,13 @@ public partial class MainWindow
         _ovMouse = s.OverlayMouse;
         _ovClock = s.OverlayClock;
         _ovWatermark = s.OverlayWatermark;
+        _overlayShowAlways = s.OverlayShowAlways;
         _watermarkText = string.IsNullOrWhiteSpace(s.OverlayWatermarkText) ? "Jinxy" : s.OverlayWatermarkText;
+
+        _applyingOverlayShow = true;
+        if (OverlayShowEverywhere != null) OverlayShowEverywhere.IsChecked = _overlayShowAlways;
+        if (OverlayShowRoblox != null) OverlayShowRoblox.IsChecked = !_overlayShowAlways;
+        _applyingOverlayShow = false;
 
         _cpsX = s.OverlayCpsX; _cpsY = s.OverlayCpsY;
         _fpsX = s.OverlayFpsX; _fpsY = s.OverlayFpsY;
@@ -589,6 +597,16 @@ public partial class MainWindow
         if (_overlayToggles.TryGetValue(key, out CheckBox? cb)) cb.IsChecked = on;
     }
 
+    /// <summary>"Only Roblox" vs "Windows too" — where the overlays are allowed to show.</summary>
+    private void OverlayShowMode_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton { Tag: string tag }) return;
+        _overlayShowAlways = tag == "always";
+        if (_applyingOverlayShow) return;
+        ApplyInfoOverlays();
+        SaveAppSettings();
+    }
+
     // ---- the real pills ----
 
     private void ApplyInfoOverlays()
@@ -615,7 +633,7 @@ public partial class MainWindow
         // Show the overlays while the Overlays page is open (so arranging in the
         // preview lands on the real screen) and in move mode, as well as in-game.
         bool onPage = PageOverlays is { IsVisible: true };
-        bool front = _overlayMoveMode || onPage || RobloxForeground.IsFront();
+        bool front = _overlayMoveMode || onPage || _overlayShowAlways || RobloxForeground.IsFront();
         bool streamer = StreamerModeCheck?.IsChecked == true;
 
         if (_ovFps)
