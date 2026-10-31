@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 namespace JinxyClicker;
@@ -51,37 +52,54 @@ public sealed class ServerOverlay : Window
         SizeToContent = SizeToContent.WidthAndHeight;
         IsHitTestVisible = false;
 
+        // A leading location glyph, then the region, then any detail — one tidy
+        // horizontal pill, in the same glass as the other overlays.
+        var icon = new TextBlock
+        {
+            Text = "",
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            FontSize = 15,
+            Foreground = new SolidColorBrush(Color.FromRgb(0xA7, 0x8B, 0xFA)),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 9, 0)
+        };
+
         _headline = new TextBlock
         {
             Text = "—",
-            FontSize = 20,
-            FontWeight = FontWeights.Black,
+            FontSize = 15,
+            FontWeight = FontWeights.Bold,
             Foreground = Brushes.White,
-            HorizontalAlignment = HorizontalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center
         };
 
         _detail = new TextBlock
         {
             Text = "",
-            FontSize = 11,
-            FontWeight = FontWeights.Bold,
-            Margin = new Thickness(0, 2, 0, 0),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(9, 0, 0, 0),
             Visibility = Visibility.Collapsed,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
             Foreground = Quiet
         };
 
-        var body = new StackPanel();
+        var body = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        body.Children.Add(icon);
         body.Children.Add(_headline);
         body.Children.Add(_detail);
 
         Content = new Border
         {
-            CornerRadius = new CornerRadius(8),
-            Background = new SolidColorBrush(Color.FromArgb(0xD0, 0x10, 0x10, 0x16)),
+            CornerRadius = new CornerRadius(14),
+            Background = new LinearGradientBrush(
+                Color.FromArgb(0xE6, 0x16, 0x16, 0x20),
+                Color.FromArgb(0xE6, 0x0C, 0x0C, 0x12),
+                new Point(0, 0), new Point(0, 1)),
             BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF)),
-            Padding = new Thickness(16, 9, 16, 10),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+            Padding = new Thickness(14, 8, 16, 9),
+            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 20, ShadowDepth = 0, Opacity = 0.5 },
             Child = body
         };
 

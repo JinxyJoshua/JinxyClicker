@@ -690,10 +690,54 @@
         <!-- Card used by the reworked clicker controls. -->
         <Style x:Key="ControlCard" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource Panel}"/>
-            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{StaticResource Divider}"/>
+        </Style>
+
+        <!-- Lyre-style card header vocabulary: an accent icon chip followed by a
+             title and a one-line subtitle. The chip's glyph is set per card (from
+             the app's own verified Segoe MDL2 set); everything else is shared, so
+             every card header reads identically. -->
+        <Style x:Key="CardIconChip" TargetType="Border">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CardIconGlyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CardSubtitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,1,0,0"/>
+        </Style>
+
+        <!-- Slider value readout (big, bright) and the min/max tick labels that sit
+             under a track — the context Lyre shows so a bare slider isn't guesswork. -->
+        <Style x:Key="SliderReadout" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBright}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SliderTick" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
         </Style>
 
         <!-- 10px bold uppercase in a muted blue was too low-contrast to read
@@ -1254,7 +1298,7 @@
                          sliders were set to. These are routinely not the same
                          number, and until now the difference was an 11px hint
                          under a slider showing the larger, wrong one. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="2"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8"
                             BorderThickness="1" BorderBrush="{StaticResource Outline}"
                             Padding="18" Margin="0,0,0,14">
                         <StackPanel>
@@ -1286,7 +1330,7 @@
 
                     <!-- Stats -->
                     <UniformGrid Columns="2" Margin="0,0,0,14">
-                        <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,7,0">
+                        <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,7,0">
                             <StackPanel>
                                 <TextBlock Text="CPU" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                                 <!-- The two tiles measure different things: CPU is
@@ -1300,7 +1344,7 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
-                        <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="7,0,0,0">
+                        <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="7,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="RAM" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
@@ -1329,6 +1373,15 @@
                         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ControlCard}"
                                 Margin="0,0,7,14">
                             <StackPanel>
+                                <DockPanel LastChildFill="False" Margin="0,0,0,14">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE765;"/>
+                                    </Border>
+                                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource CardTitle}" Text="Hotkeys"/>
+                                        <TextBlock Style="{StaticResource CardSubtitle}" Text="Keys that start and stop the clicker"/>
+                                    </StackPanel>
+                                </DockPanel>
                                 <DockPanel LastChildFill="False">
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="KEYBIND" Style="{StaticResource CardLabel}"/>
@@ -1407,18 +1460,28 @@
                         <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ControlCard}"
                                 Margin="7,0,0,14">
                             <StackPanel>
-                                <DockPanel LastChildFill="False">
-                                    <TextBlock Text="CPS" Style="{StaticResource CardLabel}"
-                                               VerticalAlignment="Center"/>
+                                <DockPanel LastChildFill="False" Margin="0,0,0,12">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7C9;"/>
+                                    </Border>
+                                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource CardTitle}" Text="Click rate"/>
+                                        <TextBlock Style="{StaticResource CardSubtitle}" Text="Clicks sent each second"/>
+                                    </StackPanel>
                                     <TextBox x:Name="CpsValueBox" DockPanel.Dock="Right" Text="10.0"
-                                             Style="{StaticResource NumericValueBox}"
+                                             Style="{StaticResource NumericValueBox}" VerticalAlignment="Center"
                                              KeyDown="CpsValueBox_KeyDown"
                                              LostFocus="CpsValueBox_LostFocus"/>
                                 </DockPanel>
                                 <!-- 0 CPS means armed but idle; see ClickLoop. -->
                                 <Slider x:Name="CpsSlider" Minimum="0" Maximum="1000" Value="10"
-                                        Margin="0,10,0,0" TickFrequency="50"
+                                        Margin="0,2,0,0" TickFrequency="50"
                                         ValueChanged="CpsSlider_ValueChanged"/>
+                                <Grid Margin="0,5,0,0">
+                                    <TextBlock Style="{StaticResource SliderTick}" Text="0" HorizontalAlignment="Left"/>
+                                    <TextBlock Style="{StaticResource SliderTick}" Text="500" HorizontalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SliderTick}" Text="1000" HorizontalAlignment="Right"/>
+                                </Grid>
                                 <!-- Clicks actually delivered, not clicks requested. -->
                                 <TextBlock x:Name="MeasuredCpsText" Text="Measured — /s"
                                            Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
@@ -1432,10 +1495,13 @@
                         <Border Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource ControlCard}"
                                 Margin="0,14,0,0">
                             <DockPanel LastChildFill="False">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="BUTTON" Style="{StaticResource CardLabel}"/>
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE962;"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Margin="11,0,0,0">
+                                    <TextBlock Text="Button" Style="{StaticResource CardTitle}"/>
                                     <TextBlock Text="Which button gets clicked — right for blocks, wheel for scroll-bound actions"
-                                               Style="{StaticResource CardHint}"/>
+                                               Style="{StaticResource CardSubtitle}"/>
                                 </StackPanel>
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                             VerticalAlignment="Center">
@@ -1456,10 +1522,13 @@
                         <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ControlCard}"
                                 Margin="0,0,7,0">
                             <DockPanel LastChildFill="False">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="MODE" Style="{StaticResource CardLabel}"/>
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8AB;"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Margin="11,0,0,0">
+                                    <TextBlock Text="Mode" Style="{StaticResource CardTitle}"/>
                                     <TextBlock Text="Hold the key, or press to latch"
-                                               Style="{StaticResource CardHint}"/>
+                                               Style="{StaticResource CardSubtitle}"/>
                                 </StackPanel>
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                             VerticalAlignment="Center">
@@ -1477,32 +1546,47 @@
                         <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ControlCard}"
                                 Margin="7,0,0,0">
                             <StackPanel>
-                                <DockPanel LastChildFill="False">
-                                    <TextBlock Text="DUTY CYCLE" Style="{StaticResource CardLabel}"
-                                               VerticalAlignment="Center"/>
+                                <DockPanel LastChildFill="False" Margin="0,0,0,12">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE916;"/>
+                                    </Border>
+                                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource CardTitle}" Text="Duty cycle"/>
+                                        <TextBlock Style="{StaticResource CardSubtitle}" Text="How long each click is held"/>
+                                    </StackPanel>
                                     <!-- Declared before the box so it docks furthest right. -->
                                     <TextBlock Text="%" DockPanel.Dock="Right" Margin="4,0,0,0"
                                                Foreground="{StaticResource Accent}"
                                                FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
                                     <TextBox x:Name="CdcValueBox" DockPanel.Dock="Right" Text="67.0"
-                                             Style="{StaticResource NumericValueBox}"
+                                             Style="{StaticResource NumericValueBox}" VerticalAlignment="Center"
                                              KeyDown="CdcValueBox_KeyDown"
                                              LostFocus="CdcValueBox_LostFocus"/>
                                 </DockPanel>
                                 <Slider x:Name="CdcSlider" Minimum="0" Maximum="100" Value="67"
-                                        Margin="0,10,0,0" TickFrequency="10"
+                                        Margin="0,2,0,0" TickFrequency="10"
                                         ValueChanged="CdcSlider_ValueChanged"/>
-                                <TextBlock Text="How long each click is held down. Higher holds it longer"
-                                           Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
+                                <Grid Margin="0,5,0,0">
+                                    <TextBlock Style="{StaticResource SliderTick}" Text="Tap" HorizontalAlignment="Left"/>
+                                    <TextBlock Style="{StaticResource SliderTick}" Text="50%" HorizontalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SliderTick}" Text="Held" HorizontalAlignment="Right"/>
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </Grid>
 
                     <!-- Precision -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="PRECISION" Foreground="{StaticResource TextMuted}"
-                                       FontSize="10" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Precision"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Fine-tune how the click stream behaves"/>
+                                </StackPanel>
+                            </DockPanel>
 
                             <Grid Margin="0,7">
                                 <StackPanel>
@@ -1583,16 +1667,20 @@
                 <StackPanel x:Name="PageShake" Visibility="Collapsed">
 
                     <!-- Enable + what it is -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <Grid>
                             <StackPanel Margin="0,0,54,0">
-                                <TextBlock Text="SHAKY TRACKING" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold"/>
-                                <TextBlock x:Name="ShakeStatusText"
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xEA80;"/>
+                                    </Border>
+                                    <TextBlock Text="Shaky tracking" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock x:Name="ShakeStatusText" Margin="0,8,0,0"
                                            Text="Nudges your aim a little while clicking, like a hand that never sits perfectly still. Only shakes when you start with the AUTOCLICKER + SHAKE hotkey — the plain clicker key never shakes."
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
-                                           TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                           TextWrapping="Wrap"/>
                             </StackPanel>
                             <CheckBox x:Name="ShakyTracking" HorizontalAlignment="Right" VerticalAlignment="Top"
                                       Margin="0,1,0,0"
@@ -1607,12 +1695,19 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Range + speed + smoothness -->
-                        <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="2"
+                        <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="8"
                                 BorderThickness="1" BorderBrush="{StaticResource Outline}"
                                 Padding="18" Margin="0,0,7,0">
                             <StackPanel>
-                                <TextBlock Text="RANGE &amp; SPEED" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE916;"/>
+                                    </Border>
+                                    <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource CardTitle}" Text="Range &amp; speed"/>
+                                        <TextBlock Style="{StaticResource CardSubtitle}" Text="How far, how fast, how smooth the nudge moves"/>
+                                    </StackPanel>
+                                </StackPanel>
 
                                 <Grid Margin="0,4,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
@@ -1664,12 +1759,16 @@
                         <!-- Live preview: the dashed box is the range, the faint cross is
                              where the cursor rests, the trail is the path, driven by the
                              exact easing the engine uses. -->
-                        <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="2"
+                        <Border Grid.Column="1" Background="{StaticResource Panel}" CornerRadius="8"
                                 BorderThickness="1" BorderBrush="{StaticResource Outline}"
                                 Padding="18" Margin="7,0,0,0">
                             <StackPanel>
-                                <TextBlock Text="PREVIEW" Foreground="{StaticResource TextMuted}"
-                                           FontSize="10" FontWeight="Bold"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Border Style="{StaticResource CardIconChip}">
+                                        <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE7F4;"/>
+                                    </Border>
+                                    <TextBlock Text="Preview" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                </StackPanel>
                                 <TextBlock Text="A live look at the motion. Dashed box = range, cross = resting point, trail = the path it takes."
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
                                            TextWrapping="Wrap" Margin="0,4,0,10"/>
@@ -1700,7 +1799,7 @@
                      these toggles through _settings like any other clicker control. -->
                 <StackPanel x:Name="PageHitReg" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8"
                             BorderThickness="1" BorderBrush="{StaticResource Outline}"
                             Padding="18" Margin="0,0,0,14">
                         <StackPanel>
@@ -1735,7 +1834,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8"
                             BorderThickness="1" BorderBrush="{StaticResource Outline}"
                             Padding="18" Margin="0,0,0,14">
                         <StackPanel>
@@ -1783,7 +1882,7 @@
 
                     <!-- The web view, plus a fallback shown when the Edge WebView2
                          runtime is missing or fails to start. -->
-                    <Border Grid.Row="1" CornerRadius="2" BorderThickness="1"
+                    <Border Grid.Row="1" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" ClipToBounds="True">
                         <Grid>
                             <wv2:WebView2 x:Name="MusicWeb"/>
@@ -1810,7 +1909,7 @@
                      reversible contract as Gaming Mode. -->
                 <StackPanel x:Name="PageLowerPing" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Accent}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -1840,7 +1939,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="NETWORK TWEAKS" Foreground="{StaticResource TextMuted}"
@@ -1857,7 +1956,7 @@
                 <!-- Remaining pages: same chrome, no components yet. -->
                 <StackPanel x:Name="PagePresets" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="CLICK PRESETS — CPS / CDC"
@@ -1938,7 +2037,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="CUSTOM PRESET" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -1989,7 +2088,7 @@
 
                 <!-- Macros: any key, any rate, as many as you like. -->
                 <StackPanel x:Name="PageMacros" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel VerticalAlignment="Center">
@@ -2010,7 +2109,7 @@
                         </DockPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="RUNNING" Foreground="{StaticResource TextMuted}"
@@ -2034,7 +2133,7 @@
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="NEW MACRO" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -2108,7 +2207,7 @@
 
                 <!-- Auto Switcher: the same engine, two keys, one purpose. -->
                 <StackPanel x:Name="PageSwitcher" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel VerticalAlignment="Center">
@@ -2143,7 +2242,7 @@
                                Foreground="{StaticResource Accent}" FontSize="11"
                                FontWeight="Bold" Margin="0,0,0,14"/>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="NEW SWITCHER" Style="{StaticResource CardLabel}"/>
@@ -2232,7 +2331,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <StackPanel VerticalAlignment="Center">
@@ -2263,7 +2362,7 @@
                      click. Both lists are kept at once; Mode selects which is used. -->
                 <StackPanel x:Name="PageAppTargeting" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MODE" Style="{StaticResource CardLabel}"/>
@@ -2281,7 +2380,7 @@
                             <TextBlock x:Name="AppTargetExplain"
                                        Text="Off — the clicker clicks everywhere, over any app."
                                        Style="{StaticResource CardHint}" TextWrapping="Wrap" Margin="0,12,0,0"/>
-                            <Border Background="{StaticResource Sunken}" CornerRadius="2" Padding="12,9" Margin="0,12,0,0">
+                            <Border Background="{StaticResource Sunken}" CornerRadius="8" Padding="12,9" Margin="0,12,0,0">
                                 <TextBlock x:Name="AppTargetPointer" Text="Under the pointer: —"
                                            Foreground="{StaticResource TextMuted}" FontSize="12" TextWrapping="Wrap"/>
                             </Border>
@@ -2289,7 +2388,7 @@
                     </Border>
 
                     <!-- The list that counts in the current mode. -->
-                    <Border x:Name="AppTargetActiveCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border x:Name="AppTargetActiveCard" Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -2313,7 +2412,7 @@
                     </Border>
 
                     <!-- Apps with a window right now, to tick on with one click. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1"
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -2329,7 +2428,7 @@
 
                 <StackPanel x:Name="PageSocd" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="SOCD CLEANER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -2382,7 +2481,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageKeystrokes" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="KEYSTROKES OVERLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -2429,7 +2528,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageFeedback" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="SEND FEEDBACK" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -2476,7 +2575,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageKitWheel" Visibility="Collapsed">
-                    <Border Background="#1B1630" CornerRadius="2" BorderThickness="1"
+                    <Border Background="#1B1630" CornerRadius="8" BorderThickness="1"
                             BorderBrush="#332A52" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -2489,7 +2588,7 @@
 
                             <!-- The reveal. One panel that swaps between asking and
                                  answering, so the result lands where the eye already is. -->
-                            <Border Background="#171129" CornerRadius="2"
+                            <Border Background="#171129" CornerRadius="8"
                                     BorderThickness="1" BorderBrush="#332A52"
                                     Height="250" Margin="0,14,0,0">
                                 <Grid x:Name="RevealPanel" RenderTransformOrigin="0.5,0.5">
@@ -2610,7 +2709,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="#1B1630" CornerRadius="2" BorderThickness="1"
+                    <Border Background="#1B1630" CornerRadius="8" BorderThickness="1"
                             BorderBrush="#332A52" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
@@ -2640,7 +2739,7 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#221B3A" CornerRadius="2"
+                                        <Border Background="#221B3A" CornerRadius="8"
                                                 BorderThickness="1" BorderBrush="#332A52"
                                                 Padding="2" Margin="0,0,8,8">
                                             <StackPanel Orientation="Horizontal">
@@ -2677,7 +2776,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="#1B1630" CornerRadius="2" BorderThickness="1"
+                    <Border Background="#1B1630" CornerRadius="8" BorderThickness="1"
                             BorderBrush="#332A52" Padding="18">
                         <StackPanel>
                             <!-- The whole row is the control, so the summary and
@@ -3074,7 +3173,7 @@
 
                 <StackPanel x:Name="PageServer" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <StackPanel DockPanel.Dock="Left" MaxWidth="440">
@@ -3098,7 +3197,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="HOW LONG IT SHOWS" Foreground="{StaticResource TextMuted}"
@@ -3124,7 +3223,7 @@
                         </DockPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="CURRENT SERVER" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3149,7 +3248,7 @@
 
                 <StackPanel x:Name="PageTweaks" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="WINDOWS SYSTEM TWEAKS" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3170,7 +3269,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="PERFORMANCE" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3192,7 +3291,7 @@
 
                     <StackPanel x:Name="OptTabBoost">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Accent}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Accent}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="GAMING MODE" Foreground="{StaticResource Accent}"
                                        FontSize="13" FontWeight="Black"/>
@@ -3219,7 +3318,7 @@
 
                     <StackPanel x:Name="OptTabCleaner" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="TEMP FILE CLEANER" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3242,7 +3341,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="MEMORY" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3265,7 +3364,7 @@
 
                     <StackPanel x:Name="OptTabNetwork" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="INPUT" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3287,9 +3386,9 @@
 
                     <!-- Hero: the screen at a glance, with a monitor tile, the live
                          resolution and a row of stat chips built in code. -->
-                    <Border Background="{StaticResource Panel2}" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="22" Margin="0,0,0,16">
+                    <Border Background="{StaticResource Panel2}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="22" Margin="0,0,0,16">
                         <DockPanel LastChildFill="True">
-                            <Border DockPanel.Dock="Left" Width="62" Height="62" CornerRadius="4"
+                            <Border DockPanel.Dock="Left" Width="62" Height="62" CornerRadius="12"
                                     Background="{StaticResource Accent}" Margin="0,0,20,0" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="30"
                                            Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -3312,7 +3411,7 @@
                     </Border>
 
                     <!-- Live link to Roblox, so it's obvious the whole page drives the game. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="14,12" Margin="0,0,0,16">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="14,12" Margin="0,0,0,16">
                         <DockPanel LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left" Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="16"
                                        Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -3329,7 +3428,7 @@
                                Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,0,0,12"/>
 
                     <!-- One-click Roblox presets, built from supported modes in code. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
                         <StackPanel>
                             <TextBlock Text="QUICK PRESETS" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold"/>
                             <TextBlock Text="One tap to a competitive setup, then it applies while Roblox is open. Stretched sizes fill the screen for bigger models and a wider view in BedWars."
@@ -3339,9 +3438,9 @@
                     </Border>
 
                     <!-- Resolution -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
                         <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="3" Background="{StaticResource Panel2}"
+                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8" Background="{StaticResource Panel2}"
                                     Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="16"
                                            Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -3357,9 +3456,9 @@
                     </Border>
 
                     <!-- Refresh rate -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
                         <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="3" Background="{StaticResource Panel2}"
+                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8" Background="{StaticResource Panel2}"
                                     Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="16"
                                            Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -3375,9 +3474,9 @@
                     </Border>
 
                     <!-- Apply toggle -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,0,0,10">
                         <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="3" Background="{StaticResource Panel2}"
+                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8" Background="{StaticResource Panel2}"
                                     Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="16"
                                            Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -3406,7 +3505,7 @@
                                FontSize="11" FontWeight="Bold" TextWrapping="Wrap" Margin="2,10,0,0"/>
 
                     <!-- Roblox context: why you'd change this, and where the rest lives. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="3" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,14,0,0">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="16" Margin="0,14,0,0">
                         <StackPanel>
                             <TextBlock Text="WHY CHANGE THIS FOR ROBLOX?" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold"/>
                             <StackPanel Margin="0,8,0,0">
@@ -3441,7 +3540,7 @@
 
                     <StackPanel x:Name="ModTabPerformance">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -3568,7 +3667,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="FPS LIMIT" Foreground="{StaticResource TextMuted}"
@@ -3608,7 +3707,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="GRAPHICS API" Foreground="{StaticResource TextMuted}"
@@ -3654,7 +3753,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="FPS BOOST FASTFLAGS" Foreground="{StaticResource TextMuted}"
@@ -3688,7 +3787,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="WHAT THIS SETS" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -3720,7 +3819,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="470">
                                 <TextBlock Text="GRAY SKY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
@@ -3734,7 +3833,7 @@
                         </DockPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="ROBLOX PRIORITY" Foreground="{StaticResource TextMuted}"
@@ -3761,7 +3860,7 @@
 
                     <StackPanel x:Name="ModTabFonts" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="CUSTOM FONT" Foreground="{StaticResource TextMuted}"
@@ -3860,7 +3959,7 @@
 
                     <StackPanel x:Name="ModTabMouse" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MOUSE &amp; SENSITIVITY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="Windows pointer speed and acceleration, plus your Roblox in-game sensitivity. Windows settings apply instantly; Roblox sens applies on your next launch."
@@ -3916,7 +4015,7 @@
                                Text="Clip Studio is a Plus feature. Unlock it on the PLUS page to make montages."
                                Foreground="{StaticResource TextSoft}" FontSize="13" Margin="0,0,0,14" TextWrapping="Wrap"/>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MAKE A MONTAGE" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="Stitches your ticked clips into one video with music, in the order shown below. Use the arrows to reorder, Trim to keep just the good seconds, and the checkbox to leave a clip out. Clip your moments in-game with your clip hotkey."
@@ -3971,7 +4070,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="YOUR CLIPS  (montage plays top to bottom)" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
                             <ItemsControl x:Name="ClipList"/>
@@ -3988,7 +4087,7 @@
                     </UniformGrid>
 
                     <StackPanel x:Name="PageHistory_alltime">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="ALL TIME" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4034,7 +4133,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageHistory_session" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="THIS SESSION" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4064,7 +4163,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageHistory_byday" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="BY DAY" Foreground="{StaticResource TextMuted}"
@@ -4120,7 +4219,7 @@
                     </UniformGrid>
 
                     <StackPanel x:Name="PageRecorder_record">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="RECORD" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4164,7 +4263,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageRecorder_replay" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="INSTANT REPLAY" Foreground="{StaticResource TextMuted}"
@@ -4211,7 +4310,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageRecorder_share" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="SHARE A CLIP" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4239,7 +4338,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="LINK" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4271,7 +4370,7 @@
                                Text="Setups are a Plus feature. Unlock them on the PLUS page to save and switch your whole configuration in one click."
                                Foreground="{StaticResource TextSoft}" FontSize="13" Margin="0,0,0,14" TextWrapping="Wrap"/>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel x:Name="SetupsProPanel">
                             <TextBlock Text="PLAY" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then launches straight into your game. Sign into the Roblox app once and it joins automatically."
@@ -4296,7 +4395,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="RecentGamesCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border x:Name="RecentGamesCard" Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="RECENTLY PLAYED" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -4312,7 +4411,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="SetupsListCard" Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                    <Border x:Name="SetupsListCard" Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="YOUR SETUPS" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="A setup remembers your crosshair, click preset, FastFlags, and theme. Save your current look, then switch between setups in one tap."
@@ -4338,7 +4437,7 @@
                     </UniformGrid>
 
                     <StackPanel x:Name="PageTheme_color">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="MODE" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4358,7 +4457,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="ACCENT COLOR" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4430,7 +4529,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageTheme_window" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="WINDOW OPACITY" Foreground="{StaticResource TextMuted}"
@@ -4450,7 +4549,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="WALLPAPER" Foreground="{StaticResource TextMuted}"
@@ -4465,7 +4564,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-                            <Border Background="{StaticResource Panel2}" CornerRadius="2"
+                            <Border Background="{StaticResource Panel2}" CornerRadius="8"
                                     Height="130" Margin="0,12,0,0" ClipToBounds="True">
                                 <Grid>
                                     <TextBlock x:Name="WallpaperEmptyText" Text="No wallpaper set"
@@ -4557,7 +4656,7 @@
 
                 <StackPanel x:Name="PagePro" Visibility="Collapsed">
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="YOUR PLAN" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4567,7 +4666,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="ACTIVATE A KEY" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4594,7 +4693,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="WHAT PLUS UNLOCKS" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4616,7 +4715,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="PageTrainer" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="AIM TRAINER" Foreground="{StaticResource TextMuted}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
@@ -4694,7 +4793,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageSettings_streaming" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="STREAMING" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4740,7 +4839,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageSettings_hotkeys" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <DockPanel LastChildFill="False">
                                 <TextBlock Text="HOTKEYS" Foreground="{StaticResource TextMuted}"
@@ -4781,7 +4880,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PageSettings_recording" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="CLIP FOLDER" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4800,7 +4899,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource Panel}" CornerRadius="2" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <StackPanel>
                             <TextBlock Text="RECORDING FRAMERATE" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
@@ -4881,7 +4980,7 @@
                  Effect forces everything inside it through an intermediate
                  surface, which drops ClearType and softens all the text — so the
                  card itself must not be inside one. -->
-            <Border CornerRadius="3" Background="{StaticResource Panel}" MaxWidth="460" Margin="0,0,0,0"
+            <Border CornerRadius="8" Background="{StaticResource Panel}" MaxWidth="460" Margin="0,0,0,0"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Width="460" Height="{Binding ActualHeight, ElementName=ConfirmCard}">
                 <Border.Effect>
@@ -4889,7 +4988,7 @@
                 </Border.Effect>
             </Border>
 
-            <Border x:Name="ConfirmCard" Background="{StaticResource Panel}" CornerRadius="3" Padding="0"
+            <Border x:Name="ConfirmCard" Background="{StaticResource Panel}" CornerRadius="8" Padding="0"
                     MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center"
                     BorderBrush="{StaticResource Track}" BorderThickness="1">
 

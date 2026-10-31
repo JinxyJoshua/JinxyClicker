@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows.Shapes;
 
 namespace JinxyClicker;
 
@@ -13,7 +17,9 @@ namespace JinxyClicker;
 /// <remarks>
 /// The app is behind the game whenever it matters, so everything it knows about
 /// its own output is invisible at exactly the moment that output is being used.
-/// This puts the two figures worth watching where they can actually be read.
+/// This puts the figures worth watching where they can actually be read: a big
+/// live CPS number and a rolling line graph of the last few seconds, in a dark
+/// glass card that matches the keystrokes overlay.
 ///
 /// It reports what the app <em>sends</em>, never what the game does with it.
 /// Nothing here reads Roblox — no memory, no rendering, no game state at all —
@@ -26,14 +32,27 @@ namespace JinxyClicker;
 /// </remarks>
 public sealed class ClickOverlay : Window
 {
-    private readonly TextBlock _headline;
+    private readonly TextBlock _value;
     private readonly TextBlock _detail;
     private readonly TextBlock _note;
     private readonly Border _frame;
+
+    // The rolling line graph.
+    private const double GraphWidth = 180;
+    private const double GraphHeight = 44;
+    private const int GraphSamples = 56;
+    private readonly Polyline _line;
+    private readonly Polygon _fill;
+    private readonly Queue<double> _history = new();
+
     private bool _streamerMode;
 
-    private static readonly Brush Calm = new SolidColorBrush(Color.FromRgb(0xA7, 0x8B, 0xFA));
-    private static readonly Brush Rough = new SolidColorBrush(Color.FromRgb(0xFF, 0x9C, 0x9C));
+    // Calm accent while clicking is tidy; a warm red when it isn't — the same
+    // two-state colouring the detail line used, now carried by the graph too.
+    private static readonly Color CalmColor = Color.FromRgb(0xA7, 0x8B, 0xFA);
+    private static readonly Color RoughColor = Color.FromRgb(0xFF, 0x6B, 0x74);
+    private static readonly Brush Calm = new SolidColorBrush(CalmColor);
+    private static readonly Brush Rough = new SolidColorBrush(RoughColor);
 
     public ClickOverlay()
     {
@@ -47,20 +66,63 @@ public sealed class ClickOverlay : Window
         SizeToContent = SizeToContent.WidthAndHeight;
         IsHitTestVisible = false;
 
-        _headline = new TextBlock
+        // ---- header: "CPS" label on the left, the live number on the right ----
+        var label = new TextBlock
+        {
+            Text = "CPS",
+            FontSize = 12,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x93, 0xA8)),
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Margin = new Thickness(1, 0, 0, 2)
+        };
+        _value = new TextBlock
         {
             Text = "—",
-            FontSize = 22,
+            FontSize = 27,
             FontWeight = FontWeights.Black,
-            Foreground = Brushes.White
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Bottom
         };
+        var header = new DockPanel { LastChildFill = false, Width = GraphWidth };
+        DockPanel.SetDock(label, Dock.Left);
+        DockPanel.SetDock(_value, Dock.Right);
+        header.Children.Add(label);
+        header.Children.Add(_value);
+
+        // ---- the rolling graph ----
+        _fill = new Polygon { Fill = new SolidColorBrush(Color.FromArgb(0x33, CalmColor.R, CalmColor.G, CalmColor.B)) };
+        _line = new Polyline
+        {
+            Stroke = Calm,
+            StrokeThickness = 2,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round
+        };
+        var graph = new Grid
+        {
+            Width = GraphWidth,
+            Height = GraphHeight,
+            Margin = new Thickness(0, 9, 0, 0),
+            ClipToBounds = true
+        };
+        // A faint baseline, so an empty or flat graph still reads as a graph.
+        graph.Children.Add(new Border
+        {
+            Height = 1,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Background = new SolidColorBrush(Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF))
+        });
+        graph.Children.Add(_fill);
+        graph.Children.Add(_line);
 
         _detail = new TextBlock
         {
             Text = "waiting for the first clicks",
-            FontSize = 11,
-            FontWeight = FontWeights.Bold,
-            Margin = new Thickness(0, 2, 0, 0),
+            FontSize = 10.5,
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(1, 7, 0, 0),
             Foreground = Calm
         };
 
@@ -68,23 +130,30 @@ public sealed class ClickOverlay : Window
         {
             Text = "",
             FontSize = 10,
-            Margin = new Thickness(0, 4, 0, 0),
+            Margin = new Thickness(1, 3, 0, 0),
             Visibility = Visibility.Collapsed,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = GraphWidth,
             Foreground = new SolidColorBrush(Color.FromRgb(0xC9, 0xC2, 0xE0))
         };
 
         var body = new StackPanel();
-        body.Children.Add(_headline);
+        body.Children.Add(header);
+        body.Children.Add(graph);
         body.Children.Add(_detail);
         body.Children.Add(_note);
 
         _frame = new Border
         {
-            CornerRadius = new CornerRadius(8),
-            Background = new SolidColorBrush(Color.FromArgb(0xD0, 0x10, 0x10, 0x16)),
+            CornerRadius = new CornerRadius(12),
+            Background = new LinearGradientBrush(
+                Color.FromArgb(0xE6, 0x16, 0x16, 0x20),
+                Color.FromArgb(0xE6, 0x0C, 0x0C, 0x12),
+                new Point(0, 0), new Point(0, 1)),
             BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF)),
-            Padding = new Thickness(14, 9, 16, 10),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+            Padding = new Thickness(15, 11, 15, 12),
+            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 24, ShadowDepth = 0, Opacity = 0.55 },
             Child = body
         };
 
@@ -114,19 +183,68 @@ public sealed class ClickOverlay : Window
     /// <summary>Puts the current figures on screen.</summary>
     public void Update(TimingStats stats)
     {
-        _headline.Text = OverlayReadout.Headline(stats);
+        bool have = stats.Samples > 0;
+        bool warn = OverlayReadout.IsWarning(stats);
+
+        _value.Text = have
+            ? stats.DeliveredCps.ToString("0.0", CultureInfo.CurrentCulture)
+            : "—";
+
         _detail.Text = OverlayReadout.Detail(stats);
-        _detail.Foreground = OverlayReadout.IsWarning(stats) ? Rough : Calm;
+        _detail.Foreground = warn ? Rough : Calm;
 
         string note = OverlayReadout.RateNote(stats.DeliveredCps);
-
         _note.Text = note;
         _note.Visibility = note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+
+        // Feed the graph and recolour it to match the detail line.
+        if (have)
+        {
+            _history.Enqueue(stats.DeliveredCps);
+            while (_history.Count > GraphSamples) _history.Dequeue();
+        }
+        Color c = warn ? RoughColor : CalmColor;
+        _line.Stroke = new SolidColorBrush(c);
+        _fill.Fill = new SolidColorBrush(Color.FromArgb(0x33, c.R, c.G, c.B));
+        RedrawGraph();
 
         if (!IsVisible) Show();
 
         UpdateLayout();
         PlaceTopRight();
+    }
+
+    // Maps the rolling CPS history onto the graph area. The vertical scale floors
+    // at a small value so a steady low rate draws a calm flat line near the bottom
+    // rather than a jumpy full-height one.
+    private void RedrawGraph()
+    {
+        _line.Points.Clear();
+        _fill.Points.Clear();
+        if (_history.Count < 2) return;
+
+        double max = 10;
+        foreach (double v in _history)
+            if (v > max) max = v;
+
+        const double top = 2, bottom = GraphHeight - 1;
+        double usable = bottom - top;
+
+        var pts = new PointCollection();
+        int n = _history.Count, i = 0;
+        foreach (double v in _history)
+        {
+            double x = i / (double)(n - 1) * GraphWidth;
+            double y = bottom - v / max * usable;
+            pts.Add(new Point(x, y));
+            i++;
+        }
+        _line.Points = pts;
+
+        var fill = new PointCollection { new Point(pts[0].X, bottom) };
+        foreach (Point p in pts) fill.Add(p);
+        fill.Add(new Point(pts[^1].X, bottom));
+        _fill.Points = fill;
     }
 
     /// <summary>
