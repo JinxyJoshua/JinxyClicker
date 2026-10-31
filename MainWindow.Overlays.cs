@@ -77,6 +77,8 @@ public partial class MainWindow
         BuildOverlaysPage();
         RefreshOverlayToggles();
         ApplyKeystrokesPro();
+        StartInfoOverlayTimerForMove();   // show the real overlays while arranging
+        UpdateInfoOverlays();
     }
 
     private void LoadOverlaySettings(AppSettings s)
@@ -610,9 +612,10 @@ public partial class MainWindow
 
     private void UpdateInfoOverlays()
     {
-        // In move mode the pills stay on screen (and where they were dragged) even
-        // when Roblox isn't in front, so they can be arranged against the desktop.
-        bool front = _overlayMoveMode || RobloxForeground.IsFront();
+        // Show the overlays while the Overlays page is open (so arranging in the
+        // preview lands on the real screen) and in move mode, as well as in-game.
+        bool onPage = PageOverlays is { IsVisible: true };
+        bool front = _overlayMoveMode || onPage || RobloxForeground.IsFront();
         bool streamer = StreamerModeCheck?.IsChecked == true;
 
         if (_ovFps)
@@ -712,6 +715,25 @@ public partial class MainWindow
             else _musicOverlay.Hide();
         }
         else _musicOverlay?.Hide();
+
+        // The CPS card has a run-driven life of its own; show it here too while
+        // configuring (page open or move mode) so it can be arranged like the rest.
+        bool clicking = _overlayTimer?.IsEnabled == true;
+        bool configView = _overlayMoveMode || onPage;
+        if (OverlayCheck?.IsChecked == true && configView && !clicking)
+        {
+            _overlay ??= new ClickOverlay { StreamerMode = streamer };
+            if (!_cpsMovedHooked) { _overlay.Moved += SaveCpsPos; _cpsMovedHooked = true; }
+            _overlay.StreamerMode = streamer;
+            _overlay.SetSavedPosition(_cpsX, _cpsY);
+            _overlay.SetMoveMode(_overlayMoveMode);
+            _overlay.Update(ClickDiagnostics.Current());
+        }
+        else if (!clicking && !configView && _overlay is { IsVisible: true })
+        {
+            _overlay.SetMoveMode(false);
+            _overlay.Hide();
+        }
     }
 
     private void SaveFpsPos() { if (_fpsOverlay != null) { _fpsX = _fpsOverlay.Left; _fpsY = _fpsOverlay.Top; SaveAppSettings(); } }
@@ -743,29 +765,11 @@ public partial class MainWindow
     {
         _overlayMoveMode = !_overlayMoveMode;
 
-        if (_overlayMoveMode)
-        {
-            if (OverlayCheck?.IsChecked == true)
-            {
-                _overlay ??= new ClickOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
-                if (!_cpsMovedHooked) { _overlay.Moved += SaveCpsPos; _cpsMovedHooked = true; }
-                _overlay.SetSavedPosition(_cpsX, _cpsY);
-                _overlay.Update(ClickDiagnostics.Current());
-                _overlay.SetMoveMode(true);
-            }
-            _keystrokes?.SetMoveMode(true);   // the keys panel drags with the rest
-            StartInfoOverlayTimerForMove();
-        }
-        else
-        {
-            if (_overlay != null)
-            {
-                _overlay.SetMoveMode(false);
-                if (_overlayTimer?.IsEnabled != true) _overlay.Hide();
-            }
-            _keystrokes?.SetMoveMode(false);
-            ApplyInfoOverlays();
-        }
+        // The keys panel drags with the rest; CPS and the pills are handled in
+        // UpdateInfoOverlays, which runs below.
+        _keystrokes?.SetMoveMode(_overlayMoveMode);
+        if (_overlayMoveMode) StartInfoOverlayTimerForMove();
+        else ApplyInfoOverlays();
 
         UpdateInfoOverlays();
         if (OverlayMoveButton != null)
