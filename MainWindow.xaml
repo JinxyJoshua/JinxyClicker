@@ -4320,6 +4320,8 @@
                             <DockPanel LastChildFill="True" Margin="0,10,0,0">
                                 <Button x:Name="EditorPlayButton" DockPanel.Dock="Left" Content="Play" Width="78" Height="32"
                                         IsEnabled="False" Click="EditorPlay_Click"/>
+                                <Button x:Name="EditorPlayAllButton" DockPanel.Dock="Left" Content="Play all" Width="84" Height="32"
+                                        Margin="8,0,0,0" Click="EditorPlayAll_Click"/>
                                 <TextBlock x:Name="EditorTimeText" DockPanel.Dock="Right" Text="0.0 / 0.0" VerticalAlignment="Center"
                                            Foreground="{StaticResource TextMuted}" FontSize="11" Margin="12,0,0,0"/>
                                 <Slider x:Name="EditorSeek" Minimum="0" Maximum="1" VerticalAlignment="Center" Margin="12,0,0,0"
@@ -4390,6 +4392,24 @@
                             </StackPanel>
 
                             <DockPanel LastChildFill="False" Margin="0,4,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Crossfade" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="Fade each clip into the next instead of a hard cut" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="EditorCrossfadeCheck" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0"/>
+                            </DockPanel>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="Intro title" Foreground="{StaticResource TextSoft}" FontSize="12"/>
+                                    <TextBlock Text="Shown for 2s at the start — blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <TextBox x:Name="EditorTitleBox" DockPanel.Dock="Right" Width="220" MaxLength="40" VerticalAlignment="Center" Style="{StaticResource InputField}"/>
+                            </DockPanel>
+
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <TextBlock DockPanel.Dock="Left" Text="Shape" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                 <RadioButton Content="Landscape" GroupName="EditorShape" Tag="landscape" IsChecked="True" Style="{StaticResource SegmentButton}" MinWidth="120" Checked="EditorShape_Checked"/>
                                 <RadioButton Content="Vertical" GroupName="EditorShape" Tag="vertical" Margin="0" Style="{StaticResource SegmentButton}" MinWidth="120" Checked="EditorShape_Checked"/>

@@ -32,6 +32,7 @@ public partial class MainWindow
     private int _editSel = -1;
     private DispatcherTimer? _editTimer;
     private bool _editScrubbing;
+    private bool _editPlayAll;
     private MontageShape _editShape = MontageShape.Landscape;
     private string? _editMusic;
 
@@ -92,6 +93,7 @@ public partial class MainWindow
     private void EditorPlay_Click(object sender, RoutedEventArgs e)
     {
         if (_editSel < 0) return;
+        _editPlayAll = false;
         EnsureEditTimer();
 
         if (EditorPlayButton.Content as string == "Pause")
@@ -108,6 +110,19 @@ public partial class MainWindow
         EditorPlayButton.Content = "Pause";
     }
 
+    private void EditorPlayAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_edit.Count == 0) return;
+        if (_editSel < 0) SelectEditClip(0);
+        _editPlayAll = true;
+        EnsureEditTimer();
+
+        EditorClip c = _edit[_editSel];
+        EditorPreview.Position = TimeSpan.FromSeconds(c.In);
+        EditorPreview.Play();
+        if (EditorPlayButton != null) EditorPlayButton.Content = "Pause";
+    }
+
     private void EnsureEditTimer()
     {
         if (_editTimer != null) return;
@@ -122,12 +137,24 @@ public partial class MainWindow
         EditorClip c = _edit[_editSel];
         double pos = EditorPreview.Position.TotalSeconds;
 
-        // Stop at the trim's out point.
+        // At the trim's out point: advance to the next clip in play-all, else stop.
         if (EditorPlayButton?.Content as string == "Pause" && pos >= c.Out)
         {
+            if (_editPlayAll && _editSel < _edit.Count - 1)
+            {
+                int next = _editSel + 1;
+                SelectEditClip(next);
+                EditorClip n = _edit[next];
+                EditorPreview.Position = TimeSpan.FromSeconds(n.In);
+                EditorPreview.Play();
+                if (EditorPlayButton != null) EditorPlayButton.Content = "Pause";
+                return;
+            }
+
             EditorPreview.Pause();
             EditorPreview.Position = TimeSpan.FromSeconds(c.In);
             EditorPlayButton.Content = "Play";
+            _editPlayAll = false;
             pos = c.In;
         }
 
@@ -257,7 +284,18 @@ public partial class MainWindow
         foreach (EditorClip c in _edit)
             clips.Add(new MontageClip(c.Path, c.In, c.Out > 0 ? c.Out : null));
 
-        var options = new MontageOptions(_editShape);
+        // Intro title (rendered to a PNG) and crossfade — both run through MontageMaker.
+        string? titlePath = null;
+        string? titleText = EditorTitleBox?.Text?.Trim();
+        if (!string.IsNullOrEmpty(titleText))
+        {
+            int tw = _editShape == MontageShape.Vertical ? 1080 : 1920;
+            int th = _editShape == MontageShape.Vertical ? 1920 : 1080;
+            string tp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"jinxy-title-{DateTime.Now:HHmmssfff}.png");
+            titlePath = TitleCard.Render(titleText, tw, th, AccentColorValue(), tp);
+        }
+        bool crossfade = EditorCrossfadeCheck?.IsChecked == true;
+        var options = new MontageOptions(_editShape, Crossfade: crossfade, TitleImagePath: titlePath, TitleSeconds: 2.0);
 
         SetEditorStatus("Exporting…");
         if (EditorExportButton != null) EditorExportButton.IsEnabled = false;
