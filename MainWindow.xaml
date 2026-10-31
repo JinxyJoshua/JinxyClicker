@@ -4317,17 +4317,29 @@
                                                IsHitTestVisible="False"/>
                                 </Grid>
                             </Border>
-                            <DockPanel LastChildFill="True" Margin="0,10,0,0">
-                                <Button x:Name="EditorPlayButton" DockPanel.Dock="Left" Content="Play" Width="78" Height="32"
-                                        IsEnabled="False" Click="EditorPlay_Click"/>
-                                <Button x:Name="EditorPlayAllButton" DockPanel.Dock="Left" Content="Play all" Width="84" Height="32"
-                                        Margin="8,0,0,0" Click="EditorPlayAll_Click"/>
-                                <TextBlock x:Name="EditorTimeText" DockPanel.Dock="Right" Text="0.0 / 0.0" VerticalAlignment="Center"
-                                           Foreground="{StaticResource TextMuted}" FontSize="11" Margin="12,0,0,0"/>
-                                <Slider x:Name="EditorSeek" Minimum="0" Maximum="1" VerticalAlignment="Center" Margin="12,0,0,0"
-                                        ValueChanged="EditorSeek_Changed"
-                                        Thumb.DragStarted="EditorSeek_DragStarted" Thumb.DragCompleted="EditorSeek_DragCompleted"/>
-                            </DockPanel>
+                            <StackPanel Margin="0,10,0,0">
+                                <DockPanel LastChildFill="True">
+                                    <Button x:Name="EditorPlayButton" DockPanel.Dock="Left" Content="Play" Width="72" Height="32"
+                                            IsEnabled="False" Click="EditorPlay_Click"/>
+                                    <Button x:Name="EditorPlayAllButton" DockPanel.Dock="Left" Content="Play all" Width="80" Height="32"
+                                            Margin="8,0,0,0" Click="EditorPlayAll_Click"/>
+                                    <Button x:Name="EditorSetAButton" DockPanel.Dock="Left" Content="Set A" Width="62" Height="32"
+                                            Margin="16,0,0,0" IsEnabled="False" Click="EditorSetA_Click"/>
+                                    <Button x:Name="EditorSetBButton" DockPanel.Dock="Left" Content="Set B" Width="62" Height="32"
+                                            Margin="8,0,0,0" IsEnabled="False" Click="EditorSetB_Click"/>
+                                    <TextBlock x:Name="EditorTimeText" DockPanel.Dock="Right" Text="0.0 / 0.0" VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextMuted}" FontSize="11" Margin="12,0,0,0"/>
+                                    <TextBlock x:Name="EditorABText" DockPanel.Dock="Right" Text="" VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextSoft}" FontSize="11" Margin="16,0,0,0"/>
+                                </DockPanel>
+                                <Grid Height="30" Margin="0,8,0,0">
+                                    <Slider x:Name="EditorSeek" Minimum="0" Maximum="1" VerticalAlignment="Center"
+                                            ValueChanged="EditorSeek_Changed"
+                                            Thumb.DragStarted="EditorSeek_DragStarted" Thumb.DragCompleted="EditorSeek_DragCompleted"/>
+                                    <Canvas x:Name="EditorMarkerStrip" IsHitTestVisible="False" ClipToBounds="True"
+                                            SizeChanged="EditorMarkerStrip_SizeChanged"/>
+                                </Grid>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -4368,14 +4380,18 @@
                                     <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8B2;"/>
                                 </Border>
                                 <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Style="{StaticResource CardTitle}" Text="Trim"/>
-                                    <TextBlock x:Name="EditorTrimText" Style="{StaticResource CardSubtitle}" Text="Select a clip to trim it"/>
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Cut (A &#x2192; B)"/>
+                                    <TextBlock x:Name="EditorCutText" Style="{StaticResource CardSubtitle}" Text="Select a clip, then mark A and B"/>
                                 </StackPanel>
                             </StackPanel>
-                            <TextBlock Text="START" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,0,0,2"/>
-                            <Slider x:Name="EditorTrimIn" Minimum="0" Maximum="1" ValueChanged="EditorTrimIn_Changed" Thumb.DragStarted="EditorClip_DragStarted" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
-                            <TextBlock Text="END" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="2,10,0,2"/>
-                            <Slider x:Name="EditorTrimOut" Minimum="0" Maximum="1" ValueChanged="EditorTrimOut_Changed" Thumb.DragStarted="EditorClip_DragStarted" Thumb.DragCompleted="EditorTrim_DragCompleted"/>
+                            <WrapPanel Margin="0,2,0,0">
+                                <Button x:Name="EditorDeleteMiddleButton" Content="Delete A &#x2192; B" Click="EditorDeleteMiddle_Click" IsEnabled="False"
+                                        Style="{StaticResource AccentButton}" Height="32" Padding="16,0" Margin="0,0,8,0"/>
+                                <Button x:Name="EditorClearABButton" Content="Clear A/B" Click="EditorClearAB_Click" IsEnabled="False"
+                                        Height="32" Padding="14,0"/>
+                            </WrapPanel>
+                            <TextBlock Text="Scrub the preview, press Set A then Set B to mark two points, then Delete A &#x2192; B to cut out everything between them. Mark from the very start to trim the head, or to the end to trim the tail."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,10,0,0"/>
 
                             <DockPanel Margin="2,16,0,2" LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="SPEED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>

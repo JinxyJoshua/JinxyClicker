@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Rectangle = System.Windows.Shapes.Rectangle;
 using Microsoft.Win32;
 
 namespace JinxyClicker;
@@ -27,12 +28,15 @@ public partial class MainWindow
         public double Out;           // trim end
         public double Speed = 1.0;   // playback speed (2 = twice as fast)
         public string Caption = "";  // burned-in caption, blank for none
+        public double? MarkA;        // A/B cut markers (source seconds), transient
+        public double? MarkB;
         public double Length => Math.Max(0, Out - In);       // trimmed length on the source
         public double PlayLength => Length / (Speed > 0 ? Speed : 1.0);   // length on screen after speed
 
         public EditorClip Clone() => new()
         {
-            Path = Path, Name = Name, Full = Full, In = In, Out = Out, Speed = Speed, Caption = Caption
+            Path = Path, Name = Name, Full = Full, In = In, Out = Out,
+            Speed = Speed, Caption = Caption, MarkA = MarkA, MarkB = MarkB
         };
     }
 
@@ -98,7 +102,7 @@ public partial class MainWindow
         catch { }
 
         if (EditorPlayButton != null) EditorPlayButton.Content = "Play";
-        UpdateTrimControls();
+        UpdateCutControls();
         UpdateClipControls();
         HighlightEditTimeline();
         RefreshEditorButtons();
@@ -209,40 +213,155 @@ public partial class MainWindow
     private void EditorSeek_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e) => _editScrubbing = true;
     private void EditorSeek_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) => _editScrubbing = false;
 
-    // ---- trim ----
+    // ---- A/B cut (CapCut-style: mark two points, delete what's between) ----
 
-    private void UpdateTrimControls()
+    private void EditorSetA_Click(object sender, RoutedEventArgs e) => SetMark(isA: true);
+    private void EditorSetB_Click(object sender, RoutedEventArgs e) => SetMark(isA: false);
+
+    private void SetMark(bool isA)
     {
         if (_editSel < 0) return;
         EditorClip c = _edit[_editSel];
-
-        if (EditorTrimIn != null) { EditorTrimIn.Maximum = Math.Max(0.1, c.Full); EditorTrimIn.Value = c.In; }
-        if (EditorTrimOut != null) { EditorTrimOut.Maximum = Math.Max(0.1, c.Full); EditorTrimOut.Value = c.Out; }
-        if (EditorTrimText != null) EditorTrimText.Text = $"In {Fmt(c.In)}   Out {Fmt(c.Out)}   ({Fmt(c.Length)})";
+        double pos = Math.Clamp(EditorPreview.Position.TotalSeconds, c.In, c.Out);
+        if (isA) c.MarkA = pos; else c.MarkB = pos;
+        UpdateCutControls();
+        RefreshEditorButtons();
     }
 
-    private void EditorTrimIn_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void EditorClearAB_Click(object sender, RoutedEventArgs e)
+    {
+        if (_editSel < 0) return;
+        _edit[_editSel].MarkA = null;
+        _edit[_editSel].MarkB = null;
+        UpdateCutControls();
+        RefreshEditorButtons();
+    }
+
+    /// <summary>
+    /// Removes everything between A and B from the selected clip. With a chunk left on
+    /// both sides the clip splits in two (a ripple cut, no gap); with only one side the
+    /// clip is trimmed at that edge. Speed and caption carry to the new right piece.
+    /// </summary>
+    private void EditorDeleteMiddle_Click(object sender, RoutedEventArgs e)
     {
         if (_editSel < 0) return;
         EditorClip c = _edit[_editSel];
-        c.In = Math.Min(e.NewValue, c.Out - 0.1);
-        if (c.In < 0) c.In = 0;
-        try { EditorPreview.Position = TimeSpan.FromSeconds(c.In); } catch { }
-        UpdateTrimControls();
+        if (c.MarkA is not double ma || c.MarkB is not double mb) return;
+
+        double a = Math.Clamp(Math.Min(ma, mb), c.In, c.Out);
+        double b = Math.Clamp(Math.Max(ma, mb), c.In, c.Out);
+        if (b - a < 0.05) return;   // nothing meaningful between the marks
+
+        double origOut = c.Out;
+        bool leftKept = a - c.In > 0.05;
+        bool rightKept = origOut - b > 0.05;
+        if (!leftKept && !rightKept) return;   // marks span the whole clip; use Remove
+
+        PushUndo();
+        c.MarkA = null; c.MarkB = null;
+
+        if (leftKept && rightKept)
+        {
+            var right = new EditorClip
+            {
+                Path = c.Path, Name = c.Name, Full = c.Full, In = b, Out = origOut,
+                Speed = c.Speed, Caption = c.Caption
+            };
+            c.Out = a;
+            _edit.Insert(_editSel + 1, right);
+        }
+        else if (rightKept) c.In = b;    // only the tail survives — trims the head
+        else c.Out = a;                  // only the head survives — trims the tail
+
         BuildEditorTimeline();
+        SelectEditClip(_editSel);
+        try { EditorPreview.Position = TimeSpan.FromSeconds(_edit[_editSel].Out); } catch { }
+        RefreshEditorButtons();
     }
 
-    private void EditorTrimOut_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    /// <summary>Refreshes the A/B readout, seek range and marker strip for the selected clip.</summary>
+    private void UpdateCutControls()
     {
-        if (_editSel < 0) return;
+        if (EditorSeek != null && _editSel >= 0 && _edit[_editSel].Length > 0)
+            EditorSeek.Maximum = _edit[_editSel].Length;
+
+        if (_editSel < 0)
+        {
+            if (EditorCutText != null) EditorCutText.Text = "Select a clip, then mark A and B";
+            if (EditorABText != null) EditorABText.Text = "";
+            DrawMarkers();
+            return;
+        }
+
         EditorClip c = _edit[_editSel];
-        c.Out = Math.Max(e.NewValue, c.In + 0.1);
-        if (c.Out > c.Full && c.Full > 0) c.Out = c.Full;
-        UpdateTrimControls();
-        BuildEditorTimeline();
+        string a = c.MarkA is double va ? Fmt(va - c.In) + "s" : "—";
+        string b = c.MarkB is double vb ? Fmt(vb - c.In) + "s" : "—";
+        if (EditorABText != null) EditorABText.Text = $"A {a}   B {b}";
+
+        if (EditorCutText != null)
+        {
+            if (c.MarkA is double x && c.MarkB is double y)
+            {
+                double cut = Math.Abs(y - x);
+                EditorCutText.Text = $"Cuts {Fmt(cut)}s  ·  leaves {Fmt(Math.Max(0, c.Length - cut))}s";
+            }
+            else EditorCutText.Text = "Mark A and B on the preview, then delete between them";
+        }
+        DrawMarkers();
     }
 
-    private void EditorTrim_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) => HighlightEditTimeline();
+    private void EditorMarkerStrip_SizeChanged(object sender, SizeChangedEventArgs e) => DrawMarkers();
+
+    /// <summary>Draws the A/B markers and the shaded cut region on the strip over the seek bar.</summary>
+    private void DrawMarkers()
+    {
+        if (EditorMarkerStrip == null) return;
+        EditorMarkerStrip.Children.Clear();
+
+        double w = EditorMarkerStrip.ActualWidth;
+        double h = EditorMarkerStrip.ActualHeight;
+        if (w <= 1 || _editSel < 0) return;
+
+        EditorClip c = _edit[_editSel];
+        double len = c.Length;
+        if (len <= 0) return;
+
+        const double inset = 9;            // the slider thumb overhangs the track a little
+        double usable = Math.Max(1, w - inset * 2);
+        double X(double src) => inset + Math.Clamp((src - c.In) / len, 0, 1) * usable;
+
+        if (c.MarkA is double ma && c.MarkB is double mb)
+        {
+            double x1 = X(Math.Min(ma, mb)), x2 = X(Math.Max(ma, mb));
+            var band = new Rectangle
+            {
+                Width = Math.Max(1, x2 - x1), Height = h,
+                Fill = new SolidColorBrush(Color.FromArgb(0x3A, 0xFF, 0x4D, 0x4D))
+            };
+            Canvas.SetLeft(band, x1); Canvas.SetTop(band, 0);
+            EditorMarkerStrip.Children.Add(band);
+        }
+
+        AddMarkerLine(c.MarkA, X, h, Color.FromRgb(0x5A, 0xD1, 0x7A), "A");
+        AddMarkerLine(c.MarkB, X, h, Color.FromRgb(0xFF, 0x6B, 0x6B), "B");
+    }
+
+    private void AddMarkerLine(double? src, Func<double, double> X, double h, Color color, string label)
+    {
+        if (src is not double v) return;
+        double x = X(v);
+        var line = new Rectangle { Width = 2, Height = h, Fill = new SolidColorBrush(color) };
+        Canvas.SetLeft(line, x - 1); Canvas.SetTop(line, 0);
+        EditorMarkerStrip.Children.Add(line);
+
+        var tag = new TextBlock
+        {
+            Text = label, FontSize = 9, FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(color)
+        };
+        Canvas.SetLeft(tag, Math.Max(0, x - 4)); Canvas.SetTop(tag, 0);
+        EditorMarkerStrip.Children.Add(tag);
+    }
 
     // ---- track operations ----
 
@@ -362,7 +481,7 @@ public partial class MainWindow
         {
             _editSel = -1;
             try { EditorPreview.Stop(); EditorPreview.Source = null; } catch { }
-            UpdateTrimControls();
+            UpdateCutControls();
             UpdateClipControls();
         }
         RefreshEditorButtons();
@@ -522,6 +641,13 @@ public partial class MainWindow
         if (EditorExportButton != null) EditorExportButton.IsEnabled = _edit.Count > 0;
         if (EditorUndoButton != null) EditorUndoButton.IsEnabled = _editUndo.Count > 0;
         if (EditorRedoButton != null) EditorRedoButton.IsEnabled = _editRedo.Count > 0;
+
+        if (EditorSetAButton != null) EditorSetAButton.IsEnabled = has;
+        if (EditorSetBButton != null) EditorSetBButton.IsEnabled = has;
+        bool bothMarks = has && _edit[_editSel].MarkA.HasValue && _edit[_editSel].MarkB.HasValue;
+        bool anyMark = has && (_edit[_editSel].MarkA.HasValue || _edit[_editSel].MarkB.HasValue);
+        if (EditorDeleteMiddleButton != null) EditorDeleteMiddleButton.IsEnabled = bothMarks;
+        if (EditorClearABButton != null) EditorClearABButton.IsEnabled = anyMark;
     }
 
     private static string Fmt(double seconds) => Math.Max(0, seconds).ToString("0.0", CultureInfo.CurrentCulture);
