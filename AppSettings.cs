@@ -374,6 +374,11 @@ public sealed class AppSettings
     public int RewardPity { get; set; }
     public int RewardSpinsToday { get; set; }
     public string RewardOwned { get; set; } = "";
+    public int RewardBought { get; set; }
+    public string RewardBoughtDate { get; set; } = "";
+    public string RewardEquipped { get; set; } = "";
+    public string RewardPremiumUntil { get; set; } = "";
+    public string RewardModalShown { get; set; } = "";
 
     /// <summary>Window opacity, 0.4 to 1. Clamped to the slider on load, so a
     /// hand-edited zero cannot produce a window nobody can see.</summary>

@@ -202,6 +202,7 @@ public partial class MainWindow : Window
                 // Launched from the "Jinxy Play" desktop shortcut: apply the active
                 // setup and open the game straight away.
                 if (LaunchedWithPlay()) RunPlay();
+                else MaybeShowDailyRewards();   // once-a-day rewards popup (not when jumping into a game)
 
                 // Both start at once rather than the update check waiting behind
                 // the config fetch. They are independent — the update prompt does
@@ -2019,6 +2020,7 @@ public partial class MainWindow : Window
 
         if (!SelectAccent(s.AccentColor)) SelectAccent(DefaultAccent);
         LoadSeason(s.Season);
+        ApplyEquipped();   // an equipped reward cosmetic recolours over the theme/season
 
         // Clamped to the slider's own range rather than trusted: the floor is
         // what stops a stored zero from bringing back an invisible window.
@@ -2158,6 +2160,11 @@ public partial class MainWindow : Window
             RewardPity = _spinsSinceLegendary,
             RewardSpinsToday = _spinsToday,
             RewardOwned = string.Join(",", _owned),
+            RewardBought = _boughtSpins,
+            RewardBoughtDate = _boughtDate,
+            RewardEquipped = _equippedCosmetic,
+            RewardPremiumUntil = _rewardPremiumUntil?.ToString("o", System.Globalization.CultureInfo.InvariantCulture) ?? "",
+            RewardModalShown = _rewardModalShownDate,
             WindowOpacity = OpacitySlider.Value,
             LightTheme = ThemeLight.IsChecked == true,
             WallpaperFile = _wallpaperFile,
@@ -5252,13 +5259,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavRewards, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageRewards, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
