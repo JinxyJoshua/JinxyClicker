@@ -46,6 +46,7 @@ public partial class MainWindow
     private bool _editScrubbing;
     private bool _editPlayAll;
     private bool _editSyncing;   // suppresses control handlers while we populate them
+    private double _editPlayhead; // our own source-time playhead (MediaElement.Position lags when paused)
     private MontageShape _editShape = MontageShape.Landscape;
     private string? _editMusic;
 
@@ -54,6 +55,7 @@ public partial class MainWindow
     private readonly Stack<(List<EditorClip> Clips, int Sel)> _editRedo = new();
 
     private const double EditorPxPerSec = 14;
+    private const double EditorFrame = 1.0 / 30.0;   // montage normalises to 30fps, so a "frame" is 1/30s
 
     private void NavEditor_Click(object sender, RoutedEventArgs e)
     {
@@ -98,6 +100,7 @@ public partial class MainWindow
             EditorPreview.SpeedRatio = c.Speed > 0 ? c.Speed : 1.0;
             EditorPreview.Position = TimeSpan.FromSeconds(c.In);
             EditorPreview.Pause();
+            _editPlayhead = c.In;
         }
         catch { }
 
@@ -171,6 +174,7 @@ public partial class MainWindow
         if (_editSel < 0 || _editScrubbing) return;
         EditorClip c = _edit[_editSel];
         double pos = EditorPreview.Position.TotalSeconds;
+        _editPlayhead = pos;   // track the live position while playing
 
         // At the trim's out point: advance to the next clip in play-all, else stop.
         if (EditorPlayButton?.Content as string == "Pause" && pos >= c.Out)
@@ -207,7 +211,8 @@ public partial class MainWindow
     {
         if (_editSel < 0 || !_editScrubbing) return;
         EditorClip c = _edit[_editSel];
-        EditorPreview.Position = TimeSpan.FromSeconds(c.In + e.NewValue);
+        _editPlayhead = c.In + e.NewValue;
+        EditorPreview.Position = TimeSpan.FromSeconds(_editPlayhead);
     }
 
     private void EditorSeek_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e) => _editScrubbing = true;
@@ -222,7 +227,7 @@ public partial class MainWindow
     {
         if (_editSel < 0) return;
         EditorClip c = _edit[_editSel];
-        double pos = Math.Clamp(EditorPreview.Position.TotalSeconds, c.In, c.Out);
+        double pos = Math.Clamp(_editPlayhead, c.In, c.Out);
         if (isA) c.MarkA = pos; else c.MarkB = pos;
         UpdateCutControls();
         RefreshEditorButtons();
@@ -233,6 +238,100 @@ public partial class MainWindow
         if (_editSel < 0) return;
         _edit[_editSel].MarkA = null;
         _edit[_editSel].MarkB = null;
+        UpdateCutControls();
+        RefreshEditorButtons();
+    }
+
+    // ---- frame-step + fine marker control (precision) ----
+
+    private void EditorFramePrev_Click(object sender, RoutedEventArgs e) => StepFrame(-1);
+    private void EditorFrameNext_Click(object sender, RoutedEventArgs e) => StepFrame(+1);
+
+    /// <summary>Pauses and nudges the playhead one frame, clamped to the clip's trim.</summary>
+    private void StepFrame(int dir)
+    {
+        if (_editSel < 0) return;
+        EditorClip c = _edit[_editSel];
+        _editPlayAll = false;
+        try { EditorPreview.Pause(); } catch { }
+        if (EditorPlayButton != null) EditorPlayButton.Content = "Play";
+
+        double pos = Math.Clamp(_editPlayhead + dir * EditorFrame, c.In, c.Out);
+        _editPlayhead = pos;
+        try { EditorPreview.Position = TimeSpan.FromSeconds(pos); } catch { }
+        SyncSeekToPosition(pos);
+    }
+
+    /// <summary>Updates the seek bar and time readout to a paused position.</summary>
+    private void SyncSeekToPosition(double pos)
+    {
+        if (_editSel < 0) return;
+        EditorClip c = _edit[_editSel];
+        if (EditorSeek != null && c.Length > 0)
+        {
+            EditorSeek.Maximum = c.Length;
+            EditorSeek.Value = Math.Clamp(pos - c.In, 0, c.Length);
+        }
+        if (EditorTimeText != null) EditorTimeText.Text = $"{Fmt(pos - c.In)} / {Fmt(c.Length)}";
+    }
+
+    private void EditorNudge_Click(object sender, RoutedEventArgs e)
+    {
+        if (_editSel < 0 || sender is not FrameworkElement { Tag: string tag } || tag.Length < 2) return;
+        bool isA = tag[0] == 'A';
+        int dir = tag[1] == '+' ? 1 : -1;
+        NudgeMark(isA, dir * EditorFrame);
+    }
+
+    private void NudgeMark(bool isA, double delta)
+    {
+        EditorClip c = _edit[_editSel];
+        double? cur = isA ? c.MarkA : c.MarkB;
+        double baseVal = cur ?? Math.Clamp(_editPlayhead, c.In, c.Out);
+        double v = Math.Clamp(baseVal + delta, c.In, c.Out);
+        if (isA) c.MarkA = v; else c.MarkB = v;
+        _editPlayhead = v;
+        try { EditorPreview.Pause(); EditorPreview.Position = TimeSpan.FromSeconds(v); } catch { }
+        if (EditorPlayButton != null) EditorPlayButton.Content = "Play";
+        SyncSeekToPosition(v);
+        UpdateCutControls();
+        RefreshEditorButtons();
+    }
+
+    private void EditorMarkBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) CommitMarkBox(sender as TextBox);
+    }
+
+    private void EditorMarkBox_LostFocus(object sender, RoutedEventArgs e) => CommitMarkBox(sender as TextBox);
+
+    /// <summary>Parses a typed time (seconds from the clip start) into the A or B marker.</summary>
+    private void CommitMarkBox(TextBox? box)
+    {
+        if (_editSyncing || box == null || _editSel < 0) return;
+        EditorClip c = _edit[_editSel];
+        bool isA = ReferenceEquals(box, EditorABoxA);
+
+        if (string.IsNullOrWhiteSpace(box.Text))
+        {
+            if (isA) c.MarkA = null; else c.MarkB = null;
+            UpdateCutControls();
+            RefreshEditorButtons();
+            return;
+        }
+
+        if (double.TryParse(box.Text, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.CurrentCulture, out double rel) ||
+            double.TryParse(box.Text, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out rel))
+        {
+            double v = Math.Clamp(c.In + rel, c.In, c.Out);
+            if (isA) c.MarkA = v; else c.MarkB = v;
+            _editPlayhead = v;
+            try { EditorPreview.Pause(); EditorPreview.Position = TimeSpan.FromSeconds(v); } catch { }
+            if (EditorPlayButton != null) EditorPlayButton.Content = "Play";
+            SyncSeekToPosition(v);
+        }
         UpdateCutControls();
         RefreshEditorButtons();
     }
@@ -285,13 +384,24 @@ public partial class MainWindow
         if (EditorSeek != null && _editSel >= 0 && _edit[_editSel].Length > 0)
             EditorSeek.Maximum = _edit[_editSel].Length;
 
-        if (_editSel < 0)
+        _editSyncing = true;
+        try
         {
-            if (EditorCutText != null) EditorCutText.Text = "Select a clip, then mark A and B";
-            if (EditorABText != null) EditorABText.Text = "";
-            DrawMarkers();
-            return;
+            if (_editSel < 0)
+            {
+                if (EditorCutText != null) EditorCutText.Text = "Select a clip, then mark A and B";
+                if (EditorABText != null) EditorABText.Text = "";
+                if (EditorABoxA != null) EditorABoxA.Text = "";
+                if (EditorABoxB != null) EditorABoxB.Text = "";
+                DrawMarkers();
+                return;
+            }
+
+            EditorClip cc = _edit[_editSel];
+            if (EditorABoxA != null) EditorABoxA.Text = cc.MarkA is double xa ? (xa - cc.In).ToString("0.00", CultureInfo.CurrentCulture) : "";
+            if (EditorABoxB != null) EditorABoxB.Text = cc.MarkB is double xb ? (xb - cc.In).ToString("0.00", CultureInfo.CurrentCulture) : "";
         }
+        finally { _editSyncing = false; }
 
         EditorClip c = _edit[_editSel];
         string a = c.MarkA is double va ? Fmt(va - c.In) + "s" : "—";
@@ -369,7 +479,7 @@ public partial class MainWindow
     {
         if (_editSel < 0) return;
         EditorClip c = _edit[_editSel];
-        double p = EditorPreview.Position.TotalSeconds;
+        double p = _editPlayhead;
         if (p <= c.In + 0.1 || p >= c.Out - 0.1) return;   // nothing meaningful to split
 
         PushUndo();
@@ -644,6 +754,15 @@ public partial class MainWindow
 
         if (EditorSetAButton != null) EditorSetAButton.IsEnabled = has;
         if (EditorSetBButton != null) EditorSetBButton.IsEnabled = has;
+        if (EditorFramePrevButton != null) EditorFramePrevButton.IsEnabled = has;
+        if (EditorFrameNextButton != null) EditorFrameNextButton.IsEnabled = has;
+        if (EditorNudgeADown != null) EditorNudgeADown.IsEnabled = has;
+        if (EditorNudgeAUp != null) EditorNudgeAUp.IsEnabled = has;
+        if (EditorNudgeBDown != null) EditorNudgeBDown.IsEnabled = has;
+        if (EditorNudgeBUp != null) EditorNudgeBUp.IsEnabled = has;
+        if (EditorABoxA != null) EditorABoxA.IsEnabled = has;
+        if (EditorABoxB != null) EditorABoxB.IsEnabled = has;
+
         bool bothMarks = has && _edit[_editSel].MarkA.HasValue && _edit[_editSel].MarkB.HasValue;
         bool anyMark = has && (_edit[_editSel].MarkA.HasValue || _edit[_editSel].MarkB.HasValue);
         if (EditorDeleteMiddleButton != null) EditorDeleteMiddleButton.IsEnabled = bothMarks;

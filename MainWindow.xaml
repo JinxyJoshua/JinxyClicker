@@ -4323,6 +4323,10 @@
                                             IsEnabled="False" Click="EditorPlay_Click"/>
                                     <Button x:Name="EditorPlayAllButton" DockPanel.Dock="Left" Content="Play all" Width="80" Height="32"
                                             Margin="8,0,0,0" Click="EditorPlayAll_Click"/>
+                                    <Button x:Name="EditorFramePrevButton" DockPanel.Dock="Left" Content="&#x25C0;" Width="36" Height="32"
+                                            Margin="16,0,0,0" IsEnabled="False" Click="EditorFramePrev_Click" ToolTip="Previous frame"/>
+                                    <Button x:Name="EditorFrameNextButton" DockPanel.Dock="Left" Content="&#x25B6;" Width="36" Height="32"
+                                            Margin="6,0,0,0" IsEnabled="False" Click="EditorFrameNext_Click" ToolTip="Next frame"/>
                                     <Button x:Name="EditorSetAButton" DockPanel.Dock="Left" Content="Set A" Width="62" Height="32"
                                             Margin="16,0,0,0" IsEnabled="False" Click="EditorSetA_Click"/>
                                     <Button x:Name="EditorSetBButton" DockPanel.Dock="Left" Content="Set B" Width="62" Height="32"
@@ -4384,13 +4388,31 @@
                                     <TextBlock x:Name="EditorCutText" Style="{StaticResource CardSubtitle}" Text="Select a clip, then mark A and B"/>
                                 </StackPanel>
                             </StackPanel>
+                            <DockPanel Margin="0,2,0,6" LastChildFill="False">
+                                <TextBlock DockPanel.Dock="Left" Text="A" Width="14" VerticalAlignment="Center"
+                                           FontWeight="Bold" Foreground="#5AD17A"/>
+                                <Button DockPanel.Dock="Left" Content="&#x2212;" Tag="A-" Width="30" Height="28" Click="EditorNudge_Click" IsEnabled="False" x:Name="EditorNudgeADown"/>
+                                <TextBox DockPanel.Dock="Left" x:Name="EditorABoxA" Width="72" Height="28" Margin="6,0,6,0"
+                                         VerticalContentAlignment="Center" Style="{StaticResource InputField}"
+                                         KeyDown="EditorMarkBox_KeyDown" LostFocus="EditorMarkBox_LostFocus"/>
+                                <Button DockPanel.Dock="Left" Content="+" Tag="A+" Width="30" Height="28" Click="EditorNudge_Click" IsEnabled="False" x:Name="EditorNudgeAUp"/>
+
+                                <TextBlock DockPanel.Dock="Left" Text="B" Width="14" Margin="22,0,0,0" VerticalAlignment="Center"
+                                           FontWeight="Bold" Foreground="#FF6B6B"/>
+                                <Button DockPanel.Dock="Left" Content="&#x2212;" Tag="B-" Width="30" Height="28" Click="EditorNudge_Click" IsEnabled="False" x:Name="EditorNudgeBDown"/>
+                                <TextBox DockPanel.Dock="Left" x:Name="EditorABoxB" Width="72" Height="28" Margin="6,0,6,0"
+                                         VerticalContentAlignment="Center" Style="{StaticResource InputField}"
+                                         KeyDown="EditorMarkBox_KeyDown" LostFocus="EditorMarkBox_LostFocus"/>
+                                <Button DockPanel.Dock="Left" Content="+" Tag="B+" Width="30" Height="28" Click="EditorNudge_Click" IsEnabled="False" x:Name="EditorNudgeBUp"/>
+                            </DockPanel>
+
                             <WrapPanel Margin="0,2,0,0">
                                 <Button x:Name="EditorDeleteMiddleButton" Content="Delete A &#x2192; B" Click="EditorDeleteMiddle_Click" IsEnabled="False"
                                         Style="{StaticResource AccentButton}" Height="32" Padding="16,0" Margin="0,0,8,0"/>
                                 <Button x:Name="EditorClearABButton" Content="Clear A/B" Click="EditorClearAB_Click" IsEnabled="False"
                                         Height="32" Padding="14,0"/>
                             </WrapPanel>
-                            <TextBlock Text="Scrub the preview, press Set A then Set B to mark two points, then Delete A &#x2192; B to cut out everything between them. Mark from the very start to trim the head, or to the end to trim the tail."
+                            <TextBlock Text="Scrub or step frame-by-frame (&#x25C0; &#x25B6;), press Set A then Set B to mark two points, fine-tune with &#x2212;/+ or type exact seconds, then Delete A &#x2192; B to cut out everything between them. Mark from the very start to trim the head, or to the end to trim the tail."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,10,0,0"/>
 
                             <DockPanel Margin="2,16,0,2" LastChildFill="False">
