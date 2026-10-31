@@ -386,6 +386,8 @@ public sealed class AppSettings
     /// <summary>The user's own wallpaper from before a wallpaper cosmetic was
     /// equipped, so un-equipping restores it even after a restart.</summary>
     public string RewardWallpaperPrev { get; set; } = "";
+    /// <summary>Whether the chime plays when a cosmetic is unlocked.</summary>
+    public bool UnlockSoundEnabled { get; set; } = true;
     public string RewardPremiumUntil { get; set; } = "";
     public string RewardModalShown { get; set; } = "";
 

@@ -66,6 +66,9 @@ public partial class MainWindow
     // un-equipping in the same session puts the user's own background back.
     private string _wallpaperBeforeCosmetic = "";
 
+    // Whether the unlock chime plays. On by default; the modal has a toggle.
+    private bool _unlockSoundOn = true;
+
     private const int SpinCost = 60;   // Stardust to buy an extra spin
 
     private static string Today => DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -115,6 +118,8 @@ public partial class MainWindow
         _equippedCursor = s.RewardEquippedCursor ?? "";
         _equippedWallpaper = s.RewardEquippedWallpaper ?? "";
         _wallpaperBeforeCosmetic = s.RewardWallpaperPrev ?? "";
+        _unlockSoundOn = s.UnlockSoundEnabled;
+        if (UnlockSoundToggle != null) UnlockSoundToggle.IsChecked = _unlockSoundOn;
         // Migrate an old single-slot equip into whichever slot its kind belongs to.
         if (!string.IsNullOrEmpty(s.RewardEquipped))
         {
@@ -296,13 +301,12 @@ public partial class MainWindow
         Reward reward = RewardWheel.Roll(WheelCatalog, _spinsSinceLegendary, _wheelRng);
         int index = WheelCatalog.IndexOf(reward);
 
-        // Land the chosen slice under the top pointer, after several full turns.
+        // Land the chosen slice under the top pointer, after five full turns.
         double step = 360.0 / WheelCatalog.Count;
         double sliceCentre = index * step + step / 2;
         double jitter = (_wheelRng.NextDouble() - 0.5) * (step * 0.6);
-        double current = WheelRotate.Angle % 360;
-        double target = 360 * 6 + (360 - sliceCentre - jitter);
-        double to = current + ((target - current) % 360 + 360) % 360 + 360 * 5;
+        double landing = 360 - sliceCentre - jitter;   // orientation that puts the slice up top
+        double to = RewardWheel.SpinTarget(WheelRotate.Angle, landing, turns: 5);
 
         var anim = new DoubleAnimation(WheelRotate.Angle, to, TimeSpan.FromSeconds(4))
         {
@@ -343,8 +347,16 @@ public partial class MainWindow
     /// <summary>The unlock sparkle — reuses the clip-feedback sound engine's "unlock" chime.</summary>
     private void PlayUnlockSound()
     {
+        if (!_unlockSoundOn) return;
         try { (_clipSoundPlayer ??= new ClipSound()).Play("unlock", null, 0.6); }
         catch { /* a cosmetic unlocks whether or not the chime plays */ }
+    }
+
+    private void UnlockSound_Toggled(object sender, RoutedEventArgs e)
+    {
+        _unlockSoundOn = UnlockSoundToggle?.IsChecked == true;
+        _settingsDirty = true;
+        SaveAppSettings();
     }
 
     private void GrantReward(Reward reward)

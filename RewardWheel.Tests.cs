@@ -117,4 +117,40 @@ public class RewardWheelTests
             Assert.True(Math.Abs(actual - pct) < 1.0, $"{rarity}: expected ~{pct}%, got {actual:0.00}%");
         }
     }
+
+    // ---- SpinTarget: where the wheel animates to on a spin ----
+
+    [Theory]
+    [InlineData(0)]       // first spin
+    [InlineData(137)]
+    [InlineData(1980)]    // after a prior spin — the angle has accumulated
+    [InlineData(3960)]    // after several — this is where the old code barely moved
+    public void SpinTarget_always_turns_at_least_the_requested_full_turns(double current)
+    {
+        double to = RewardWheel.SpinTarget(current, landing: 90, turns: 5);
+        double moved = to - current;
+        Assert.True(moved >= 5 * 360, $"only moved {moved}°, wanted >= {5 * 360}°");
+        Assert.True(moved < 6 * 360, $"moved {moved}°, wanted < {6 * 360}°");
+    }
+
+    [Theory]
+    [InlineData(0, 90)]
+    [InlineData(1980, 250)]
+    [InlineData(3960, 12.5)]
+    [InlineData(777, 0)]
+    public void SpinTarget_rests_on_the_chosen_orientation(double current, double landing)
+    {
+        double to = RewardWheel.SpinTarget(current, landing, turns: 5);
+        double resting = (to % 360 + 360) % 360;
+        double want = (landing % 360 + 360) % 360;
+        Assert.Equal(want, resting, precision: 6);
+    }
+
+    [Fact]
+    public void SpinTarget_normalizes_a_landing_outside_0_to_360()
+    {
+        double to = RewardWheel.SpinTarget(0, landing: -30, turns: 5);   // -30 == 330
+        double resting = (to % 360 + 360) % 360;
+        Assert.Equal(330, resting, precision: 6);
+    }
 }

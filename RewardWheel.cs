@@ -106,4 +106,23 @@ public static class RewardWheel
             if (reward.Rarity == r) bucket.Add(reward);
         return bucket.Count == 0 ? null : bucket[rng.Next(bucket.Count)];
     }
+
+    /// <summary>
+    /// The angle to animate the wheel to: at least <paramref name="turns"/> whole
+    /// turns beyond where it is now, finishing at <paramref name="landing"/> — the
+    /// 0–360° orientation that puts the chosen slice under the top pointer.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the real current angle, which keeps growing spin after spin.
+    /// Anchoring the target to <c>angle % 360</c> instead (an earlier bug) cancelled
+    /// the full turns out against the accumulated angle, so every spin after the
+    /// first barely moved.
+    /// </remarks>
+    public static double SpinTarget(double currentAngle, double landing, int turns)
+    {
+        double currentMod = (currentAngle % 360 + 360) % 360;
+        double norm = (landing % 360 + 360) % 360;
+        double forward = (norm - currentMod + 360) % 360;   // 0–360° to reach the landing
+        return currentAngle + turns * 360 + forward;
+    }
 }

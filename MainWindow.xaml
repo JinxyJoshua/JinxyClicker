@@ -1262,7 +1262,16 @@
 
                             <Border Background="{StaticResource Panel2}" CornerRadius="8" Padding="18" Margin="0,14,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="COLLECTION" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"/>
+                                    <DockPanel Margin="0,0,0,10">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Unlock sound" Foreground="{StaticResource TextMuted}" FontSize="11"
+                                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <CheckBox x:Name="UnlockSoundToggle" IsChecked="True" VerticalAlignment="Center"
+                                                      ToolTip="Play a chime when you unlock a cosmetic"
+                                                      Checked="UnlockSound_Toggled" Unchecked="UnlockSound_Toggled"/>
+                                        </StackPanel>
+                                        <TextBlock Text="COLLECTION" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                                    </DockPanel>
                                     <WrapPanel x:Name="CollectionPanel"/>
                                     <TextBlock x:Name="RewardEquipStatus" Text="" Visibility="Collapsed" TextWrapping="Wrap"
                                                Foreground="{StaticResource Accent}" FontSize="11" FontWeight="SemiBold" Margin="2,4,0,0"/>

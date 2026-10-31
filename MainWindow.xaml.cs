@@ -2164,6 +2164,7 @@ public partial class MainWindow : Window
             RewardEquippedCursor = _equippedCursor,
             RewardEquippedWallpaper = _equippedWallpaper,
             RewardWallpaperPrev = _wallpaperBeforeCosmetic,
+            UnlockSoundEnabled = _unlockSoundOn,
             RewardPremiumUntil = _rewardPremiumUntil?.ToString("o", System.Globalization.CultureInfo.InvariantCulture) ?? "",
             RewardModalShown = _rewardModalShownDate,
             WindowOpacity = OpacitySlider.Value,
