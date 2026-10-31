@@ -2605,6 +2605,49 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Score control: set the scoreboard the Score overlay shows. -->
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Score"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="A scoreboard you keep on screen"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                                <StackPanel Width="210">
+                                    <TextBox x:Name="ScoreLeftLabelBox" Style="{StaticResource InputField}" Text="You" MaxLength="12"
+                                             HorizontalContentAlignment="Center" TextChanged="ScoreLeftLabel_Changed"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                        <Button Content="&#8722;" Click="ScoreLeftMinus_Click" Width="42" Height="42" FontSize="18"/>
+                                        <TextBlock x:Name="ScoreLeftValue" Text="0" FontSize="30" FontWeight="Black" Foreground="{StaticResource TextBright}"
+                                                   Width="66" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <Button Content="+" Click="ScoreLeftPlus_Click" Width="42" Height="42" FontSize="18"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Text=":" FontSize="28" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="20,0,20,16"/>
+                                <StackPanel Width="210">
+                                    <TextBox x:Name="ScoreRightLabelBox" Style="{StaticResource InputField}" Text="Them" MaxLength="12"
+                                             HorizontalContentAlignment="Center" TextChanged="ScoreRightLabel_Changed"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                        <Button Content="&#8722;" Click="ScoreRightMinus_Click" Width="42" Height="42" FontSize="18"/>
+                                        <TextBlock x:Name="ScoreRightValue" Text="0" FontSize="30" FontWeight="Black" Foreground="{StaticResource TextBright}"
+                                                   Width="66" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <Button Content="+" Click="ScoreRightPlus_Click" Width="42" Height="42" FontSize="18"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Button Content="Reset" Click="ScoreReset_Click" HorizontalAlignment="Center" Padding="18,6" Margin="0,14,0,0"/>
+                            <TextBlock Text="Turn Score on above to show it over the game. The numbers are yours to set — nothing is read from the game."
+                                       Style="{StaticResource CardSubtitle}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Keystrokes is a grid card now; these controls are kept but
                          hidden because the engine and settings still drive them.
                          Panel background stays on; in-game FPS is covered by the

@@ -439,3 +439,44 @@ public sealed class WatermarkOverlay : PillOverlayBase
 
     public void PlaceDefault() => PlaceBottomRight(28);
 }
+
+/// <summary>A scoreboard you keep on screen — two sides, each a label and a number
+/// you set yourself. Nothing is read from the game; the numbers are whatever you
+/// put there (wins, rounds, a bet with a friend).</summary>
+public sealed class ScoreOverlay : PillOverlayBase
+{
+    private readonly TextBlock _leftLabel;
+    private readonly TextBlock _leftNum;
+    private readonly TextBlock _rightNum;
+    private readonly TextBlock _rightLabel;
+
+    public ScoreOverlay() : base("", Color.FromRgb(0xFF, 0xD1, 0x6A))
+    {
+        _leftLabel = Label("YOU", 0);
+        _leftNum = Value(Colors.White, 20);
+        _leftNum.Margin = new Thickness(6, 0, 0, 0);
+        var colon = Value(Color.FromRgb(0x8A, 0x93, 0xA8), 18);
+        colon.Text = ":";
+        colon.Margin = new Thickness(7, 0, 7, 0);
+        _rightNum = Value(Colors.White, 20);
+        _rightLabel = Label("THEM", 8);
+
+        Body.Children.Add(_leftLabel);
+        Body.Children.Add(_leftNum);
+        Body.Children.Add(colon);
+        Body.Children.Add(_rightNum);
+        Body.Children.Add(_rightLabel);
+    }
+
+    public void SetScore(string? leftLabel, int left, string? rightLabel, int right)
+    {
+        _leftLabel.Text = (leftLabel ?? "").Trim().ToUpperInvariant();
+        _leftLabel.Visibility = _leftLabel.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _rightLabel.Text = (rightLabel ?? "").Trim().ToUpperInvariant();
+        _rightLabel.Visibility = _rightLabel.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _leftNum.Text = left.ToString();
+        _rightNum.Text = right.ToString();
+    }
+
+    public void PlaceDefault() => PlaceTopCentre(120);
+}

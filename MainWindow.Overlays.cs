@@ -26,11 +26,18 @@ public partial class MainWindow
     private MouseOverlay? _mouseOverlay;
     private ClockOverlay? _clockOverlay;
     private WatermarkOverlay? _watermarkOverlay;
+    private ScoreOverlay? _scoreOverlay;
 
-    private bool _ovFps, _ovSystem, _ovMusic, _ovMouse, _ovClock, _ovWatermark;
+    private bool _ovFps, _ovSystem, _ovMusic, _ovMouse, _ovClock, _ovWatermark, _ovScore;
     private bool _overlayShowAlways;   // true = over any window, false = only while Roblox is front
     private bool _applyingOverlayShow;
     private string _watermarkText = "Jinxy";
+    private string _scoreLeftLabel = "You";
+    private string _scoreRightLabel = "Them";
+    private int _scoreLeft, _scoreRight;
+    private bool _applyingScore;
+
+    private static readonly Color OvGold = Color.FromRgb(0xFF, 0xD1, 0x6A);
 
     private bool _overlaysBuilt;
     private bool _syncingOverlayToggles;
@@ -39,7 +46,7 @@ public partial class MainWindow
 
     // Dragged positions; null means "use the default corner".
     private double? _cpsX, _cpsY, _fpsX, _fpsY, _sysX, _sysY, _musX, _musY,
-                    _mouseX, _mouseY, _clockX, _clockY, _wmX, _wmY;
+                    _mouseX, _mouseY, _clockX, _clockY, _wmX, _wmY, _scoreX, _scoreY;
 
     private DispatcherTimer? _infoOverlayTimer;
     private readonly Dictionary<string, CheckBox> _overlayToggles = new();
@@ -67,6 +74,7 @@ public partial class MainWindow
         ("system",     "", "System",     "CPU 18%",     OvBlue,   false),
         ("mouse",      "", "Mouse",      "L M R 4 5",   OvBlue,   false),
         ("clock",      "", "Clock",      "9:41",        OvPurple, false),
+        ("score",      "", "Score",      "0 : 0",       OvGold,   false),
         ("watermark",  "", "Watermark",  "Your name",   OvPurple, false),
         ("keystrokes", "", "Keystrokes", "W A S D",     OvRed,    true),
         ("music",      "", "Music",      "Now playing", OvPurple, false),
@@ -90,8 +98,20 @@ public partial class MainWindow
         _ovMouse = s.OverlayMouse;
         _ovClock = s.OverlayClock;
         _ovWatermark = s.OverlayWatermark;
+        _ovScore = s.OverlayScore;
         _overlayShowAlways = s.OverlayShowAlways;
         _watermarkText = string.IsNullOrWhiteSpace(s.OverlayWatermarkText) ? "Jinxy" : s.OverlayWatermarkText;
+        _scoreLeftLabel = s.ScoreLeftLabel ?? "You";
+        _scoreRightLabel = s.ScoreRightLabel ?? "Them";
+        _scoreLeft = s.ScoreLeft;
+        _scoreRight = s.ScoreRight;
+
+        _applyingScore = true;
+        if (ScoreLeftLabelBox != null) ScoreLeftLabelBox.Text = _scoreLeftLabel;
+        if (ScoreRightLabelBox != null) ScoreRightLabelBox.Text = _scoreRightLabel;
+        if (ScoreLeftValue != null) ScoreLeftValue.Text = _scoreLeft.ToString();
+        if (ScoreRightValue != null) ScoreRightValue.Text = _scoreRight.ToString();
+        _applyingScore = false;
 
         _applyingOverlayShow = true;
         if (OverlayShowEverywhere != null) OverlayShowEverywhere.IsChecked = _overlayShowAlways;
@@ -105,6 +125,7 @@ public partial class MainWindow
         _mouseX = s.OverlayMouseX; _mouseY = s.OverlayMouseY;
         _clockX = s.OverlayClockX; _clockY = s.OverlayClockY;
         _wmX = s.OverlayWatermarkX; _wmY = s.OverlayWatermarkY;
+        _scoreX = s.OverlayScoreX; _scoreY = s.OverlayScoreY;
 
         _overlay?.SetSavedPosition(_cpsX, _cpsY);
         ApplyInfoOverlays();
@@ -156,6 +177,7 @@ public partial class MainWindow
         AddReplica("server", PreviewPill("", "EU West", OvBlue), draggable: false);
         AddReplica("music", PreviewPill("", "Now playing", OvPurple), true);
         AddReplica("clock", PreviewPill("", "9:41", OvPurple), true);
+        AddReplica("score", PreviewPill("", "0 : 0", OvGold), true);
         AddReplica("keystrokes", PreviewKeys(), true);
         AddReplica("mouse", PreviewPill("", "L M R 4 5", OvBlue), true);
         AddReplica("watermark", PreviewPill("", _watermarkText, OvPurple), true);
@@ -260,6 +282,7 @@ public partial class MainWindow
             "server" => new Point(m, m),
             "music" => new Point((w - rw) / 2, m),
             "clock" => new Point((w - rw) / 2, m + 44),
+            "score" => new Point((w - rw) / 2, m + 88),
             "cps" => new Point(w - rw - m, m),
             "fps" => new Point(w - rw - m, m + 78),
             "system" => new Point(w - rw - m, m + 118),
@@ -281,6 +304,7 @@ public partial class MainWindow
         "mouse" => (_mouseX, _mouseY),
         "clock" => (_clockX, _clockY),
         "watermark" => (_wmX, _wmY),
+        "score" => (_scoreX, _scoreY),
         "music" => (_musX, _musY),
         "keystrokes" => (_keystrokesX, _keystrokesY),
         _ => (null, null)
@@ -298,6 +322,7 @@ public partial class MainWindow
             case "mouse": _mouseX = x; _mouseY = y; break;
             case "clock": _clockX = x; _clockY = y; break;
             case "watermark": _wmX = x; _wmY = y; break;
+            case "score": _scoreX = x; _scoreY = y; break;
             case "music": _musX = x; _musY = y; break;
             case "keystrokes":
                 _keystrokesX = x; _keystrokesY = y;
@@ -331,6 +356,7 @@ public partial class MainWindow
         "mouse" => _ovMouse,
         "clock" => _ovClock,
         "watermark" => _ovWatermark,
+        "score" => _ovScore,
         "music" => _ovMusic,
         _ => false
     };
@@ -567,6 +593,7 @@ public partial class MainWindow
             case "mouse": _ovMouse = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "clock": _ovClock = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "watermark": _ovWatermark = on; ApplyInfoOverlays(); SaveAppSettings(); break;
+            case "score": _ovScore = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "music": _ovMusic = on; ApplyInfoOverlays(); SaveAppSettings(); break;
         }
 
@@ -586,6 +613,7 @@ public partial class MainWindow
         SetToggle("mouse", _ovMouse);
         SetToggle("clock", _ovClock);
         SetToggle("watermark", _ovWatermark);
+        SetToggle("score", _ovScore);
         SetToggle("music", _ovMusic);
         _syncingOverlayToggles = false;
         RefreshPreview();
@@ -610,7 +638,7 @@ public partial class MainWindow
 
     private void ApplyInfoOverlays()
     {
-        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse || _ovClock || _ovWatermark
+        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse || _ovClock || _ovWatermark || _ovScore
                    || (IsPro && _keystrokesEnabled);
         if (any)
         {
@@ -715,6 +743,21 @@ public partial class MainWindow
         }
         else _watermarkOverlay?.Hide();
 
+        if (_ovScore)
+        {
+            if (_scoreOverlay == null) { _scoreOverlay = new ScoreOverlay(); _scoreOverlay.Moved += SaveScorePos; }
+            _scoreOverlay.StreamerMode = streamer;
+            _scoreOverlay.SetScore(_scoreLeftLabel, _scoreLeft, _scoreRightLabel, _scoreRight);
+            _scoreOverlay.SetMoveMode(_overlayMoveMode);
+            if (front)
+            {
+                if (!_scoreOverlay.IsVisible) _scoreOverlay.Show();
+                if (!_overlayMoveMode) PlacePill(_scoreOverlay, _scoreX, _scoreY, _scoreOverlay.PlaceDefault);
+            }
+            else _scoreOverlay.Hide();
+        }
+        else _scoreOverlay?.Hide();
+
         if (_ovMusic)
         {
             if (_musicOverlay == null) { _musicOverlay = new MusicOverlay(); _musicOverlay.Moved += SaveMusicPos; }
@@ -767,6 +810,38 @@ public partial class MainWindow
     private void SaveMousePos() { if (_mouseOverlay != null) { _mouseX = _mouseOverlay.Left; _mouseY = _mouseOverlay.Top; SaveAppSettings(); } }
     private void SaveClockPos() { if (_clockOverlay != null) { _clockX = _clockOverlay.Left; _clockY = _clockOverlay.Top; SaveAppSettings(); } }
     private void SaveWmPos() { if (_watermarkOverlay != null) { _wmX = _watermarkOverlay.Left; _wmY = _watermarkOverlay.Top; SaveAppSettings(); } }
+    private void SaveScorePos() { if (_scoreOverlay != null) { _scoreX = _scoreOverlay.Left; _scoreY = _scoreOverlay.Top; SaveAppSettings(); } }
+
+    // ---- score controls (on the Overlays page) ----
+
+    private void ScoreLeftPlus_Click(object sender, RoutedEventArgs e) { _scoreLeft++; ScoreChanged(); }
+    private void ScoreLeftMinus_Click(object sender, RoutedEventArgs e) { _scoreLeft--; ScoreChanged(); }
+    private void ScoreRightPlus_Click(object sender, RoutedEventArgs e) { _scoreRight++; ScoreChanged(); }
+    private void ScoreRightMinus_Click(object sender, RoutedEventArgs e) { _scoreRight--; ScoreChanged(); }
+    private void ScoreReset_Click(object sender, RoutedEventArgs e) { _scoreLeft = 0; _scoreRight = 0; ScoreChanged(); }
+
+    private void ScoreLeftLabel_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_applyingScore) return;
+        _scoreLeftLabel = ScoreLeftLabelBox?.Text ?? "";
+        ScoreChanged();
+    }
+
+    private void ScoreRightLabel_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_applyingScore) return;
+        _scoreRightLabel = ScoreRightLabelBox?.Text ?? "";
+        ScoreChanged();
+    }
+
+    private void ScoreChanged()
+    {
+        if (ScoreLeftValue != null) ScoreLeftValue.Text = _scoreLeft.ToString();
+        if (ScoreRightValue != null) ScoreRightValue.Text = _scoreRight.ToString();
+        _scoreOverlay?.SetScore(_scoreLeftLabel, _scoreLeft, _scoreRightLabel, _scoreRight);
+        RefreshPreview();
+        SaveAppSettings();
+    }
 
     // Sets a window to a saved spot (clamped on-screen), or its default corner.
     private static void PlacePill(Window w, double? x, double? y, Action placeDefault)
@@ -838,5 +913,6 @@ public partial class MainWindow
         try { _mouseOverlay?.Close(); } catch { }
         try { _clockOverlay?.Close(); } catch { }
         try { _watermarkOverlay?.Close(); } catch { }
+        try { _scoreOverlay?.Close(); } catch { }
     }
 }

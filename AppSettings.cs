@@ -313,6 +313,13 @@ public sealed class AppSettings
     public bool OverlayWatermark { get; set; }
     public string OverlayWatermarkText { get; set; } = "Jinxy";
 
+    /// <summary>Score overlay: a scoreboard with two labels and two numbers you set.</summary>
+    public bool OverlayScore { get; set; }
+    public string ScoreLeftLabel { get; set; } = "You";
+    public string ScoreRightLabel { get; set; } = "Them";
+    public int ScoreLeft { get; set; }
+    public int ScoreRight { get; set; }
+
     /// <summary>True = overlays show over any window; false = only while Roblox is in front.</summary>
     public bool OverlayShowAlways { get; set; }
 
@@ -331,6 +338,8 @@ public sealed class AppSettings
     public double? OverlayClockY { get; set; }
     public double? OverlayWatermarkX { get; set; }
     public double? OverlayWatermarkY { get; set; }
+    public double? OverlayScoreX { get; set; }
+    public double? OverlayScoreY { get; set; }
 
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }
