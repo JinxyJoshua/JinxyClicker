@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace JinxyClicker;
@@ -440,43 +441,151 @@ public sealed class WatermarkOverlay : PillOverlayBase
     public void PlaceDefault() => PlaceBottomRight(28);
 }
 
-/// <summary>A scoreboard you keep on screen — two sides, each a label and a number
-/// you set yourself. Nothing is read from the game; the numbers are whatever you
-/// put there (wins, rounds, a bet with a friend).</summary>
+/// <summary>A broadcast-style "score bug": away team (colour chip + abbreviation +
+/// score), game status in the middle, then the home team, mirroring how NFL/college
+/// scores are shown on TV. Driven by a live <see cref="GameInfo"/> from
+/// <see cref="SportsScores"/> (NFL, college football, NBA, NHL, MLB).</summary>
 public sealed class ScoreOverlay : PillOverlayBase
 {
-    private readonly TextBlock _leftLabel;
-    private readonly TextBlock _leftNum;
-    private readonly TextBlock _rightNum;
-    private readonly TextBlock _rightLabel;
+    private readonly StackPanel _row;
+    private readonly Image _awayLogo, _homeLogo;
+    private readonly TextBlock _awayAbbr, _homeAbbr, _awayScore, _homeScore, _status, _awayPoss, _homePoss;
+    private readonly TextBlock _message;
+    private static readonly Dictionary<string, BitmapImage> LogoCache = new();
 
     public ScoreOverlay() : base("", Color.FromRgb(0xFF, 0xD1, 0x6A))
     {
-        _leftLabel = Label("YOU", 0);
-        _leftNum = Value(Colors.White, 20);
-        _leftNum.Margin = new Thickness(6, 0, 0, 0);
-        var colon = Value(Color.FromRgb(0x8A, 0x93, 0xA8), 18);
-        colon.Text = ":";
-        colon.Margin = new Thickness(7, 0, 7, 0);
-        _rightNum = Value(Colors.White, 20);
-        _rightLabel = Label("THEM", 8);
+        Body.Children.Clear();   // this overlay is a score bug, not an icon+text pill
 
-        Body.Children.Add(_leftLabel);
-        Body.Children.Add(_leftNum);
-        Body.Children.Add(colon);
-        Body.Children.Add(_rightNum);
-        Body.Children.Add(_rightLabel);
+        _awayLogo = Logo();
+        _awayAbbr = Abbr(); _awayAbbr.Margin = new Thickness(6, 0, 0, 0);
+        _awayPoss = PossDot();
+        _awayScore = Num(); _awayScore.Margin = new Thickness(6, 0, 0, 0);
+
+        _status = new TextBlock
+        {
+            Text = "", FontSize = 11, FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0xA3, 0xB8)),
+            VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(12, 0, 12, 0), MinWidth = 64
+        };
+
+        _homeScore = Num(); _homeScore.Margin = new Thickness(0, 0, 6, 0);
+        _homePoss = PossDot();
+        _homeAbbr = Abbr(); _homeAbbr.Margin = new Thickness(0, 0, 6, 0);
+        _homeLogo = Logo();
+
+        _row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        _row.Children.Add(_awayLogo);
+        _row.Children.Add(_awayAbbr);
+        _row.Children.Add(_awayPoss);
+        _row.Children.Add(_awayScore);
+        _row.Children.Add(_status);
+        _row.Children.Add(_homeScore);
+        _row.Children.Add(_homePoss);
+        _row.Children.Add(_homeAbbr);
+        _row.Children.Add(_homeLogo);
+
+        _message = new TextBlock
+        {
+            Text = "No game selected", FontSize = 12, FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0xA3, 0xB8)),
+            VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed
+        };
+
+        Body.Children.Add(_row);
+        Body.Children.Add(_message);
     }
 
-    public void SetScore(string? leftLabel, int left, string? rightLabel, int right)
+    /// <summary>Shows a live game. Final games read "FINAL"; others show the clock/kickoff.</summary>
+    public void SetGame(GameInfo g)
     {
-        _leftLabel.Text = (leftLabel ?? "").Trim().ToUpperInvariant();
-        _leftLabel.Visibility = _leftLabel.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-        _rightLabel.Text = (rightLabel ?? "").Trim().ToUpperInvariant();
-        _rightLabel.Visibility = _rightLabel.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-        _leftNum.Text = left.ToString();
-        _rightNum.Text = right.ToString();
+        _awayAbbr.Text = Short(g.AwayAbbr);
+        _awayLogo.Source = LoadLogo(g.AwayLogo);
+        _awayScore.Text = g.AwayScore.ToString();
+        _awayPoss.Visibility = g.AwayHasBall ? Visibility.Visible : Visibility.Collapsed;
+
+        _homeAbbr.Text = Short(g.HomeAbbr);
+        _homeLogo.Source = LoadLogo(g.HomeLogo);
+        _homeScore.Text = g.HomeScore.ToString();
+        _homePoss.Visibility = g.HomeHasBall ? Visibility.Visible : Visibility.Collapsed;
+
+        _status.Text = StatusLine(g);
+
+        // Pre-game scores are 0-0 and uninteresting, so dim them until kickoff.
+        double scoreOpacity = g.State == "pre" ? 0.4 : 1.0;
+        _awayScore.Opacity = scoreOpacity;
+        _homeScore.Opacity = scoreOpacity;
+
+        _row.Visibility = Visibility.Visible;
+        _message.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>Shows a single centred line instead of a game (e.g. "Loading…").</summary>
+    public void SetMessage(string text)
+    {
+        _message.Text = text;
+        _message.Visibility = Visibility.Visible;
+        _row.Visibility = Visibility.Collapsed;
     }
 
     public void PlaceDefault() => PlaceTopCentre(120);
+
+    private static TextBlock Abbr() => new()
+    {
+        Text = "", FontSize = 13, FontWeight = FontWeights.Bold, Foreground = Brushes.White,
+        VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Center
+    };
+
+    private static Image Logo() => new()
+    {
+        Width = 22, Height = 22, Stretch = Stretch.Uniform,
+        VerticalAlignment = VerticalAlignment.Center, SnapsToDevicePixels = true
+    };
+
+    private static TextBlock PossDot() => new()
+    {
+        Text = "●", FontSize = 9,
+        Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD1, 0x6A)),
+        VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0),
+        Visibility = Visibility.Collapsed, ToolTip = "Has the ball"
+    };
+
+    private static TextBlock Num() => new()
+    {
+        Text = "0", FontSize = 22, FontWeight = FontWeights.Black, Foreground = Brushes.White,
+        VerticalAlignment = VerticalAlignment.Center, MinWidth = 22, TextAlignment = TextAlignment.Center
+    };
+
+    private static string Short(string abbr) =>
+        string.IsNullOrWhiteSpace(abbr) ? "—" : (abbr.Length > 4 ? abbr.Substring(0, 4) : abbr).ToUpperInvariant();
+
+    /// <summary>The middle text: FINAL, or the clock plus down &amp; distance when live.</summary>
+    private static string StatusLine(GameInfo g)
+    {
+        if (g.Final) return "FINAL";
+        string s = (g.StatusText ?? "").Trim();
+        if (g.InProgress && !string.IsNullOrWhiteSpace(g.DownDistance)) s += "  ·  " + g.DownDistance;
+        return s;
+    }
+
+    /// <summary>Loads a team logo from its URL (cached), or null for no/blank URL.
+    /// Shared so the Scoreboard tab's game list can show the same logos.</summary>
+    public static BitmapImage? LoadLogo(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (LogoCache.TryGetValue(url, out BitmapImage? cached)) return cached;
+        try
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.DecodePixelHeight = 44;
+            bmp.UriSource = new Uri(url, UriKind.Absolute);
+            bmp.EndInit();
+            LogoCache[url] = bmp;
+            return bmp;
+        }
+        catch { return null; }
+    }
 }

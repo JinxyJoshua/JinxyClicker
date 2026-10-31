@@ -1214,6 +1214,8 @@
                             Click="NavSocd_Click"/>
                     <Button x:Name="NavOverlays" app:NavIcon.Glyph="&#xE7F4;" Content="OVERLAYS" Style="{StaticResource NavButton}"
                             Click="NavOverlays_Click"/>
+                    <Button x:Name="NavScore" app:NavIcon.Glyph="&#xE734;" Content="SCOREBOARD" Style="{StaticResource NavButton}"
+                            Click="NavScore_Click"/>
                     <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
                             Click="NavClipStudio_Click"/>
                     <Button x:Name="NavEditor" app:NavIcon.Glyph="&#xE714;" Content="VIDEO EDITOR" Style="{StaticResource NavButton}"
@@ -2605,48 +2607,6 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Score control: set the scoreboard the Score overlay shows. -->
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <Border Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
-                                </Border>
-                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Style="{StaticResource CardTitle}" Text="Score"/>
-                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="A scoreboard you keep on screen"/>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
-                                <StackPanel Width="210">
-                                    <TextBox x:Name="ScoreLeftLabelBox" Style="{StaticResource InputField}" Text="You" MaxLength="12"
-                                             HorizontalContentAlignment="Center" TextChanged="ScoreLeftLabel_Changed"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                                        <Button Content="&#8722;" Click="ScoreLeftMinus_Click" Width="42" Height="42" FontSize="18"/>
-                                        <TextBlock x:Name="ScoreLeftValue" Text="0" FontSize="30" FontWeight="Black" Foreground="{StaticResource TextBright}"
-                                                   Width="66" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <Button Content="+" Click="ScoreLeftPlus_Click" Width="42" Height="42" FontSize="18"/>
-                                    </StackPanel>
-                                </StackPanel>
-                                <TextBlock Text=":" FontSize="28" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="20,0,20,16"/>
-                                <StackPanel Width="210">
-                                    <TextBox x:Name="ScoreRightLabelBox" Style="{StaticResource InputField}" Text="Them" MaxLength="12"
-                                             HorizontalContentAlignment="Center" TextChanged="ScoreRightLabel_Changed"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                                        <Button Content="&#8722;" Click="ScoreRightMinus_Click" Width="42" Height="42" FontSize="18"/>
-                                        <TextBlock x:Name="ScoreRightValue" Text="0" FontSize="30" FontWeight="Black" Foreground="{StaticResource TextBright}"
-                                                   Width="66" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <Button Content="+" Click="ScoreRightPlus_Click" Width="42" Height="42" FontSize="18"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <Button Content="Reset" Click="ScoreReset_Click" HorizontalAlignment="Center" Padding="18,6" Margin="0,14,0,0"/>
-                            <TextBlock Text="Turn Score on above to show it over the game. The numbers are yours to set — nothing is read from the game."
-                                       Style="{StaticResource CardSubtitle}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,12,0,0"/>
-                        </StackPanel>
-                    </Border>
 
                     <!-- Keystrokes is a grid card now; these controls are kept but
                          hidden because the engine and settings still drive them.
@@ -2662,6 +2622,49 @@
                             <TextBlock x:Name="KeystrokesHint"/>
                         </StackPanel>
                     </StackPanel>
+
+                </StackPanel>
+
+                <!-- Scoreboard: follow a real game's live score as an on-screen bug. -->
+                <StackPanel x:Name="PageScore" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Live scoreboard"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Pick a real game to show its score on screen"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <DockPanel LastChildFill="True">
+                                <CheckBox x:Name="ScoreShowCheck" DockPanel.Dock="Left" Content="Show on screen" VerticalAlignment="Center" Click="ScoreShow_Changed"/>
+                                <Button x:Name="ScoreRefreshButton" DockPanel.Dock="Right" Content="Refresh" Click="ScoreRefresh_Click" Height="32" Padding="14,0" Margin="8,0,0,0"/>
+                                <ComboBox x:Name="ScoreLeagueCombo" DockPanel.Dock="Right" Width="180" Height="32" Style="{StaticResource DarkCombo}" SelectionChanged="ScoreLeague_Changed"/>
+                            </DockPanel>
+                            <TextBlock x:Name="ScoreStatusText" Text="Loading games&#x2026;" Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,10,0,0" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE71D;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Today's games"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="College football shows the AP Top 25 &#x2014; click one to show it"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <ScrollViewer MaxHeight="440" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ScoreGameList"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
 
                 </StackPanel>
 

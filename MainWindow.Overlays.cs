@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
@@ -32,10 +33,13 @@ public partial class MainWindow
     private bool _overlayShowAlways;   // true = over any window, false = only while Roblox is front
     private bool _applyingOverlayShow;
     private string _watermarkText = "Jinxy";
-    private string _scoreLeftLabel = "You";
-    private string _scoreRightLabel = "Them";
-    private int _scoreLeft, _scoreRight;
-    private bool _applyingScore;
+    private ScoreLeague _scoreLeague = ScoreLeague.NFL;
+    private string? _scoreGameId;        // the ESPN event id we are following
+    private GameInfo? _scoreGame;        // its latest state, refreshed on a timer
+    private List<GameInfo> _scoreGames = new();
+    private DispatcherTimer? _scoreTimer;
+    private bool _scoreLoading;
+    private bool _applyingScoreUi;       // suppresses combo handlers while we populate them
 
     private static readonly Color OvGold = Color.FromRgb(0xFF, 0xD1, 0x6A);
 
@@ -74,7 +78,7 @@ public partial class MainWindow
         ("system",     "", "System",     "CPU 18%",     OvBlue,   false),
         ("mouse",      "", "Mouse",      "L M R 4 5",   OvBlue,   false),
         ("clock",      "", "Clock",      "9:41",        OvPurple, false),
-        ("score",      "", "Score",      "0 : 0",       OvGold,   false),
+        ("score",      "", "Score",      "SF 24 · 20 SEA",       OvGold,   false),
         ("watermark",  "", "Watermark",  "Your name",   OvPurple, false),
         ("keystrokes", "", "Keystrokes", "W A S D",     OvRed,    true),
         ("music",      "", "Music",      "Now playing", OvPurple, false),
@@ -90,6 +94,15 @@ public partial class MainWindow
         UpdateInfoOverlays();
     }
 
+    private async void NavScore_Click(object sender, RoutedEventArgs e)
+    {
+        ShowPage(NavScore, PageScore, "Scoreboard", "Follow a live game's score on screen");
+        PopulateLeagueCombo();
+        SyncScoreShowToggle();
+        if (_scoreGames.Count == 0) await LoadScoreGamesAsync(_scoreGameId);
+        else BuildScoreList();
+    }
+
     private void LoadOverlaySettings(AppSettings s)
     {
         _ovFps = s.OverlayFps;
@@ -101,17 +114,15 @@ public partial class MainWindow
         _ovScore = s.OverlayScore;
         _overlayShowAlways = s.OverlayShowAlways;
         _watermarkText = string.IsNullOrWhiteSpace(s.OverlayWatermarkText) ? "Jinxy" : s.OverlayWatermarkText;
-        _scoreLeftLabel = s.ScoreLeftLabel ?? "You";
-        _scoreRightLabel = s.ScoreRightLabel ?? "Them";
-        _scoreLeft = s.ScoreLeft;
-        _scoreRight = s.ScoreRight;
+        _scoreLeague = ParseLeague(s.OverlayScoreLeague);
+        _scoreGameId = string.IsNullOrWhiteSpace(s.OverlayScoreGameId) ? null : s.OverlayScoreGameId;
 
-        _applyingScore = true;
-        if (ScoreLeftLabelBox != null) ScoreLeftLabelBox.Text = _scoreLeftLabel;
-        if (ScoreRightLabelBox != null) ScoreRightLabelBox.Text = _scoreRightLabel;
-        if (ScoreLeftValue != null) ScoreLeftValue.Text = _scoreLeft.ToString();
-        if (ScoreRightValue != null) ScoreRightValue.Text = _scoreRight.ToString();
-        _applyingScore = false;
+        _applyingScoreUi = true;
+        PopulateLeagueCombo();
+        _applyingScoreUi = false;
+
+        // Re-follow the saved game (loads today's list, then re-selects it).
+        if (_scoreGameId != null) _ = RestoreScoreSelectionAsync();
 
         _applyingOverlayShow = true;
         if (OverlayShowEverywhere != null) OverlayShowEverywhere.IsChecked = _overlayShowAlways;
@@ -593,7 +604,7 @@ public partial class MainWindow
             case "mouse": _ovMouse = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "clock": _ovClock = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "watermark": _ovWatermark = on; ApplyInfoOverlays(); SaveAppSettings(); break;
-            case "score": _ovScore = on; ApplyInfoOverlays(); SaveAppSettings(); break;
+            case "score": _ovScore = on; SyncScoreShowToggle(); ApplyInfoOverlays(); SaveAppSettings(); break;
             case "music": _ovMusic = on; ApplyInfoOverlays(); SaveAppSettings(); break;
         }
 
@@ -747,7 +758,8 @@ public partial class MainWindow
         {
             if (_scoreOverlay == null) { _scoreOverlay = new ScoreOverlay(); _scoreOverlay.Moved += SaveScorePos; }
             _scoreOverlay.StreamerMode = streamer;
-            _scoreOverlay.SetScore(_scoreLeftLabel, _scoreLeft, _scoreRightLabel, _scoreRight);
+            if (_scoreGame is { } sg) _scoreOverlay.SetGame(sg);
+            else _scoreOverlay.SetMessage(_scoreLoading ? "Loading score…" : "Pick a game on the Overlays page");
             _scoreOverlay.SetMoveMode(_overlayMoveMode);
             if (front)
             {
@@ -812,36 +824,197 @@ public partial class MainWindow
     private void SaveWmPos() { if (_watermarkOverlay != null) { _wmX = _watermarkOverlay.Left; _wmY = _watermarkOverlay.Top; SaveAppSettings(); } }
     private void SaveScorePos() { if (_scoreOverlay != null) { _scoreX = _scoreOverlay.Left; _scoreY = _scoreOverlay.Top; SaveAppSettings(); } }
 
-    // ---- score controls (on the Overlays page) ----
+    // ---- Scoreboard tab: follow a real game's live score ----
 
-    private void ScoreLeftPlus_Click(object sender, RoutedEventArgs e) { _scoreLeft++; ScoreChanged(); }
-    private void ScoreLeftMinus_Click(object sender, RoutedEventArgs e) { _scoreLeft--; ScoreChanged(); }
-    private void ScoreRightPlus_Click(object sender, RoutedEventArgs e) { _scoreRight++; ScoreChanged(); }
-    private void ScoreRightMinus_Click(object sender, RoutedEventArgs e) { _scoreRight--; ScoreChanged(); }
-    private void ScoreReset_Click(object sender, RoutedEventArgs e) { _scoreLeft = 0; _scoreRight = 0; ScoreChanged(); }
+    private static ScoreLeague ParseLeague(string? s) =>
+        Enum.TryParse(s, out ScoreLeague l) ? l : ScoreLeague.CollegeFootball;
 
-    private void ScoreLeftLabel_Changed(object sender, TextChangedEventArgs e)
+    private void PopulateLeagueCombo()
     {
-        if (_applyingScore) return;
-        _scoreLeftLabel = ScoreLeftLabelBox?.Text ?? "";
-        ScoreChanged();
+        if (ScoreLeagueCombo == null) return;
+        if (ScoreLeagueCombo.Items.Count == 0)
+            foreach (ScoreLeague l in Enum.GetValues<ScoreLeague>())
+                ScoreLeagueCombo.Items.Add(new ComboBoxItem { Content = SportsScores.DisplayName(l), Tag = l });
+        foreach (ComboBoxItem it in ScoreLeagueCombo.Items)
+            if (it.Tag is ScoreLeague l && l == _scoreLeague) { ScoreLeagueCombo.SelectedItem = it; break; }
     }
 
-    private void ScoreRightLabel_Changed(object sender, TextChangedEventArgs e)
+    private async void ScoreLeague_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_applyingScore) return;
-        _scoreRightLabel = ScoreRightLabelBox?.Text ?? "";
-        ScoreChanged();
+        if (_applyingScoreUi) return;
+        if (ScoreLeagueCombo?.SelectedItem is ComboBoxItem { Tag: ScoreLeague l }) _scoreLeague = l;
+        SaveAppSettings();
+        await LoadScoreGamesAsync(null);
     }
 
-    private void ScoreChanged()
+    private async void ScoreRefresh_Click(object sender, RoutedEventArgs e) => await LoadScoreGamesAsync(_scoreGameId);
+
+    /// <summary>Fetches today's games (Top 25 for college football, else all), fills the
+    /// clickable list, and keeps following the selected game if it is still on.</summary>
+    private async System.Threading.Tasks.Task LoadScoreGamesAsync(string? selectId)
     {
-        if (ScoreLeftValue != null) ScoreLeftValue.Text = _scoreLeft.ToString();
-        if (ScoreRightValue != null) ScoreRightValue.Text = _scoreRight.ToString();
-        _scoreOverlay?.SetScore(_scoreLeftLabel, _scoreLeft, _scoreRightLabel, _scoreRight);
+        _scoreLoading = true;
+        SetScoreStatus("Loading games…");
+        if (ScoreRefreshButton != null) ScoreRefreshButton.IsEnabled = false;
+
+        List<GameInfo> games = _scoreLeague == ScoreLeague.CollegeFootball
+            ? await SportsScores.GetTop25GamesAsync()
+            : await SportsScores.GetGamesAsync(_scoreLeague);
+
+        _scoreLoading = false;
+        if (ScoreRefreshButton != null) ScoreRefreshButton.IsEnabled = true;
+        _scoreGames = games;
+        BuildScoreList();
+
+        if (games.Count == 0)
+        {
+            SetScoreStatus(_scoreLeague == ScoreLeague.CollegeFootball
+                ? "No ranked games on right now."
+                : "No games found today for this league.");
+            return;
+        }
+        SetScoreStatus($"{games.Count} game{(games.Count == 1 ? "" : "s")} — click one to show it.");
+
+        string? target = selectId ?? _scoreGameId;
+        GameInfo? still = target == null ? null : games.Find(g => g.Id == target);
+        if (still != null) { _scoreGame = still; _scoreOverlay?.SetGame(still); HighlightScoreRow(); }
+    }
+
+    /// <summary>Builds the clickable game rows: rank, team logos, abbreviations, score, status.</summary>
+    private void BuildScoreList()
+    {
+        if (ScoreGameList == null) return;
+        ScoreGameList.Children.Clear();
+        foreach (GameInfo g in _scoreGames)
+            ScoreGameList.Children.Add(BuildScoreRow(g));
+        HighlightScoreRow();
+    }
+
+    private Border BuildScoreRow(GameInfo g)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(new TextBlock
+        {
+            Text = g.BestRank <= 25 ? "#" + g.BestRank : "", Width = 32, FontSize = 11, FontWeight = FontWeights.Bold,
+            Foreground = Brush("Accent"), VerticalAlignment = VerticalAlignment.Center
+        });
+        row.Children.Add(RowLogo(g.AwayLogo));
+        row.Children.Add(RowText(g.AwayAbbr, 46, true));
+        row.Children.Add(RowText(g.State == "pre" ? "" : g.AwayScore.ToString(), 28, true));
+        row.Children.Add(RowText("@", 18, false));
+        row.Children.Add(RowLogo(g.HomeLogo));
+        row.Children.Add(RowText(g.HomeAbbr, 46, true));
+        row.Children.Add(RowText(g.State == "pre" ? "" : g.HomeScore.ToString(), 28, true));
+        row.Children.Add(new TextBlock
+        {
+            Text = g.Final ? "FINAL" : g.StatusText, FontSize = 11, Foreground = Brush("TextMuted"),
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+
+        var border = new Border
+        {
+            Background = Brush("Panel2"), CornerRadius = new CornerRadius(7),
+            BorderBrush = Brush("Outline"), BorderThickness = new Thickness(1),
+            Padding = new Thickness(10, 8, 10, 8), Margin = new Thickness(0, 0, 0, 7),
+            Cursor = System.Windows.Input.Cursors.Hand, Tag = g.Id, Child = row
+        };
+        border.MouseLeftButtonUp += (_, _) => OnScoreRowClick(g.Id);
+        return border;
+    }
+
+    private static Image RowLogo(string? url)
+    {
+        var img = new Image
+        {
+            Width = 22, Height = 22, Stretch = Stretch.Uniform,
+            Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center
+        };
+        BitmapImage? bmp = ScoreOverlay.LoadLogo(url);
+        if (bmp != null) img.Source = bmp;
+        return img;
+    }
+
+    private TextBlock RowText(string text, double width, bool bright) => new()
+    {
+        Text = text, Width = width, FontSize = 13, FontWeight = bright ? FontWeights.Bold : FontWeights.Normal,
+        Foreground = bright ? Brush("TextBright") : Brush("TextMuted"), VerticalAlignment = VerticalAlignment.Center
+    };
+
+    private void HighlightScoreRow()
+    {
+        if (ScoreGameList == null) return;
+        foreach (object child in ScoreGameList.Children)
+            if (child is Border { Tag: string id } b)
+            {
+                bool on = id == _scoreGameId;
+                b.BorderBrush = on ? Brush("Accent") : Brush("Outline");
+                b.BorderThickness = new Thickness(on ? 2 : 1);
+            }
+    }
+
+    /// <summary>Clicking a game turns the score overlay on and follows that game.</summary>
+    private void OnScoreRowClick(string id)
+    {
+        _ovScore = true;
+        SetToggle("score", true);
+        SyncScoreShowToggle();
+        SelectScoreGame(id);
+        ApplyInfoOverlays();
+    }
+
+    private void SelectScoreGame(string id)
+    {
+        _scoreGameId = id;
+        _scoreGame = _scoreGames.Find(g => g.Id == id);
+        if (_scoreGame is { } g) { _scoreOverlay?.SetGame(g); SetScoreStatus("Showing: " + g.ShortName); }
+        HighlightScoreRow();
+        EnsureScoreTimer();
         RefreshPreview();
         SaveAppSettings();
     }
+
+    private void ScoreShow_Changed(object sender, RoutedEventArgs e)
+    {
+        _ovScore = ScoreShowCheck?.IsChecked == true;
+        SetToggle("score", _ovScore);
+        ApplyInfoOverlays();
+        RefreshPreview();
+        SaveAppSettings();
+    }
+
+    private void SyncScoreShowToggle()
+    {
+        if (ScoreShowCheck != null) ScoreShowCheck.IsChecked = _ovScore;
+    }
+
+    private void EnsureScoreTimer()
+    {
+        if (_scoreTimer != null) { _scoreTimer.Start(); return; }
+        _scoreTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(25) };
+        _scoreTimer.Tick += async (_, _) => await RefreshScoreAsync();
+        _scoreTimer.Start();
+    }
+
+    /// <summary>Re-reads the list so both the overlay and the on-screen list stay live.</summary>
+    private async System.Threading.Tasks.Task RefreshScoreAsync()
+    {
+        List<GameInfo> games = _scoreLeague == ScoreLeague.CollegeFootball
+            ? await SportsScores.GetTop25GamesAsync()
+            : await SportsScores.GetGamesAsync(_scoreLeague);
+        if (games.Count == 0) return;
+        _scoreGames = games;
+        BuildScoreList();
+        if (_scoreGameId != null)
+        {
+            GameInfo? g = games.Find(x => x.Id == _scoreGameId);
+            if (g != null) { _scoreGame = g; _scoreOverlay?.SetGame(g); }
+        }
+    }
+
+    private async System.Threading.Tasks.Task RestoreScoreSelectionAsync() => await LoadScoreGamesAsync(_scoreGameId);
+
+    private void SetScoreStatus(string text) { if (ScoreStatusText != null) ScoreStatusText.Text = text; }
 
     // Sets a window to a saved spot (clamped on-screen), or its default corner.
     private static void PlacePill(Window w, double? x, double? y, Action placeDefault)

@@ -135,6 +135,8 @@
     <Compile Include="../ClipLibrary.Tests.cs" />
     <Compile Include="../MontageMaker.cs" />
     <Compile Include="../MontageMaker.Tests.cs" />
+    <Compile Include="../SportsScores.cs" />
+    <Compile Include="../SportsScores.Tests.cs" />
     <Compile Include="../TitleCard.cs" />
     <Compile Include="../TitleCard.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->

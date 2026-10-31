@@ -313,12 +313,11 @@ public sealed class AppSettings
     public bool OverlayWatermark { get; set; }
     public string OverlayWatermarkText { get; set; } = "Jinxy";
 
-    /// <summary>Score overlay: a scoreboard with two labels and two numbers you set.</summary>
+    /// <summary>Score overlay: follows a real game's live score (ESPN). League name and
+    /// the followed game's id; empty id means nothing is being followed yet.</summary>
     public bool OverlayScore { get; set; }
-    public string ScoreLeftLabel { get; set; } = "You";
-    public string ScoreRightLabel { get; set; } = "Them";
-    public int ScoreLeft { get; set; }
-    public int ScoreRight { get; set; }
+    public string OverlayScoreLeague { get; set; } = "NFL";
+    public string OverlayScoreGameId { get; set; } = "";
 
     /// <summary>True = overlays show over any window; false = only while Roblox is in front.</summary>
     public bool OverlayShowAlways { get; set; }
