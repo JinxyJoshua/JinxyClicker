@@ -36,13 +36,21 @@ public static class RobloxSens
         catch { return null; }
     }
 
-    /// <summary>Writes the sensitivity back. Returns false if the file isn't there.</summary>
+    /// <summary>
+    /// Writes the sensitivity back. Returns false if the file isn't there, or if
+    /// it can't be read or written (e.g. locked while Roblox is running, or
+    /// read-only) — never throws, matching <see cref="Read"/>.
+    /// </summary>
     public static bool Write(float value)
     {
-        string? path = SettingsFile();
-        if (path == null) return false;
-        File.WriteAllText(path, SetSensitivityInXml(File.ReadAllText(path), value));
-        return true;
+        try
+        {
+            string? path = SettingsFile();
+            if (path == null) return false;
+            File.WriteAllText(path, SetSensitivityInXml(File.ReadAllText(path), value));
+            return true;
+        }
+        catch { return false; }
     }
 
     /// <summary>

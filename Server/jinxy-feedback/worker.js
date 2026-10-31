@@ -44,6 +44,11 @@ async function handleSubmit(request, env) {
     return json({ ok: false, error: "You're sending these a little fast — give it a minute." }, 429);
   }
 
+  // Count the attempt before validating. Otherwise a flood of malformed bodies
+  // sails past the gate unmetered (each still costs a KV read). Best-effort: KV
+  // get→put is not atomic, so simultaneous submits from one IP can under-count.
+  await env.FEEDBACK.put(rlKey, String(used + 1), { expirationTtl: RATE_WINDOW });
+
   let data;
   try {
     data = await request.json();
@@ -73,7 +78,6 @@ async function handleSubmit(request, env) {
   };
 
   await env.FEEDBACK.put("fb:" + id, JSON.stringify(record), { expirationTtl: KEEP_SECONDS });
-  await env.FEEDBACK.put(rlKey, String(used + 1), { expirationTtl: RATE_WINDOW });
 
   return json({ ok: true });
 }
@@ -119,7 +123,19 @@ async function handleDelete(request, env) {
 function authed(request, env) {
   const header = request.headers.get("authorization") || "";
   const match = header.match(/^Bearer\s+(.+)$/i);
-  return Boolean(env.DEV_TOKEN) && match !== null && match[1] === env.DEV_TOKEN;
+  return Boolean(env.DEV_TOKEN) && match !== null && timingSafeEqual(match[1], env.DEV_TOKEN);
+}
+
+// Compares two strings in time independent of where they first differ, so the
+// dev token can't be recovered byte-by-byte from response timing. The length is
+// allowed to short-circuit — only the token's length leaks, not its contents.
+function timingSafeEqual(a, b) {
+  const ea = new TextEncoder().encode(String(a));
+  const eb = new TextEncoder().encode(String(b));
+  if (ea.length !== eb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
+  return diff === 0;
 }
 
 // Strips control characters (except tab/newline), trims, and caps the length.

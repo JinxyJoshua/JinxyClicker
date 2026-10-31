@@ -47,15 +47,13 @@ public class SportsScoresTests
     }
 
     [Fact]
-    public void Reads_teams_scores_and_colors_with_home_away_split()
+    public void Reads_teams_and_scores_with_home_away_split()
     {
         GameInfo g = SportsScores.ParseScoreboard(Sample).First(x => x.Id == "401");
         Assert.Equal("FLA VS UGA", g.ShortName);
         Assert.Equal("FLA", g.AwayAbbr);
-        Assert.Equal("0021a5", g.AwayColorHex);
         Assert.Equal(10, g.AwayScore);
         Assert.Equal("UGA", g.HomeAbbr);
-        Assert.Equal("ba0c2f", g.HomeColorHex);
         Assert.Equal(14, g.HomeScore);
     }
 

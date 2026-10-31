@@ -17,8 +17,8 @@ public enum ScoreLeague { CollegeFootball, NFL, NBA, NHL, MLB }
 public sealed record GameInfo(
     string Id,
     string ShortName,
-    string AwayAbbr, string AwayColorHex, int AwayScore, string AwayId, string AwayLogo, int AwayRank,
-    string HomeAbbr, string HomeColorHex, int HomeScore, string HomeId, string HomeLogo, int HomeRank,
+    string AwayAbbr, int AwayScore, string AwayId, string AwayLogo, int AwayRank,
+    string HomeAbbr, int HomeScore, string HomeId, string HomeLogo, int HomeRank,
     string StatusText, string State, string PossessionId, string DownDistance)
 {
     public bool InProgress => State == "in";
@@ -208,18 +208,17 @@ public static class SportsScores
                 || cs.ValueKind != JsonValueKind.Array)
                 return null;
 
-            string awA = "", awC = "", awId = "", awLogo = "", hmA = "", hmC = "", hmId = "", hmLogo = "";
+            string awA = "", awId = "", awLogo = "", hmA = "", hmId = "", hmLogo = "";
             int awS = 0, hmS = 0, awRank = 99, hmRank = 99;
             bool haveHome = false, haveAway = false;
 
             foreach (JsonElement c in cs.EnumerateArray())
             {
                 bool home = Str(c, "homeAway") == "home";
-                string abbr = "", color = "", teamId = "", logo = "";
+                string abbr = "", teamId = "", logo = "";
                 if (c.TryGetProperty("team", out JsonElement team))
                 {
                     abbr = Str(team, "abbreviation");
-                    color = Str(team, "color");
                     teamId = Str(team, "id");
                     logo = Str(team, "logo");
                 }
@@ -230,14 +229,14 @@ public static class SportsScores
                     && cur.TryGetInt32(out int rv) && rv > 0 && rv <= 25)
                     rank = rv;
 
-                if (home) { hmA = abbr; hmC = color; hmS = score; hmId = teamId; hmLogo = logo; hmRank = rank; haveHome = true; }
-                else { awA = abbr; awC = color; awS = score; awId = teamId; awLogo = logo; awRank = rank; haveAway = true; }
+                if (home) { hmA = abbr; hmS = score; hmId = teamId; hmLogo = logo; hmRank = rank; haveHome = true; }
+                else { awA = abbr; awS = score; awId = teamId; awLogo = logo; awRank = rank; haveAway = true; }
             }
 
             if (!haveHome || !haveAway) return null;
             return new GameInfo(id, shortName,
-                awA, awC, awS, awId, awLogo, awRank,
-                hmA, hmC, hmS, hmId, hmLogo, hmRank,
+                awA, awS, awId, awLogo, awRank,
+                hmA, hmS, hmId, hmLogo, hmRank,
                 statusText, state, possession, down);
         }
         catch { return null; }
