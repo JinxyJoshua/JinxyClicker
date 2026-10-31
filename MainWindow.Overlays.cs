@@ -79,7 +79,6 @@ public partial class MainWindow
         BuildOverlaysPage();
         RefreshOverlayToggles();
         ApplyKeystrokesPro();
-        StartInfoOverlayTimerForMove();   // show the real overlays while arranging
         UpdateInfoOverlays();
     }
 
@@ -611,7 +610,8 @@ public partial class MainWindow
 
     private void ApplyInfoOverlays()
     {
-        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse || _ovClock || _ovWatermark;
+        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse || _ovClock || _ovWatermark
+                   || (IsPro && _keystrokesEnabled);
         if (any)
         {
             _infoOverlayTimer ??= CreateInfoOverlayTimer();
@@ -630,10 +630,10 @@ public partial class MainWindow
 
     private void UpdateInfoOverlays()
     {
-        // Show the overlays while the Overlays page is open (so arranging in the
-        // preview lands on the real screen) and in move mode, as well as in-game.
-        bool onPage = PageOverlays is { IsVisible: true };
-        bool front = _overlayMoveMode || onPage || _overlayShowAlways || RobloxForeground.IsFront();
+        // Move mode always shows them (you're placing them). Otherwise the Show
+        // switch decides: "Windows too" shows everywhere, "Only Roblox" shows only
+        // while Roblox is the front window.
+        bool front = _overlayMoveMode || _overlayShowAlways || RobloxForeground.IsFront();
         bool streamer = StreamerModeCheck?.IsChecked == true;
 
         if (_ovFps)
@@ -737,7 +737,7 @@ public partial class MainWindow
         // The CPS card has a run-driven life of its own; show it here too while
         // configuring (page open or move mode) so it can be arranged like the rest.
         bool clicking = _overlayTimer?.IsEnabled == true;
-        bool configView = _overlayMoveMode || onPage;
+        bool configView = _overlayMoveMode || _overlayShowAlways;
         if (OverlayCheck?.IsChecked == true && configView && !clicking)
         {
             _overlay ??= new ClickOverlay { StreamerMode = streamer };
@@ -751,6 +751,13 @@ public partial class MainWindow
         {
             _overlay.SetMoveMode(false);
             _overlay.Hide();
+        }
+
+        // Keystrokes follows the same Show switch as the rest.
+        if (_keystrokes is { } ks && IsPro && _keystrokesEnabled)
+        {
+            if (front && !ks.IsVisible) ks.Show();
+            else if (!front && ks.IsVisible) ks.Hide();
         }
     }
 

@@ -115,6 +115,7 @@ public partial class MainWindow
     private void ApplyKeystrokesState()
     {
         bool show = IsPro && _keystrokesEnabled;
+        if (show) StartInfoOverlayTimerForMove();   // so the Show-switch gate keeps ticking
         if (show)
         {
             if (_keystrokes is null)
