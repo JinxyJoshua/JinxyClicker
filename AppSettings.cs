@@ -309,6 +309,9 @@ public sealed class AppSettings
     public bool OverlaySystem { get; set; }
     public bool OverlayMusic { get; set; }
     public bool OverlayMouse { get; set; }
+    public bool OverlayClock { get; set; }
+    public bool OverlayWatermark { get; set; }
+    public string OverlayWatermarkText { get; set; } = "Jinxy";
 
     /// <summary>Dragged positions for the movable overlays; null means its default corner.</summary>
     public double? OverlayCpsX { get; set; }
@@ -321,6 +324,10 @@ public sealed class AppSettings
     public double? OverlayMusicY { get; set; }
     public double? OverlayMouseX { get; set; }
     public double? OverlayMouseY { get; set; }
+    public double? OverlayClockX { get; set; }
+    public double? OverlayClockY { get; set; }
+    public double? OverlayWatermarkX { get; set; }
+    public double? OverlayWatermarkY { get; set; }
 
     /// <summary>Pro: the on-screen keystrokes + CPS overlay.</summary>
     public bool KeystrokesOverlay { get; set; }

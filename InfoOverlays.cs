@@ -147,6 +147,14 @@ public abstract class PillOverlayBase : Window
         Top = SystemParameters.WorkArea.Bottom - ActualHeight - margin;
     }
 
+    /// <summary>Pins the pill to the bottom-right corner.</summary>
+    protected void PlaceBottomRight(int margin)
+    {
+        UpdateLayout();
+        Left = SystemParameters.WorkArea.Right - ActualWidth - margin;
+        Top = SystemParameters.WorkArea.Bottom - ActualHeight - margin;
+    }
+
     private void ApplyCaptureVisibility()
     {
         try
@@ -292,8 +300,10 @@ public sealed class MouseOverlay : PillOverlayBase
     {
         public int Vk;
         public Border Border = null!;
-        public TextBlock Label = null!;
+        public TextBlock Letter = null!;
+        public TextBlock Count = null!;
         public bool Down;
+        public int Clicks;
     }
 
     private static readonly Color Rest = Color.FromArgb(0x55, 0x2A, 0x2E, 0x3C);
@@ -311,7 +321,7 @@ public sealed class MouseOverlay : PillOverlayBase
         AddCap("4", VK_XBUTTON1);
         AddCap("5", VK_XBUTTON2);
 
-        _poll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(24) };
+        _poll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _poll.Tick += (_, _) => Poll();
     }
 
@@ -320,22 +330,32 @@ public sealed class MouseOverlay : PillOverlayBase
 
     private void AddCap(string text, int vk)
     {
-        var label = new TextBlock
+        var letter = new TextBlock
         {
             Text = text, FontSize = 12, FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(RestText),
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center
         };
+        var count = new TextBlock
+        {
+            Text = "0", FontSize = 10, FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(RestText),
+            HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 1, 0, 0)
+        };
+        var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        stack.Children.Add(letter);
+        stack.Children.Add(count);
+
         var border = new Border
         {
-            Width = 30, Height = 26, Margin = new Thickness(2, 0, 2, 0),
-            CornerRadius = new CornerRadius(5),
+            Width = 34, Height = 38, Margin = new Thickness(2, 0, 2, 0),
+            CornerRadius = new CornerRadius(6),
             Background = new SolidColorBrush(Rest),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
-            Child = label
+            Child = stack
         };
-        _caps.Add(new Cap { Vk = vk, Border = border, Label = label });
+        _caps.Add(new Cap { Vk = vk, Border = border, Letter = letter, Count = count });
         Body.Children.Add(border);
     }
 
@@ -349,13 +369,17 @@ public sealed class MouseOverlay : PillOverlayBase
 
             if (down)
             {
+                c.Clicks++;
+                c.Count.Text = c.Clicks.ToString();
                 c.Border.Background = new SolidColorBrush(_accent);
-                c.Label.Foreground = Brushes.White;
+                c.Letter.Foreground = Brushes.White;
+                c.Count.Foreground = Brushes.White;
             }
             else
             {
                 c.Border.Background = new SolidColorBrush(Rest);
-                c.Label.Foreground = new SolidColorBrush(RestText);
+                c.Letter.Foreground = new SolidColorBrush(RestText);
+                c.Count.Foreground = new SolidColorBrush(RestText);
             }
         }
     }
@@ -366,4 +390,52 @@ public sealed class MouseOverlay : PillOverlayBase
     public void PlaceDefault() => PlaceBottomLeft(28);
 
     [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
+}
+
+/// <summary>A minimal clock pill — the current time, for recordings and streams.</summary>
+public sealed class ClockOverlay : PillOverlayBase
+{
+    private readonly TextBlock _time;
+
+    public ClockOverlay() : base("", Color.FromRgb(0xA7, 0x8B, 0xFA))
+    {
+        _time = new TextBlock
+        {
+            Text = "--:--", FontSize = 15, FontWeight = FontWeights.Black,
+            Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center
+        };
+        Body.Children.Add(_time);
+    }
+
+    public void SetTime(string text)
+    {
+        if (_time.Text != text) _time.Text = text;
+    }
+
+    public void PlaceDefault() => PlaceTopCentre(72);
+}
+
+/// <summary>A custom text badge — a watermark / username over the game.</summary>
+public sealed class WatermarkOverlay : PillOverlayBase
+{
+    private readonly TextBlock _text;
+
+    public WatermarkOverlay() : base("", Color.FromRgb(0xA7, 0x8B, 0xFA))
+    {
+        _text = new TextBlock
+        {
+            Text = "Jinxy", FontSize = 14, FontWeight = FontWeights.Bold,
+            Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 260
+        };
+        Body.Children.Add(_text);
+    }
+
+    public void SetText(string? text)
+    {
+        string t = string.IsNullOrWhiteSpace(text) ? "Jinxy" : text!.Trim();
+        if (_text.Text != t) _text.Text = t;
+    }
+
+    public void PlaceDefault() => PlaceBottomRight(28);
 }

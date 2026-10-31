@@ -11,11 +11,11 @@ using System.Windows.Threading;
 namespace JinxyClicker;
 
 /// <summary>
-/// The Overlays page: a styled preview of every on-screen widget, plus a grid of
-/// toggles. The three new pills (FPS, system, music) are owned here; the CPS,
-/// keystrokes and server cards drive their existing controls so there is one
-/// source of truth for each. Nothing here reads the game beyond what those
-/// widgets already read.
+/// The Overlays page: a live preview that shows exactly the overlays you've
+/// switched on, and a grid of simple on/off cards. CPS, keystrokes and server
+/// drive their existing controls so there is one source of truth for each; FPS,
+/// system, mouse, clock, watermark and music are owned here. Nothing reads the
+/// game beyond what those widgets already read.
 /// </summary>
 public partial class MainWindow
 {
@@ -23,59 +23,72 @@ public partial class MainWindow
     private SystemOverlay? _systemOverlay;
     private MusicOverlay? _musicOverlay;
     private MouseOverlay? _mouseOverlay;
+    private ClockOverlay? _clockOverlay;
+    private WatermarkOverlay? _watermarkOverlay;
 
-    private bool _ovFps, _ovSystem, _ovMusic, _ovMouse;
+    private bool _ovFps, _ovSystem, _ovMusic, _ovMouse, _ovClock, _ovWatermark;
+    private string _watermarkText = "Jinxy";
+
     private bool _overlaysBuilt;
     private bool _syncingOverlayToggles;
     private bool _overlayMoveMode;
     private bool _cpsMovedHooked;
 
     // Dragged positions; null means "use the default corner".
-    private double? _cpsX, _cpsY, _fpsX, _fpsY, _sysX, _sysY, _musX, _musY, _mouseX, _mouseY;
+    private double? _cpsX, _cpsY, _fpsX, _fpsY, _sysX, _sysY, _musX, _musY,
+                    _mouseX, _mouseY, _clockX, _clockY, _wmX, _wmY;
 
     private DispatcherTimer? _infoOverlayTimer;
     private readonly Dictionary<string, CheckBox> _overlayToggles = new();
+    private readonly Dictionary<string, FrameworkElement> _previewItems = new();
 
     private string? _musicTitle;
     private long _lastMusicProbe;
 
-    // Accent purple shared with the real overlays, so the preview matches.
     private static readonly Color OvPurple = Color.FromRgb(0xA7, 0x8B, 0xFA);
     private static readonly Color OvGreen = Color.FromRgb(0x7A, 0xE5, 0x8A);
     private static readonly Color OvBlue = Color.FromRgb(0x6A, 0xB7, 0xFF);
     private static readonly Color OvRed = Color.FromRgb(0xFF, 0x6B, 0x74);
 
-    private static readonly (string Key, string Glyph, string Name, string Blurb, string Sample, Color Accent)[] OverlayCatalog =
+    // key, icon glyph, short name, the card's sample text, accent, Plus-only.
+    private static readonly (string Key, string Glyph, string Name, string Sample, Color Accent, bool Plus)[] OverlayCatalog =
     {
-        ("cps",        "", "CPS",        "Clicks per second, with a live graph",   "142",       OvPurple),
-        ("fps",        "", "FPS",        "Roblox's real frame rate",                "146 FPS",   OvGreen),
-        ("system",     "", "System",     "CPU and RAM load, machine-wide",          "CPU 18%",   OvBlue),
-        ("mouse",      "", "Mouse",      "Mouse buttons that light up as you click", "L M R 4 5", OvBlue),
-        ("music",      "", "Music",      "The track playing on the Music page",     "Now playing", OvPurple),
-        ("server",     "", "Server",     "The region of your Roblox server",        "EU West",   OvBlue),
+        ("cps",        "", "CPS",        "142",         OvPurple, false),
+        ("fps",        "", "FPS",        "146 FPS",     OvGreen,  false),
+        ("system",     "", "System",     "CPU 18%",     OvBlue,   false),
+        ("mouse",      "", "Mouse",      "L M R 4 5",   OvBlue,   false),
+        ("clock",      "", "Clock",      "9:41",        OvPurple, false),
+        ("watermark",  "", "Watermark",  "Your name",   OvPurple, false),
+        ("keystrokes", "", "Keystrokes", "W A S D",     OvRed,    true),
+        ("music",      "", "Music",      "Now playing", OvPurple, false),
+        ("server",     "", "Server",     "EU West",     OvBlue,   false),
     };
 
     private void NavOverlays_Click(object sender, RoutedEventArgs e)
     {
-        ShowPage(NavOverlays, PageOverlays, "Overlays", "The widgets you show on screen");
+        ShowPage(NavOverlays, PageOverlays, "Overlays", "Pick what shows over your game");
         BuildOverlaysPage();
         RefreshOverlayToggles();
-        ApplyKeystrokesPro();   // the Keystrokes card lives here now; keep its gating
+        ApplyKeystrokesPro();
     }
 
-    /// <summary>Reads the saved on/off state for the three pills and applies it.</summary>
     private void LoadOverlaySettings(AppSettings s)
     {
         _ovFps = s.OverlayFps;
         _ovSystem = s.OverlaySystem;
         _ovMusic = s.OverlayMusic;
         _ovMouse = s.OverlayMouse;
+        _ovClock = s.OverlayClock;
+        _ovWatermark = s.OverlayWatermark;
+        _watermarkText = string.IsNullOrWhiteSpace(s.OverlayWatermarkText) ? "Jinxy" : s.OverlayWatermarkText;
 
         _cpsX = s.OverlayCpsX; _cpsY = s.OverlayCpsY;
         _fpsX = s.OverlayFpsX; _fpsY = s.OverlayFpsY;
         _sysX = s.OverlaySystemX; _sysY = s.OverlaySystemY;
         _musX = s.OverlayMusicX; _musY = s.OverlayMusicY;
         _mouseX = s.OverlayMouseX; _mouseY = s.OverlayMouseY;
+        _clockX = s.OverlayClockX; _clockY = s.OverlayClockY;
+        _wmX = s.OverlayWatermarkX; _wmY = s.OverlayWatermarkY;
 
         _overlay?.SetSavedPosition(_cpsX, _cpsY);
         ApplyInfoOverlays();
@@ -96,6 +109,7 @@ public partial class MainWindow
     {
         Grid host = OverlayPreviewHost;
         host.Children.Clear();
+        _previewItems.Clear();
 
         // A sample scene so the overlays have something game-like to sit over.
         host.Children.Add(new Rectangle
@@ -119,22 +133,75 @@ public partial class MainWindow
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
         });
 
-        // The overlays, placed roughly where they appear in-game.
-        host.Children.Add(Anchor(PreviewPill("", "EU West", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Top, new Thickness(14, 14, 0, 0)));
-        host.Children.Add(Anchor(PreviewPill("", "Now playing", OvPurple), HorizontalAlignment.Center, VerticalAlignment.Top, new Thickness(0, 14, 0, 0)));
-        host.Children.Add(Anchor(PreviewKeys(), HorizontalAlignment.Left, VerticalAlignment.Center, new Thickness(14, 0, 0, 0)));
-        host.Children.Add(Anchor(PreviewPill("", "L M R 4 5", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Bottom, new Thickness(14, 0, 0, 14)));
+        // Each overlay roughly where it appears in-game; stored by key so the
+        // preview can show only the ones that are switched on.
+        AddPreview(host, "server", PreviewPill("", "EU West", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Top, new Thickness(14, 14, 0, 0));
+        AddPreview(host, "keystrokes", PreviewKeys(), HorizontalAlignment.Left, VerticalAlignment.Center, new Thickness(14, 0, 0, 0));
+        AddPreview(host, "mouse", PreviewPill("", "L M R 4 5", OvBlue), HorizontalAlignment.Left, VerticalAlignment.Bottom, new Thickness(14, 0, 0, 14));
+        AddPreview(host, "watermark", PreviewPill("", _watermarkText, OvPurple), HorizontalAlignment.Right, VerticalAlignment.Bottom, new Thickness(0, 0, 14, 14));
+
+        var topCentre = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 14, 0, 0) };
+        FrameworkElement music = PreviewPill("", "Now playing", OvPurple);
+        music.HorizontalAlignment = HorizontalAlignment.Center;
+        FrameworkElement clock = PreviewPill("", "9:41", OvPurple);
+        clock.HorizontalAlignment = HorizontalAlignment.Center;
+        clock.Margin = new Thickness(0, 8, 0, 0);
+        _previewItems["music"] = music;
+        _previewItems["clock"] = clock;
+        topCentre.Children.Add(music);
+        topCentre.Children.Add(clock);
+        host.Children.Add(topCentre);
 
         var right = new StackPanel
         {
             HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 14, 14, 0)
         };
-        right.Children.Add(PreviewCps());
-        right.Children.Add(Stacked(PreviewPill("", "146 FPS", OvGreen)));
-        right.Children.Add(Stacked(PreviewSystem()));
+        FrameworkElement cps = PreviewCps();
+        FrameworkElement fps = Stacked(PreviewPill("", "146 FPS", OvGreen));
+        FrameworkElement sys = Stacked(PreviewSystem());
+        _previewItems["cps"] = cps;
+        _previewItems["fps"] = fps;
+        _previewItems["system"] = sys;
+        right.Children.Add(cps);
+        right.Children.Add(fps);
+        right.Children.Add(sys);
         host.Children.Add(right);
+
+        RefreshPreview();
     }
+
+    private void AddPreview(Grid host, string key, FrameworkElement el, HorizontalAlignment h, VerticalAlignment v, Thickness margin)
+    {
+        Anchor(el, h, v, margin);
+        _previewItems[key] = el;
+        host.Children.Add(el);
+    }
+
+    /// <summary>Shows in the preview only the overlays that are currently on.</summary>
+    private void RefreshPreview()
+    {
+        foreach (KeyValuePair<string, FrameworkElement> item in _previewItems)
+            item.Value.Visibility = IsOverlayOn(item.Key) ? Visibility.Visible : Visibility.Collapsed;
+
+        if (_previewItems.TryGetValue("watermark", out FrameworkElement? wm) && wm is Border { Child: StackPanel sp }
+            && sp.Children.Count > 1 && sp.Children[1] is TextBlock t)
+            t.Text = _watermarkText;
+    }
+
+    private bool IsOverlayOn(string key) => key switch
+    {
+        "cps" => OverlayCheck?.IsChecked == true,
+        "keystrokes" => KeystrokesCheck?.IsChecked == true,
+        "server" => ServerRegionCheck?.IsChecked == true,
+        "fps" => _ovFps,
+        "system" => _ovSystem,
+        "mouse" => _ovMouse,
+        "clock" => _ovClock,
+        "watermark" => _ovWatermark,
+        "music" => _ovMusic,
+        _ => false
+    };
 
     private static FrameworkElement Anchor(FrameworkElement el, HorizontalAlignment h, VerticalAlignment v, Thickness margin)
     {
@@ -268,32 +335,43 @@ public partial class MainWindow
             OverlayToggleGrid.Children.Add(BuildOverlayCard(o));
     }
 
-    private Border BuildOverlayCard((string Key, string Glyph, string Name, string Blurb, string Sample, Color Accent) o)
+    private Border BuildOverlayCard((string Key, string Glyph, string Name, string Sample, Color Accent, bool Plus) o)
     {
+        var sample = PreviewPill(o.Glyph, o.Sample, o.Accent);
+        sample.HorizontalAlignment = HorizontalAlignment.Center;
+        sample.VerticalAlignment = VerticalAlignment.Center;
         var strip = new Border
         {
-            Height = 44, CornerRadius = new CornerRadius(8),
+            Height = 46, CornerRadius = new CornerRadius(8),
             Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x1E)),
-            Margin = new Thickness(0, 0, 0, 9),
-            Child = PreviewPill(o.Glyph, o.Sample, o.Accent)
+            Margin = new Thickness(0, 0, 0, 10),
+            Child = sample
         };
-        if (strip.Child is FrameworkElement fe)
-        {
-            fe.HorizontalAlignment = HorizontalAlignment.Center;
-            fe.VerticalAlignment = VerticalAlignment.Center;
-        }
 
         var name = new TextBlock
         {
             Text = o.Name, FontWeight = FontWeights.Bold, FontSize = 13,
-            Foreground = Brush("TextBright"), Margin = new Thickness(2, 0, 0, 0)
+            Foreground = Brush("TextBright"), VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(2, 0, 0, 0)
         };
-        var blurb = new TextBlock
+
+        FrameworkElement header;
+        if (o.Plus)
         {
-            Text = o.Blurb, FontSize = 11, Foreground = Brush("TextMuted"),
-            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 2, 0, 0), MinHeight = 30,
-            VerticalAlignment = VerticalAlignment.Top
-        };
+            var dp = new DockPanel { LastChildFill = false };
+            DockPanel.SetDock(name, Dock.Left);
+            var plus = new Border
+            {
+                Background = Brush("Accent"), CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(5, 1, 5, 1), VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock { Text = "PLUS", FontSize = 8, FontWeight = FontWeights.Bold, Foreground = Brushes.White }
+            };
+            DockPanel.SetDock(plus, Dock.Right);
+            dp.Children.Add(name);
+            dp.Children.Add(plus);
+            header = dp;
+        }
+        else header = name;
 
         var toggle = new CheckBox { Tag = o.Key, Margin = new Thickness(2, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
         toggle.Checked += OverlayToggle_Changed;
@@ -302,9 +380,27 @@ public partial class MainWindow
 
         var content = new StackPanel();
         content.Children.Add(strip);
-        content.Children.Add(name);
-        content.Children.Add(blurb);
+        content.Children.Add(header);
         content.Children.Add(toggle);
+
+        if (o.Key == "watermark")
+        {
+            var box = new TextBox
+            {
+                Text = _watermarkText, FontSize = 12, MaxLength = 24,
+                Margin = new Thickness(2, 10, 0, 0), Padding = new Thickness(7, 3, 7, 3),
+                Background = Brush("Panel"), Foreground = Brush("TextBright"),
+                BorderBrush = Brush("Outline"), ToolTip = "The text shown on screen"
+            };
+            box.TextChanged += (_, _) =>
+            {
+                _watermarkText = box.Text;
+                _watermarkOverlay?.SetText(_watermarkText);
+                RefreshPreview();
+                SaveAppSettings();
+            };
+            content.Children.Add(box);
+        }
 
         return new Border
         {
@@ -324,13 +420,25 @@ public partial class MainWindow
         switch (key)
         {
             case "cps": if (OverlayCheck != null) OverlayCheck.IsChecked = on; break;
-            case "keystrokes": if (KeystrokesCheck != null) KeystrokesCheck.IsChecked = on; break;
             case "server": if (ServerRegionCheck != null) ServerRegionCheck.IsChecked = on; break;
+            case "keystrokes":
+                if (!IsPro)
+                {
+                    _syncingOverlayToggles = true; cb.IsChecked = false; _syncingOverlayToggles = false;
+                    NavPro_Click(cb, e);
+                    return;
+                }
+                if (KeystrokesCheck != null) KeystrokesCheck.IsChecked = on;
+                break;
             case "fps": _ovFps = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "system": _ovSystem = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "mouse": _ovMouse = on; ApplyInfoOverlays(); SaveAppSettings(); break;
+            case "clock": _ovClock = on; ApplyInfoOverlays(); SaveAppSettings(); break;
+            case "watermark": _ovWatermark = on; ApplyInfoOverlays(); SaveAppSettings(); break;
             case "music": _ovMusic = on; ApplyInfoOverlays(); SaveAppSettings(); break;
         }
+
+        RefreshPreview();
     }
 
     /// <summary>Puts each toggle in step with the authoritative source for it.</summary>
@@ -344,8 +452,11 @@ public partial class MainWindow
         SetToggle("fps", _ovFps);
         SetToggle("system", _ovSystem);
         SetToggle("mouse", _ovMouse);
+        SetToggle("clock", _ovClock);
+        SetToggle("watermark", _ovWatermark);
         SetToggle("music", _ovMusic);
         _syncingOverlayToggles = false;
+        RefreshPreview();
     }
 
     private void SetToggle(string key, bool on)
@@ -357,7 +468,7 @@ public partial class MainWindow
 
     private void ApplyInfoOverlays()
     {
-        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse;
+        bool any = _ovFps || _ovSystem || _ovMusic || _ovMouse || _ovClock || _ovWatermark;
         if (any)
         {
             _infoOverlayTimer ??= CreateInfoOverlayTimer();
@@ -430,6 +541,36 @@ public partial class MainWindow
         }
         else _mouseOverlay?.Hide();
 
+        if (_ovClock)
+        {
+            if (_clockOverlay == null) { _clockOverlay = new ClockOverlay(); _clockOverlay.Moved += SaveClockPos; }
+            _clockOverlay.StreamerMode = streamer;
+            _clockOverlay.SetMoveMode(_overlayMoveMode);
+            if (front)
+            {
+                _clockOverlay.SetTime(DateTime.Now.ToString("h:mm tt", CultureInfo.CurrentCulture));
+                if (!_clockOverlay.IsVisible) _clockOverlay.Show();
+                if (!_overlayMoveMode) PlacePill(_clockOverlay, _clockX, _clockY, _clockOverlay.PlaceDefault);
+            }
+            else _clockOverlay.Hide();
+        }
+        else _clockOverlay?.Hide();
+
+        if (_ovWatermark)
+        {
+            if (_watermarkOverlay == null) { _watermarkOverlay = new WatermarkOverlay(); _watermarkOverlay.Moved += SaveWmPos; }
+            _watermarkOverlay.StreamerMode = streamer;
+            _watermarkOverlay.SetText(_watermarkText);
+            _watermarkOverlay.SetMoveMode(_overlayMoveMode);
+            if (front)
+            {
+                if (!_watermarkOverlay.IsVisible) _watermarkOverlay.Show();
+                if (!_overlayMoveMode) PlacePill(_watermarkOverlay, _wmX, _wmY, _watermarkOverlay.PlaceDefault);
+            }
+            else _watermarkOverlay.Hide();
+        }
+        else _watermarkOverlay?.Hide();
+
         if (_ovMusic)
         {
             if (_musicOverlay == null) { _musicOverlay = new MusicOverlay(); _musicOverlay.Moved += SaveMusicPos; }
@@ -454,6 +595,8 @@ public partial class MainWindow
     private void SaveSystemPos() { if (_systemOverlay != null) { _sysX = _systemOverlay.Left; _sysY = _systemOverlay.Top; SaveAppSettings(); } }
     private void SaveMusicPos() { if (_musicOverlay != null) { _musX = _musicOverlay.Left; _musY = _musicOverlay.Top; SaveAppSettings(); } }
     private void SaveMousePos() { if (_mouseOverlay != null) { _mouseX = _mouseOverlay.Left; _mouseY = _mouseOverlay.Top; SaveAppSettings(); } }
+    private void SaveClockPos() { if (_clockOverlay != null) { _clockX = _clockOverlay.Left; _clockY = _clockOverlay.Top; SaveAppSettings(); } }
+    private void SaveWmPos() { if (_watermarkOverlay != null) { _wmX = _watermarkOverlay.Left; _wmY = _watermarkOverlay.Top; SaveAppSettings(); } }
 
     // Sets a window to a saved spot (clamped on-screen), or its default corner.
     private static void PlacePill(Window w, double? x, double? y, Action placeDefault)
@@ -479,8 +622,6 @@ public partial class MainWindow
 
         if (_overlayMoveMode)
         {
-            // Make sure the CPS card is on screen too, so it can be positioned even
-            // when the clicker isn't running.
             if (OverlayCheck?.IsChecked == true)
             {
                 _overlay ??= new ClickOverlay { StreamerMode = StreamerModeCheck?.IsChecked == true };
@@ -489,6 +630,7 @@ public partial class MainWindow
                 _overlay.Update(ClickDiagnostics.Current());
                 _overlay.SetMoveMode(true);
             }
+            _keystrokes?.SetMoveMode(true);   // the keys panel drags with the rest
             StartInfoOverlayTimerForMove();
         }
         else
@@ -496,10 +638,10 @@ public partial class MainWindow
             if (_overlay != null)
             {
                 _overlay.SetMoveMode(false);
-                // Leave it up only if a run is actually driving it.
                 if (_overlayTimer?.IsEnabled != true) _overlay.Hide();
             }
-            ApplyInfoOverlays();   // reasserts positions and hides pills if Roblox isn't front
+            _keystrokes?.SetMoveMode(false);
+            ApplyInfoOverlays();
         }
 
         UpdateInfoOverlays();
@@ -511,8 +653,6 @@ public partial class MainWindow
 
     private void SaveCpsPos() { if (_overlay != null) { _cpsX = _overlay.Left; _cpsY = _overlay.Top; SaveAppSettings(); } }
 
-    // Move mode needs the feed timer running even if no pill was enabled, so the
-    // pills it shows keep their data fresh while being dragged.
     private void StartInfoOverlayTimerForMove()
     {
         _infoOverlayTimer ??= CreateInfoOverlayTimer();
@@ -544,5 +684,7 @@ public partial class MainWindow
         try { _systemOverlay?.Close(); } catch { }
         try { _musicOverlay?.Close(); } catch { }
         try { _mouseOverlay?.Close(); } catch { }
+        try { _clockOverlay?.Close(); } catch { }
+        try { _watermarkOverlay?.Close(); } catch { }
     }
 }
