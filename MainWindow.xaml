@@ -1117,6 +1117,11 @@
         <Border x:Name="WallpaperDim" Grid.ColumnSpan="2"
                 Background="#000000" Opacity="0.45" Visibility="Collapsed"/>
 
+        <!-- Seasonal ambient effect (snow / leaves / blossoms / sparkles). On top of
+             everything and click-through, so it drifts over the whole app harmlessly. -->
+        <Canvas x:Name="SeasonCanvas" Grid.ColumnSpan="2" Panel.ZIndex="100"
+                IsHitTestVisible="False" ClipToBounds="True"/>
+
         <!-- Sidebar -->
         <Border x:Name="SidebarPanel" Grid.Column="0" Background="{StaticResource Sidebar}">
             <DockPanel Margin="14">
@@ -5131,6 +5136,29 @@
                                              Background="#8FD4FF" Tag="#8FD4FF"
                                              Checked="AccentSwatch_Checked"/>
                             </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE734;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Seasonal theme"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="A matching accent plus a gentle effect drifting over the app"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <WrapPanel x:Name="SeasonButtons" Margin="0,12,0,0">
+                                <RadioButton Content="Fall" Tag="Fall" GroupName="Season" Style="{StaticResource SegmentButton}" MinWidth="96" Checked="SeasonButton_Click"/>
+                                <RadioButton Content="Winter" Tag="Winter" GroupName="Season" Style="{StaticResource SegmentButton}" MinWidth="96" Margin="8,0,0,0" Checked="SeasonButton_Click"/>
+                                <RadioButton Content="Spring" Tag="Spring" GroupName="Season" Style="{StaticResource SegmentButton}" MinWidth="96" Margin="8,0,0,0" Checked="SeasonButton_Click"/>
+                                <RadioButton Content="Summer" Tag="Summer" GroupName="Season" Style="{StaticResource SegmentButton}" MinWidth="96" Margin="8,0,0,0" Checked="SeasonButton_Click"/>
+                                <RadioButton Content="Off" Tag="None" GroupName="Season" Style="{StaticResource SegmentButton}" MinWidth="72" Margin="8,0,0,0" IsChecked="True" Checked="SeasonButton_Click"/>
+                            </WrapPanel>
+                            <TextBlock Text="Fall brings a spooky drift of leaves and bats, winter a soft snowfall, spring blossoms, summer sparkles. Each also recolours the accent."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,12,0,0"/>
                         </StackPanel>
                     </Border>
 

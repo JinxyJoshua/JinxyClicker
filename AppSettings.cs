@@ -363,6 +363,9 @@ public sealed class AppSettings
     /// to be restored; anything else falls back to the default red.</summary>
     public string AccentColor { get; set; } = "#FF4B52";
 
+    /// <summary>Seasonal theme: None, Fall, Winter, Spring or Summer.</summary>
+    public string Season { get; set; } = "None";
+
     /// <summary>Window opacity, 0.4 to 1. Clamped to the slider on load, so a
     /// hand-edited zero cannot produce a window nobody can see.</summary>
     public double WindowOpacity { get; set; } = 1.0;

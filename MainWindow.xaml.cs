@@ -2017,6 +2017,7 @@ public partial class MainWindow : Window
         if (s.LightTheme) ThemeLight.IsChecked = true;
 
         if (!SelectAccent(s.AccentColor)) SelectAccent(DefaultAccent);
+        LoadSeason(s.Season);
 
         // Clamped to the slider's own range rather than trusted: the floor is
         // what stops a stored zero from bringing back an invisible window.
@@ -2149,6 +2150,7 @@ public partial class MainWindow : Window
             ReplayEnabled = ReplayEnabled.IsChecked == true,
             ReplaySeconds = ReplaySeconds,
             AccentColor = _accentHex,
+            Season = _season.ToString(),
             WindowOpacity = OpacitySlider.Value,
             LightTheme = ThemeLight.IsChecked == true,
             WallpaperFile = _wallpaperFile,
