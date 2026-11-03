@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 
 namespace JinxyClicker;
@@ -24,13 +25,13 @@ public partial class MainWindow
     // 1 hour Premium is one of two Mythic slices (~0.75% a spin).
     private static readonly List<Reward> WheelCatalog = new()
     {
-        new Reward("sd15",  "15 Stardust",       Rarity.Common,    RewardKind.Stardust, 15),
+        new Reward("sd15",  "15 Shards",         Rarity.Common,    RewardKind.Stardust, 15),
         new Reward("mintp", "Mint Pop",          Rarity.Common,    RewardKind.Cursor),
-        new Reward("sd30",  "30 Stardust",       Rarity.Common,    RewardKind.Stardust, 30),
+        new Reward("sd30",  "30 Shards",         Rarity.Common,    RewardKind.Stardust, 30),
         new Reward("frost", "Frostbite",         Rarity.Rare,      RewardKind.Cursor),
         new Reward("sm14",  "Smooth 14",         Rarity.Rare,      RewardKind.Crosshair),
         new Reward("sakura","Sakura",            Rarity.Rare,      RewardKind.Cursor),
-        new Reward("sd75",  "75 Stardust",       Rarity.Epic,      RewardKind.Stardust, 75),
+        new Reward("sd75",  "75 Shards",         Rarity.Epic,      RewardKind.Stardust, 75),
         new Reward("neon",  "Neon Horizon",      Rarity.Epic,      RewardKind.Wallpaper),
         new Reward("midn",  "Midnight Contours", Rarity.Epic,      RewardKind.Wallpaper),
         new Reward("galaxy","Galaxy",            Rarity.Legendary, RewardKind.Cursor),
@@ -222,14 +223,27 @@ public partial class MainWindow
     }
 
     // ---- the wheel ----
+    //
+    // Not a carnival pie: a hollow loot ring. Each slice is a glowing band
+    // between an inner and an outer radius, separated from its neighbours by a
+    // small gap, so the wheel reads as a ring of lit segments with the spin orb
+    // floating in the hollow centre. The angular layout per index is unchanged,
+    // so the landing maths in Spin_Click still points the pointer at the right
+    // slice - only the drawing differs.
 
-    private const double WheelR = 168;
+    private const double WheelR = 160;        // outer radius of the ring
+    private const double WheelInner = 92;      // inner radius (the hollow)
     private const double WheelCx = 175, WheelCy = 175;
+    private const double SegGapDeg = 2.6;      // gap between adjacent segments
 
     private void BuildWheel()
     {
         if (WheelSectors == null) return;
         WheelSectors.Children.Clear();
+
+        // A faint dark backing ring so the gaps between lit segments read as
+        // seams in one object rather than holes onto the panel behind.
+        WheelSectors.Children.Add(BackingRing());
 
         int n = WheelCatalog.Count;
         double step = 360.0 / n;
@@ -237,7 +251,7 @@ public partial class MainWindow
         {
             Reward reward = WheelCatalog[i];
             double a0 = i * step, a1 = (i + 1) * step;
-            WheelSectors.Children.Add(Sector(a0, a1, RarityColor(reward.Rarity), i % 2 == 0 ? 0.92 : 0.78));
+            WheelSectors.Children.Add(RingSegment(a0, a1, reward.Rarity));
             WheelSectors.Children.Add(SliceLabel(reward, (a0 + a1) / 2));
         }
     }
@@ -248,27 +262,91 @@ public partial class MainWindow
         return new Point(WheelCx + radius * Math.Sin(t), WheelCy - radius * Math.Cos(t));
     }
 
-    private static Path Sector(double a0, double a1, Color color, double shade)
+    private static Ellipse BackingRing()
     {
-        Point p0 = OnCircle(a0, WheelR), p1 = OnCircle(a1, WheelR);
-        var fig = new PathFigure { StartPoint = new Point(WheelCx, WheelCy), IsClosed = true };
-        fig.Segments.Add(new LineSegment(p0, true));
-        fig.Segments.Add(new ArcSegment(p1, new Size(WheelR, WheelR), 0, false, SweepDirection.Clockwise, true));
-        var geo = new PathGeometry();
-        geo.Figures.Add(fig);
-        return new Path
+        double outer = WheelR + 4;
+        return new Ellipse
         {
-            Data = geo,
-            Fill = new SolidColorBrush(Color.FromRgb(
-                (byte)(color.R * shade), (byte)(color.G * shade), (byte)(color.B * shade))),
-            Stroke = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
-            StrokeThickness = 1
+            Width = outer * 2,
+            Height = outer * 2,
+            Fill = null,
+            Stroke = new SolidColorBrush(Color.FromArgb(0xFF, 0x12, 0x0E, 0x22)),
+            StrokeThickness = (WheelR + 6) - (WheelInner - 6),
+            Margin = new Thickness(WheelCx - outer, WheelCy - outer, 0, 0),
         };
     }
 
+    // One annular segment: a glowing band from WheelInner to WheelR, inset by
+    // half the gap on each side, filled dark-core-to-bright-rim and haloed in
+    // its rarity colour (higher rarity glows harder).
+    private static Path RingSegment(double a0, double a1, Rarity rarity)
+    {
+        double g = SegGapDeg / 2.0;
+        double b0 = a0 + g, b1 = a1 - g;
+
+        Point oi = OnCircle(b0, WheelInner);   // inner-start
+        Point oo = OnCircle(b0, WheelR);        // outer-start
+        Point po = OnCircle(b1, WheelR);        // outer-end
+        Point pi = OnCircle(b1, WheelInner);    // inner-end
+
+        var fig = new PathFigure { StartPoint = oi, IsClosed = true };
+        fig.Segments.Add(new LineSegment(oo, true));
+        fig.Segments.Add(new ArcSegment(po, new Size(WheelR, WheelR), 0, false, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new LineSegment(pi, true));
+        fig.Segments.Add(new ArcSegment(oi, new Size(WheelInner, WheelInner), 0, false, SweepDirection.Counterclockwise, true));
+        var geo = new PathGeometry();
+        geo.Figures.Add(fig);
+
+        Color c = RarityColor(rarity);
+        var fill = new RadialGradientBrush
+        {
+            MappingMode = BrushMappingMode.Absolute,
+            Center = new Point(WheelCx, WheelCy),
+            GradientOrigin = new Point(WheelCx, WheelCy),
+            RadiusX = WheelR,
+            RadiusY = WheelR,
+        };
+        fill.GradientStops.Add(new GradientStop(Scale(c, 0.22), WheelInner / WheelR));
+        fill.GradientStops.Add(new GradientStop(Scale(c, 0.80), 0.90));
+        fill.GradientStops.Add(new GradientStop(Lighten(c, 0.30), 1.0));
+        fill.Freeze();
+
+        double glow = rarity switch
+        {
+            Rarity.Mythic => 1.0,
+            Rarity.Legendary => 0.9,
+            Rarity.Epic => 0.65,
+            Rarity.Rare => 0.45,
+            _ => 0.28,
+        };
+
+        return new Path
+        {
+            Data = geo,
+            Fill = fill,
+            Stroke = new SolidColorBrush(Lighten(c, 0.35)),
+            StrokeThickness = 1.4,
+            Effect = new DropShadowEffect
+            {
+                Color = c,
+                BlurRadius = 16,
+                ShadowDepth = 0,
+                Opacity = glow,
+            },
+        };
+    }
+
+    private static Color Scale(Color c, double k) =>
+        Color.FromRgb((byte)(c.R * k), (byte)(c.G * k), (byte)(c.B * k));
+
+    private static Color Lighten(Color c, double t) => Color.FromRgb(
+        (byte)(c.R + (255 - c.R) * t),
+        (byte)(c.G + (255 - c.G) * t),
+        (byte)(c.B + (255 - c.B) * t));
+
     private static TextBlock SliceLabel(Reward reward, double midDeg)
     {
-        Point at = OnCircle(midDeg, WheelR * 0.60);
+        Point at = OnCircle(midDeg, (WheelInner + WheelR) / 2.0);
         double rot = midDeg;
         bool flip = midDeg > 90 && midDeg < 270;   // keep text upright on the lower half
         if (flip) rot += 180;
@@ -276,16 +354,18 @@ public partial class MainWindow
         var tb = new TextBlock
         {
             Text = reward.Name,
-            FontSize = 11,
-            FontWeight = FontWeights.SemiBold,
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
             Foreground = Brushes.White,
             TextAlignment = TextAlignment.Center,
-            Width = 96,
+            Width = 72,
             TextWrapping = TextWrapping.Wrap,
+            LineHeight = 12,
             RenderTransformOrigin = new Point(0.5, 0.5),
-            RenderTransform = new RotateTransform(rot - 90)   // read outward along the spoke
+            RenderTransform = new RotateTransform(rot - 90),   // read outward along the spoke
+            Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 3, ShadowDepth = 0, Opacity = 0.9 },
         };
-        Canvas.SetLeft(tb, at.X - 48);
+        Canvas.SetLeft(tb, at.X - 36);
         Canvas.SetTop(tb, at.Y - 12);
         return tb;
     }
@@ -525,7 +605,7 @@ public partial class MainWindow
         if (RewardResultCard == null || RewardResultName == null || RewardResultRarity == null) return;
         RewardResultName.Text = reward.Kind switch
         {
-            RewardKind.Stardust => $"+{reward.Value} Stardust",
+            RewardKind.Stardust => $"+{reward.Value} Shards",
             RewardKind.Premium => reward.Value >= 60 ? $"+{reward.Value / 60}h Plus unlocked" : $"+{reward.Value} min Plus unlocked",
             _ => reward.Name
         };
