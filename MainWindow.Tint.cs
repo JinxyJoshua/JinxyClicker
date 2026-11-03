@@ -120,8 +120,12 @@ public partial class MainWindow
         return card;
     }
 
-    // A small sample scene (sky, ground, a few blocks) with the look's real grade
-    // applied to the colours, so each card shows exactly what the look does.
+    // A neon-dusk skyline sample scene with the look's real grade applied to the
+    // colours, so each card shows exactly what the look does. The dusk gradient
+    // exercises the grade across a sweep of hues, the low sun gives a warm
+    // highlight, the building silhouettes give deep darks for contrast/vignette,
+    // and the lit windows spread saturated hues (cyan/amber/magenta/green/blue/
+    // purple) so colour shifts are obvious at a glance.
     private UIElement BuildLookPreview(ColorLook look)
     {
         const double w = 136, h = 78;
@@ -132,27 +136,44 @@ public partial class MainWindow
             Clip = new RectangleGeometry(new Rect(0, 0, w, h), 6, 6)
         };
 
-        grid.Children.Add(new Rectangle
-        {
-            Fill = new LinearGradientBrush(Graded(m, 0x8F, 0xC6, 0xFF), Graded(m, 0xDD, 0xEE, 0xFF), 90)
-        });
+        // Dusk sky: indigo up top, through magenta, to a warm band at the horizon.
+        var sky = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+        sky.GradientStops.Add(new GradientStop(Graded(m, 0x2A, 0x1E, 0x5A), 0.0));
+        sky.GradientStops.Add(new GradientStop(Graded(m, 0xB8, 0x3C, 0x8E), 0.58));
+        sky.GradientStops.Add(new GradientStop(Graded(m, 0xFF, 0xAC, 0x5C), 1.0));
+        grid.Children.Add(new Rectangle { Fill = sky });
+
+        // A low sun sitting behind the skyline.
         grid.Children.Add(new Ellipse
         {
-            Width = 20, Height = 20, Fill = new SolidColorBrush(Graded(m, 0xFF, 0xE9, 0xB2)),
-            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 8, 16, 0)
-        });
-        grid.Children.Add(new Rectangle
-        {
-            Height = 28, VerticalAlignment = VerticalAlignment.Bottom,
-            Fill = new SolidColorBrush(Graded(m, 0x4E, 0x9A, 0x43))
+            Width = 34, Height = 34, Fill = new SolidColorBrush(Graded(m, 0xFF, 0xE1, 0x8E)),
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom,
+            Margin = new Thickness(0, 0, 0, 12)
         });
 
-        var blocks = new Canvas();
-        AddBlock(blocks, 18, 40, 16, 20, Graded(m, 0xE0, 0x4F, 0x4F));
-        AddBlock(blocks, 52, 32, 18, 28, Graded(m, 0x4F, 0x8B, 0xE0));
-        AddBlock(blocks, 92, 36, 15, 24, Graded(m, 0x9B, 0x5F, 0xD6));
-        grid.Children.Add(blocks);
+        var city = new Canvas();
+        Color dark = Graded(m, 0x17, 0x12, 0x2E);
+        void Building(double left, double bh, double bw) => AddBlock(city, left, h - bh, bw, bh, dark);
+        Building(0, 34, 22);
+        Building(20, 26, 16);
+        Building(34, 46, 20);
+        Building(52, 30, 14);
+        Building(64, 52, 24);
+        Building(86, 34, 18);
+        Building(102, 44, 20);
+        Building(120, 28, 18);
+
+        // Lit windows, one per hue, scattered across the silhouettes.
+        AddBlock(city, 70, 32, 3, 3, Graded(m, 0x3C, 0xE0, 0xD8));   // cyan
+        AddBlock(city, 78, 32, 3, 3, Graded(m, 0xFF, 0xC5, 0x3D));   // amber
+        AddBlock(city, 70, 42, 3, 3, Graded(m, 0xE0, 0x4F, 0xB0));   // magenta
+        AddBlock(city, 78, 42, 3, 3, Graded(m, 0x6F, 0xD6, 0x5F));   // green
+        AddBlock(city, 40, 40, 3, 3, Graded(m, 0x4F, 0x8B, 0xE0));   // blue
+        AddBlock(city, 40, 48, 3, 3, Graded(m, 0x9B, 0x5F, 0xD6));   // purple
+        AddBlock(city, 108, 42, 3, 3, Graded(m, 0xFF, 0xC5, 0x3D));  // amber
+        AddBlock(city, 108, 50, 3, 3, Graded(m, 0x3C, 0xE0, 0xD8));  // cyan
+        AddBlock(city, 6, 52, 3, 3, Graded(m, 0xE0, 0x4F, 0xB0));    // magenta
+        grid.Children.Add(city);
 
         byte v = TintStyles.VignetteAlphaFor(look.Vignette);
         if (v > 0)
