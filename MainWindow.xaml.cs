@@ -5245,13 +5245,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
+        NavMacros, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
+        PageMacros, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
@@ -5338,11 +5338,8 @@ public partial class MainWindow : Window
     private void NavMacros_Click(object sender, RoutedEventArgs e)
     {
         BuildMacroCards();
-        ShowPage(NavMacros, PageMacros, "Macros", "Spam a key, or cycle a few");
+        ShowPage(NavMacros, PageMacros, "Automation", "Macros and auto-switching");
     }
-
-    private void NavSwitcher_Click(object sender, RoutedEventArgs e) =>
-        ShowPage(NavSwitcher, PageSwitcher, "Auto Switcher", "Swap between two hotbar slots");
 
     private void BuildMacroCards()
     {

@@ -1162,10 +1162,8 @@
                             Click="NavShake_Click"/>
                     <Button x:Name="NavPresets" app:NavIcon.Glyph="&#xE734;" Content="PRESETS" Style="{StaticResource NavButton}"
                             Click="NavPresets_Click"/>
-                    <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="MACROS" Style="{StaticResource NavButton}"
+                    <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="AUTOMATION" Style="{StaticResource NavButton}"
                             Click="NavMacros_Click"/>
-                    <Button x:Name="NavSwitcher" app:NavIcon.Glyph="&#xE8AB;" Content="AUTO SWITCHER" Style="{StaticResource NavButton}"
-                            Click="NavSwitcher_Click"/>
                     <Button x:Name="NavAppTargeting" app:NavIcon.Glyph="&#xE71D;" Content="APP TARGETING" Style="{StaticResource NavButton}"
                             Click="NavAppTargeting_Click"/>
                 </StackPanel>
@@ -2101,6 +2099,11 @@
 
                 <!-- Macros: any key, any rate, as many as you like. -->
                 <StackPanel x:Name="PageMacros" Visibility="Collapsed">
+                    <UniformGrid x:Name="PageAutomationBar" Columns="2" Margin="0,0,0,14">
+                        <RadioButton Content="Macros" GroupName="PageAutomationTab" Tag="PageAutomation_macros" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Auto Switcher" GroupName="PageAutomationTab" Tag="PageAutomation_switcher" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                    </UniformGrid>
+                    <StackPanel x:Name="PageAutomation_macros">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
@@ -2229,10 +2232,10 @@
                                        TextWrapping="Wrap" Margin="0,10,0,0"/>
                         </StackPanel>
                     </Border>
-                </StackPanel>
+                    </StackPanel>
 
-                <!-- Auto Switcher: the same engine, two keys, one purpose. -->
-                <StackPanel x:Name="PageSwitcher" Visibility="Collapsed">
+                    <!-- Auto Switcher: the same engine, two keys, one purpose. -->
+                    <StackPanel x:Name="PageAutomation_switcher" Visibility="Collapsed">
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
@@ -2390,6 +2393,7 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- App Targeting: which apps the clicker may click over. Whitelist
