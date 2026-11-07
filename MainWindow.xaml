@@ -1132,6 +1132,11 @@
                         Content="&#x2605; GET PLUS"
                         Style="{StaticResource ProCta}" Click="NavPro_Click"
                         Margin="0,12,0,2"/>
+                <!-- Discord invite, pinned just above the Plus button (both dock to the
+                     bottom) so they stay in the same spot however far the tabs scroll. -->
+                <Button x:Name="NavDiscord" DockPanel.Dock="Bottom"
+                        Style="{StaticResource DiscordCta}" Margin="0,10,0,0"
+                        Click="JoinDiscord_Click" ToolTip="Join the Jinxy Discord"/>
                 <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="NavList">
                 <!-- Wordmark sits against a solid accent block rather than
@@ -1237,11 +1242,6 @@
                             Click="NavTrainer_Click"/>
                 </StackPanel>
 
-                <!-- Discord invite, right below the Plus group â€” where keys are sold
-                     and the community hangs out. -->
-                <Button x:Name="NavDiscord" Style="{StaticResource DiscordCta}"
-                        Margin="6,12,8,6" Click="JoinDiscord_Click"
-                        ToolTip="Join the Jinxy Discord"/>
                 </StackPanel>
                 </ScrollViewer>
             </DockPanel>
@@ -1878,34 +1878,11 @@
                      height; a StackPanel would measure it at infinity and collapse it. -->
                 <Grid x:Name="PageMusic" Visibility="Collapsed"
                       Height="{Binding ViewportHeight, ElementName=PageScroll}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
 
-                    <!-- Search bar -->
-                    <Grid Grid.Row="0" Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="MusicSearchBox" Grid.Column="0" Height="38"
-                                 VerticalContentAlignment="Center" Padding="12,0" FontSize="13"
-                                 Background="{StaticResource Panel2}" Foreground="{StaticResource TextBright}"
-                                 BorderBrush="{StaticResource Outline}"
-                                 KeyDown="MusicSearch_KeyDown"
-                                 ToolTip="Search a song or artist, then press Enter"/>
-                        <Button Grid.Column="1" Content="Search" Click="MusicSearch_Click"
-                                Style="{StaticResource AccentButton}" Height="38" Width="92" Margin="8,0,0,0"/>
-                        <Button Grid.Column="2" Content="Home" Click="MusicHome_Click"
-                                Height="38" Padding="14,0" Margin="8,0,0,0"
-                                ToolTip="Back to the YouTube Music home"/>
-                    </Grid>
-
-                    <!-- The web view, plus a fallback shown when the Edge WebView2
-                         runtime is missing or fails to start. -->
-                    <Border Grid.Row="1" CornerRadius="8" BorderThickness="1"
+                    <!-- The web view fills the page; searching happens inside
+                         YouTube Music's own page. A fallback shows when the Edge
+                         WebView2 runtime is missing or fails to start. -->
+                    <Border CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" ClipToBounds="True">
                         <Grid>
                             <wv2:WebView2 x:Name="MusicWeb"/>

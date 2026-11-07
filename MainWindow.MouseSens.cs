@@ -13,7 +13,11 @@ namespace JinxyClicker;
 /// </summary>
 public partial class MainWindow
 {
-    private bool _loadingMouseSens;
+    // Starts true so the slider's initial XAML value (10) firing ValueChanged at
+    // construction does NOT push the Windows pointer speed to 10 on every launch.
+    // RefreshMouseSens() runs when the MOD page first opens, reads the live value
+    // and releases this — only user drags from then on actually change the speed.
+    private bool _loadingMouseSens = true;
 
     private void RefreshMouseSens()
     {

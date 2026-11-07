@@ -1,14 +1,13 @@
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using Microsoft.Web.WebView2.Core;
 
 namespace JinxyClicker;
 
 /// <summary>
-/// The Music page (Plus): YouTube Music hosted in an embedded web view, with an
-/// in-app search box. Search a song and play it without leaving the app, and it
+/// The Music page (Plus): YouTube Music hosted in an embedded web view. Search
+/// inside YouTube Music's own page and play without leaving the app, and it
 /// keeps playing while you game.
 /// </summary>
 /// <remarks>
@@ -67,25 +66,6 @@ public partial class MainWindow
             if (MusicWeb is not null) MusicWeb.Visibility = Visibility.Collapsed;
             if (MusicFallback is not null) MusicFallback.Visibility = Visibility.Visible;
         }
-    }
-
-    private void MusicSearch_Click(object sender, RoutedEventArgs e) => RunMusicSearch();
-
-    private void MusicSearch_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter) { RunMusicSearch(); e.Handled = true; }
-    }
-
-    private void RunMusicSearch()
-    {
-        if (MusicWeb?.CoreWebView2 is null) return;
-        MusicWeb.CoreWebView2.Navigate(MusicSearch.SearchUrl(MusicSearchBox?.Text));
-    }
-
-    private void MusicHome_Click(object sender, RoutedEventArgs e)
-    {
-        if (MusicWeb?.CoreWebView2 is null) return;
-        MusicWeb.CoreWebView2.Navigate(MusicSearch.Home);
     }
 
     // Disposed on window close so the embedded browser's processes exit and its
