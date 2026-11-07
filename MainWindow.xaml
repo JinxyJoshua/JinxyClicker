@@ -1204,8 +1204,6 @@
                             Click="NavTheme_Click"/>
                     <Button x:Name="NavSettings" app:NavIcon.Glyph="&#xE713;" Content="SETTINGS" Style="{StaticResource NavButton}"
                             Click="NavSettings_Click"/>
-                    <Button x:Name="NavFeedback" app:NavIcon.Glyph="&#xE939;" Content="FEEDBACK" Style="{StaticResource NavButton}"
-                            Click="NavFeedback_Click"/>
                 </StackPanel>
 
                 <!-- The paid features, gathered in one group at the bottom. Each tab
@@ -2669,56 +2667,6 @@
                         </StackPanel>
                     </Border>
 
-                </StackPanel>
-
-                <StackPanel x:Name="PageFeedback" Visibility="Collapsed">
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE939;"/>
-                                </Border>
-                                <TextBlock DockPanel.Dock="Left" Text="Send feedback" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
-                                <TextBlock DockPanel.Dock="Right" Text="STRAIGHT TO THE DEV" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-                            </DockPanel>
-                            <TextBlock Text="Found a bug, want a feature, or have an idea to make Jinxy better? Send it right here â€” no GitHub, no account, no sign-in."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
-
-                            <TextBlock Text="WHAT'S THIS ABOUT" FontSize="9" FontWeight="Bold" Margin="0,16,0,6" Foreground="{StaticResource TextMuted}"/>
-                            <WrapPanel>
-                                <RadioButton x:Name="FeedbackTypeFeature" Content="New feature" GroupName="FeedbackType" Tag="feature"
-                                             Style="{StaticResource SegmentButton}" MinWidth="116" IsChecked="True" Checked="FeedbackType_Checked"/>
-                                <RadioButton x:Name="FeedbackTypeImprovement" Content="Improvement" GroupName="FeedbackType" Tag="improvement"
-                                             Style="{StaticResource SegmentButton}" MinWidth="116" Checked="FeedbackType_Checked"/>
-                                <RadioButton x:Name="FeedbackTypeBug" Content="Something's broken" GroupName="FeedbackType" Tag="bug"
-                                             Style="{StaticResource SegmentButton}" MinWidth="150" Checked="FeedbackType_Checked"/>
-                            </WrapPanel>
-
-                            <TextBlock Text="SUMMARY" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="One line â€” what should change?" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6"/>
-                            <TextBox x:Name="FeedbackSummary" Style="{StaticResource InputField}" MaxLength="120"
-                                     HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
-
-                            <TextBlock Text="DETAILS" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="What you'd like it to do, and why. For a bug: what you did, what happened, and what you expected instead."
-                                       Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                            <TextBox x:Name="FeedbackDetails" Style="{StaticResource TextArea}" MaxLength="4000"
-                                     HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
-                            <TextBlock x:Name="FeedbackCount" Text="0 / 4000" HorizontalAlignment="Right" Margin="0,4,0,0"
-                                       Foreground="{StaticResource TextMuted}" FontSize="10"/>
-
-                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
-                                <Button x:Name="FeedbackSubmit" DockPanel.Dock="Left" Content="Send suggestion" Style="{StaticResource AccentButton}"
-                                        Padding="18,9" Click="FeedbackSubmit_Click"/>
-                                <TextBlock x:Name="FeedbackStatus" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="14,0,0,0"
-                                           Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap"/>
-                            </DockPanel>
-
-                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
-                            <TextBlock Text="What gets included: your message, the type, and the app version â€” nothing else. No settings, no profiles, no personal details, and nothing leaves your PC until you press Send."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <StackPanel x:Name="PageKitWheel" Visibility="Collapsed">
@@ -5405,11 +5353,12 @@
 
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
 
-                    <UniformGrid x:Name="PageSettingsBar" Columns="4" Margin="0,0,0,14">
+                    <UniformGrid x:Name="PageSettingsBar" Columns="5" Margin="0,0,0,14">
                         <RadioButton Content="General" GroupName="PageSettingsTab" Tag="PageSettings_general" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Streaming" GroupName="PageSettingsTab" Tag="PageSettings_streaming" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Hotkeys" GroupName="PageSettingsTab" Tag="PageSettings_hotkeys" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
-                        <RadioButton Content="Recording" GroupName="PageSettingsTab" Tag="PageSettings_recording" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Recording" GroupName="PageSettingsTab" Tag="PageSettings_recording" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Feedback" GroupName="PageSettingsTab" Tag="PageSettings_feedback" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                     </UniformGrid>
 
                     <StackPanel x:Name="PageSettings_general">
@@ -5593,6 +5542,56 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageSettings_feedback" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <Border DockPanel.Dock="Left" Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE939;"/>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="Send feedback" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
+                                <TextBlock DockPanel.Dock="Right" Text="STRAIGHT TO THE DEV" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="Found a bug, want a feature, or have an idea to make Jinxy better? Send it right here &#x2014; no GitHub, no account, no sign-in."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <TextBlock Text="WHAT'S THIS ABOUT" FontSize="9" FontWeight="Bold" Margin="0,16,0,6" Foreground="{StaticResource TextMuted}"/>
+                            <WrapPanel>
+                                <RadioButton x:Name="FeedbackTypeFeature" Content="New feature" GroupName="FeedbackType" Tag="feature"
+                                             Style="{StaticResource SegmentButton}" MinWidth="116" IsChecked="True" Checked="FeedbackType_Checked"/>
+                                <RadioButton x:Name="FeedbackTypeImprovement" Content="Improvement" GroupName="FeedbackType" Tag="improvement"
+                                             Style="{StaticResource SegmentButton}" MinWidth="116" Checked="FeedbackType_Checked"/>
+                                <RadioButton x:Name="FeedbackTypeBug" Content="Something's broken" GroupName="FeedbackType" Tag="bug"
+                                             Style="{StaticResource SegmentButton}" MinWidth="150" Checked="FeedbackType_Checked"/>
+                            </WrapPanel>
+
+                            <TextBlock Text="SUMMARY" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="One line &#x2014; what should change?" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBox x:Name="FeedbackSummary" Style="{StaticResource InputField}" MaxLength="120"
+                                     HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
+
+                            <TextBlock Text="DETAILS" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="What you'd like it to do, and why. For a bug: what you did, what happened, and what you expected instead."
+                                       Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                            <TextBox x:Name="FeedbackDetails" Style="{StaticResource TextArea}" MaxLength="4000"
+                                     HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
+                            <TextBlock x:Name="FeedbackCount" Text="0 / 4000" HorizontalAlignment="Right" Margin="0,4,0,0"
+                                       Foreground="{StaticResource TextMuted}" FontSize="10"/>
+
+                            <DockPanel LastChildFill="False" Margin="0,14,0,0">
+                                <Button x:Name="FeedbackSubmit" DockPanel.Dock="Left" Content="Send suggestion" Style="{StaticResource AccentButton}"
+                                        Padding="18,9" Click="FeedbackSubmit_Click"/>
+                                <TextBlock x:Name="FeedbackStatus" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="14,0,0,0"
+                                           Foreground="{StaticResource TextSoft}" FontSize="12" TextWrapping="Wrap"/>
+                            </DockPanel>
+
+                            <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
+                            <TextBlock Text="What gets included: your message, the type, and the app version &#x2014; nothing else. No settings, no profiles, no personal details, and nothing leaves your PC until you press Send."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Border>
                     </StackPanel>
 
                 </StackPanel>

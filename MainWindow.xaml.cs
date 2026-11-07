@@ -5245,13 +5245,13 @@ public partial class MainWindow : Window
     private Button[] NavButtons => new[]
     {
         NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings, NavFeedback
+        NavMacros, NavSwitcher, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
         PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings, PageFeedback
+        PageMacros, PageSwitcher, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----

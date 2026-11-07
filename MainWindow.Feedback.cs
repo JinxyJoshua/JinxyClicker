@@ -16,9 +16,6 @@ public partial class MainWindow
     private FeedbackType _feedbackType = FeedbackType.Feature;
     private bool _sendingFeedback;
 
-    private void NavFeedback_Click(object sender, RoutedEventArgs e) =>
-        ShowPage(NavFeedback, PageFeedback, "Feedback", "Send the developer a suggestion, idea or bug report");
-
     // Only reads the sender's tag, so it is safe when it fires during load (the
     // default button's IsChecked="True") before the other controls exist.
     private void FeedbackType_Checked(object sender, RoutedEventArgs e)
