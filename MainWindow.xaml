@@ -1191,6 +1191,8 @@
                 <StackPanel x:Name="GroupCapture">
                     <Button x:Name="NavRecorder" app:NavIcon.Glyph="&#xE714;" Content="RECORDER" Style="{StaticResource NavButton}"
                             Click="NavRecorder_Click"/>
+                    <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
+                            Click="NavClipStudio_Click"/>
                     <Button x:Name="NavHistory" app:NavIcon.Glyph="&#xE81C;" Content="HISTORY" Style="{StaticResource NavButton}"
                             Click="NavHistory_Click"/>
                 </StackPanel>
@@ -1222,8 +1224,6 @@
                             Click="NavOverlays_Click"/>
                     <Button x:Name="NavScore" app:NavIcon.Glyph="&#xE734;" Content="SCOREBOARD" Style="{StaticResource NavButton}"
                             Click="NavScore_Click"/>
-                    <Button x:Name="NavClipStudio" app:NavIcon.Glyph="&#xE8B2;" Content="CLIP STUDIO" Style="{StaticResource NavButton}"
-                            Click="NavClipStudio_Click"/>
                     <Button x:Name="NavEditor" app:NavIcon.Glyph="&#xE714;" Content="VIDEO EDITOR" Style="{StaticResource NavButton}"
                             Click="NavEditor_Click"/>
                     <Button x:Name="NavSetups" app:NavIcon.Glyph="&#xE7FC;" Content="SETUPS" Style="{StaticResource NavButton}"
