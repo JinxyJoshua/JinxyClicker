@@ -137,10 +137,6 @@
     <Compile Include="../MontageMaker.Tests.cs" />
     <Compile Include="../SportsScores.cs" />
     <Compile Include="../SportsScores.Tests.cs" />
-    <Compile Include="../RewardWheel.cs" />
-    <Compile Include="../RewardWheel.Tests.cs" />
-    <Compile Include="../RewardCosmetics.cs" />
-    <Compile Include="../RewardCosmetics.Tests.cs" />
     <Compile Include="../TitleCard.cs" />
     <Compile Include="../TitleCard.Tests.cs" />
     <!-- Pulled in as dependencies of CaptureBackend, not tested directly. -->

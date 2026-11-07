@@ -202,7 +202,6 @@ public partial class MainWindow : Window
                 // Launched from the "Jinxy Play" desktop shortcut: apply the active
                 // setup and open the game straight away.
                 if (LaunchedWithPlay()) RunPlay();
-                else MaybeShowDailyRewards();   // once-a-day rewards popup (not when jumping into a game)
 
                 // Both start at once rather than the update check waiting behind
                 // the config fetch. They are independent — the update prompt does
@@ -1976,7 +1975,6 @@ public partial class MainWindow : Window
         LoadOverlaySettings(s);   // Overlays page: FPS / system / music pills
         LoadClipFeedback(s);      // Recorder: clip-saved note + sound
         LoadRecordQuality(s);     // Recorder: picture quality + sort by app
-        LoadRewards(s);           // Daily Rewards: streak, stardust, collection, pity
 
         SetClickMode(s.HoldMode);
 
@@ -2153,20 +2151,6 @@ public partial class MainWindow : Window
             ReplaySeconds = ReplaySeconds,
             AccentColor = _accentHex,
             Season = _season.ToString(),
-            Stardust = _stardust,
-            RewardStreak = _streak,
-            RewardLastSpin = _lastSpinDate,
-            RewardPity = _spinsSinceLegendary,
-            RewardSpinsToday = _spinsToday,
-            RewardOwned = string.Join(",", _owned),
-            RewardBought = _boughtSpins,
-            RewardBoughtDate = _boughtDate,
-            RewardEquippedCursor = _equippedCursor,
-            RewardEquippedWallpaper = _equippedWallpaper,
-            RewardWallpaperPrev = _wallpaperBeforeCosmetic,
-            UnlockSoundEnabled = _unlockSoundOn,
-            RewardPremiumUntil = _rewardPremiumUntil?.ToString("o", System.Globalization.CultureInfo.InvariantCulture) ?? "",
-            RewardModalShown = _rewardModalShownDate,
             WindowOpacity = OpacitySlider.Value,
             LightTheme = ThemeLight.IsChecked == true,
             WallpaperFile = _wallpaperFile,
@@ -4705,7 +4689,6 @@ public partial class MainWindow : Window
         _wallpaperFile = stored;
         _settingsDirty = true;
 
-        ClearWallpaperCosmeticEquip();
         ApplyWallpaper();
     }
 
@@ -4808,7 +4791,6 @@ public partial class MainWindow : Window
         _wallpaperFile = stored;
         _settingsDirty = true;
 
-        ClearWallpaperCosmeticEquip();
         ApplyWallpaper();
     }
 
@@ -4819,7 +4801,6 @@ public partial class MainWindow : Window
         _wallpaperFile = "";
         _settingsDirty = true;
 
-        ClearWallpaperCosmeticEquip();
         ApplyWallpaper();
     }
 

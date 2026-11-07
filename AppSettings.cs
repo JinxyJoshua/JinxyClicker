@@ -366,31 +366,6 @@ public sealed class AppSettings
     /// <summary>Seasonal theme: None, Fall, Winter, Spring or Summer.</summary>
     public string Season { get; set; } = "None";
 
-    /// <summary>Daily Rewards: Stardust balance, streak, last-spin date, pity counter,
-    /// spins used today, and a CSV of owned cosmetic ids.</summary>
-    public int Stardust { get; set; }
-    public int RewardStreak { get; set; }
-    public string RewardLastSpin { get; set; } = "";
-    public int RewardPity { get; set; }
-    public int RewardSpinsToday { get; set; }
-    public string RewardOwned { get; set; } = "";
-    public int RewardBought { get; set; }
-    public string RewardBoughtDate { get; set; } = "";
-    /// <summary>Legacy single equip slot, kept so an old file migrates into the
-    /// two slots below on load. No longer written.</summary>
-    public string RewardEquipped { get; set; } = "";
-    /// <summary>The equipped cursor and wallpaper cosmetics — independent slots,
-    /// so a won cursor and a won wallpaper can both be on at once.</summary>
-    public string RewardEquippedCursor { get; set; } = "";
-    public string RewardEquippedWallpaper { get; set; } = "";
-    /// <summary>The user's own wallpaper from before a wallpaper cosmetic was
-    /// equipped, so un-equipping restores it even after a restart.</summary>
-    public string RewardWallpaperPrev { get; set; } = "";
-    /// <summary>Whether the chime plays when a cosmetic is unlocked.</summary>
-    public bool UnlockSoundEnabled { get; set; } = true;
-    public string RewardPremiumUntil { get; set; } = "";
-    public string RewardModalShown { get; set; } = "";
-
     /// <summary>Window opacity, 0.4 to 1. Clamped to the slider on load, so a
     /// hand-edited zero cannot produce a window nobody can see.</summary>
     public double WindowOpacity { get; set; } = 1.0;

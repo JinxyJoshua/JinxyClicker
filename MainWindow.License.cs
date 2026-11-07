@@ -94,7 +94,7 @@ public partial class MainWindow
         if (status.NeedsFirstUseStamp)
             _licenseFirstUseUtc = DateTime.UtcNow;
 
-        IsPro = status.IsPro || RewardPremiumActive;   // a wheel-won Premium reward counts too
+        IsPro = status.IsPro;
 
 #if DEVTOOLS
         // Dev-only override for testing the gate without a real key (see the DEV tab).

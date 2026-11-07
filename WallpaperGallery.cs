@@ -242,31 +242,4 @@ public static class WallpaperGallery
         }
     }
 
-    /// <summary>
-    /// Draws a design and installs it as a <em>reward</em> wallpaper — in its own
-    /// file, leaving the user's chosen wallpaper untouched.
-    /// </summary>
-    /// <returns>The stored name to save in settings, or null if it failed.</returns>
-    /// <remarks>
-    /// Goes through <see cref="Wallpaper.StoreRewardPng"/> rather than
-    /// <see cref="Wallpaper.Store"/>, so equipping a won wallpaper never
-    /// overwrites the picture the user set — un-equipping just points back at it.
-    /// </remarks>
-    public static string? InstallReward(WallpaperDesign design)
-    {
-        try
-        {
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(Render(design)));
-
-            using var ms = new MemoryStream();
-            encoder.Save(ms);
-
-            return Wallpaper.StoreRewardPng(ms.ToArray());
-        }
-        catch
-        {
-            return null;
-        }
-    }
 }

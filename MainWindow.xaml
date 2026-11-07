@@ -1,4 +1,4 @@
-<Window x:Class="JinxyClicker.MainWindow"
+﻿<Window x:Class="JinxyClicker.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="clr-namespace:JinxyClicker"
@@ -156,7 +156,7 @@
              Each brush takes its Color from a DynamicResource rather than a
              literal, and that indirection is load-bearing in two ways. WPF
              freezes resource Freezables whenever it can, and a frozen brush
-             cannot be recoloured at all — an unresolved reference is what keeps
+             cannot be recoloured at all â€” an unresolved reference is what keeps
              these four mutable. And because the consumers hold the brush while
              only its Color moves, every one of the 200-odd StaticResource uses
              repaints without being converted to DynamicResource itself. -->
@@ -247,7 +247,7 @@
                             <DockPanel Margin="{TemplateBinding Padding}" LastChildFill="True">
                                 <!-- Fixed width, so the labels line up whether a
                                      glyph is wide or narrow. From the icon font
-                                     Windows ships — nothing to bundle. -->
+                                     Windows ships â€” nothing to bundle. -->
                                 <TextBlock DockPanel.Dock="Left" Width="20"
                                            Text="{Binding Path=(app:NavIcon.Glyph),
                                                   RelativeSource={RelativeSource TemplatedParent}}"
@@ -377,7 +377,7 @@
         <Style x:Key="ValueBox" TargetType="TextBox">
             <!-- MinWidth rather than Width: the box measures to its text, so it
                  can never clip. MaxLength=7 is exactly the widest value either
-                 slider can produce — "1000.00" for CPS, "100.00" for duty. -->
+                 slider can produce â€” "1000.00" for CPS, "100.00" for duty. -->
             <Setter Property="MinWidth" Value="86"/>
             <Setter Property="Background" Value="{StaticResource Sunken}"/>
             <Setter Property="Foreground" Value="{StaticResource Accent}"/>
@@ -437,7 +437,7 @@
         <!-- Preset card. The accent rail and border make the applied preset
              readable at a glance without re-reading every number. -->
         <!-- The same box holding a path instead of a number. Everything
-             overridden here exists to serve a short right-aligned figure — a
+             overridden here exists to serve a short right-aligned figure â€” a
              path is long, reads left to right, and should not be the loudest
              thing on its panel. The 7-character cap especially. -->
         <Style x:Key="PathBox" TargetType="TextBox" BasedOn="{StaticResource ValueBox}">
@@ -584,8 +584,8 @@
         <!--
             The default for any TextBox that does not name a style.
 
-            Three of them never did — the saved-wheel name, the kit search and
-            the add-kit box — so they fell back to the stock WPF chrome: a white
+            Three of them never did â€” the saved-wheel name, the kit search and
+            the add-kit box â€” so they fell back to the stock WPF chrome: a white
             box with black text, in a window that is otherwise dark throughout.
 
             Implicit rather than three more Style attributes, because the next
@@ -607,7 +607,7 @@
         </Style>
 
         <!-- Slider, rebuilt. The filled portion is the decrease repeat button,
-             which already occupies exactly the region left of the thumb — that
+             which already occupies exactly the region left of the thumb â€” that
              avoids needing a converter to size a separate fill element. -->
         <Style x:Key="SliderFill" TargetType="RepeatButton">
             <Setter Property="Focusable" Value="False"/>
@@ -728,7 +728,7 @@
         </Style>
 
         <!-- Slider value readout (big, bright) and the min/max tick labels that sit
-             under a track — the context Lyre shows so a bare slider isn't guesswork. -->
+             under a track â€” the context Lyre shows so a bare slider isn't guesswork. -->
         <Style x:Key="SliderReadout" TargetType="TextBlock">
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -1122,213 +1122,6 @@
         <Canvas x:Name="SeasonCanvas" Grid.ColumnSpan="2" Panel.ZIndex="100"
                 IsHitTestVisible="False" ClipToBounds="True"/>
 
-        <!-- Daily Rewards gift launcher, bottom-right. -->
-        <Grid Grid.ColumnSpan="2" Panel.ZIndex="150" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,24,24">
-            <Button x:Name="RewardsGiftButton" Width="56" Height="56" Click="OpenRewards_Click" Cursor="Hand" ToolTip="Daily Rewards">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Ellipse>
-                                <Ellipse.Fill>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#6C5CE7" Offset="0"/>
-                                        <GradientStop Color="#9B5BFA" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Ellipse.Fill>
-                            </Ellipse>
-                            <Ellipse Fill="#1EFFFFFF"/>
-                            <TextBlock Text="&#x1F381;" FontFamily="Segoe UI Emoji" FontSize="24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Grid>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
-            <Border x:Name="RewardsGiftBadge" Width="15" Height="15" CornerRadius="8" Background="#FF4B52" BorderBrush="White" BorderThickness="2"
-                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-1,-1,0" Visibility="Collapsed"/>
-        </Grid>
-
-        <!-- Daily Rewards popup, shown once a day on launch or from the gift. -->
-        <Grid x:Name="RewardsModal" Grid.ColumnSpan="2" Panel.ZIndex="200" Visibility="Collapsed">
-            <Border Background="#C4000000" MouseLeftButtonDown="CloseRewards_Click"/>
-            <Border Width="1000" MaxHeight="770" Background="{StaticResource Panel}" CornerRadius="14" BorderThickness="1" BorderBrush="{StaticResource Outline}"
-                    HorizontalAlignment="Center" VerticalAlignment="Center" Padding="22">
-                <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="0,0,0,16">
-                        <StackPanel DockPanel.Dock="Left">
-                            <TextBlock Text="Daily Rewards" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}"/>
-                            <TextBlock x:Name="RewardSpinsText" Text="1 spin ready" Foreground="{StaticResource TextSoft}" FontSize="12" Margin="0,1,0,0"/>
-                        </StackPanel>
-                        <Button x:Name="RewardsCloseButton" DockPanel.Dock="Right" Content="&#x2715;" Click="CloseRewards_Click"
-                                Width="34" Height="34" FontSize="13" VerticalAlignment="Top" Margin="8,0,0,0"/>
-                        <Border DockPanel.Dock="Right" Background="{StaticResource Panel2}" CornerRadius="14" Padding="12,5" Margin="8,0,0,0" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#x2726;" Foreground="#A78BFA" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock x:Name="RewardStardustText" Text="0" Foreground="{StaticResource TextBright}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-                        <Border DockPanel.Dock="Right" Background="{StaticResource Panel2}" CornerRadius="14" Padding="12,5" Margin="8,0,0,0" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#x1F525;" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock x:Name="RewardStreakText" Text="0 days" Foreground="{StaticResource TextBright}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-                        <TextBlock x:Name="RewardCollectedText" DockPanel.Dock="Right" Text="0 / 0 collected" VerticalAlignment="Center"
-                                   Foreground="{StaticResource TextMuted}" FontSize="12" Margin="8,0,0,0"/>
-                    </DockPanel>
-
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Background="{StaticResource Panel2}" CornerRadius="8" Padding="16">
-                                    <Grid Width="360" Height="376">
-                                        <Path Fill="#F2EEFF" HorizontalAlignment="Center" VerticalAlignment="Top"
-                                              Data="M 0,0 L 20,0 L 10,23 Z" Panel.ZIndex="3" Margin="0,0,0,0">
-                                            <Path.Effect>
-                                                <DropShadowEffect Color="#A78BFA" BlurRadius="14" ShadowDepth="0" Opacity="1"/>
-                                            </Path.Effect>
-                                        </Path>
-                                        <Canvas x:Name="WheelSectors" Width="350" Height="350" VerticalAlignment="Top" Margin="0,16,0,0"
-                                                RenderTransformOrigin="0.5,0.5">
-                                            <Canvas.RenderTransform>
-                                                <RotateTransform x:Name="WheelRotate"/>
-                                            </Canvas.RenderTransform>
-                                        </Canvas>
-                                        <Button x:Name="SpinButton" Width="118" Height="118" Click="Spin_Click" Content="SPIN"
-                                                Cursor="Hand" Foreground="White" FontWeight="Black" FontSize="19"
-                                                VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,132,0,0" Panel.ZIndex="2">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Grid>
-                                                        <!-- breathing "ready" halo -->
-                                                        <Ellipse x:Name="OrbHalo" Stroke="#B79CFF" StrokeThickness="2" Opacity="0"
-                                                                 RenderTransformOrigin="0.5,0.5">
-                                                            <Ellipse.RenderTransform>
-                                                                <ScaleTransform/>
-                                                            </Ellipse.RenderTransform>
-                                                            <Ellipse.Effect>
-                                                                <DropShadowEffect Color="#A78BFA" BlurRadius="18" ShadowDepth="0"/>
-                                                            </Ellipse.Effect>
-                                                            <!-- Self-targeted so there is no named lookup to fail in the
-                                                                 template namescope (a Loaded storyboard in
-                                                                 ControlTemplate.Triggers cannot resolve a part name). -->
-                                                            <Ellipse.Triggers>
-                                                                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                                                                    <BeginStoryboard>
-                                                                        <Storyboard RepeatBehavior="Forever">
-                                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                                             From="0.55" To="0" Duration="0:0:1.7"/>
-                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                                             From="1" To="1.3" Duration="0:0:1.7"/>
-                                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                                             From="1" To="1.3" Duration="0:0:1.7"/>
-                                                                        </Storyboard>
-                                                                    </BeginStoryboard>
-                                                                </EventTrigger>
-                                                            </Ellipse.Triggers>
-                                                        </Ellipse>
-                                                        <!-- orb body: lit core to deep edge -->
-                                                        <Ellipse>
-                                                            <Ellipse.Fill>
-                                                                <RadialGradientBrush Center="0.5,0.38" GradientOrigin="0.5,0.32" RadiusX="0.62" RadiusY="0.62">
-                                                                    <GradientStop Color="#CBB8FF" Offset="0"/>
-                                                                    <GradientStop Color="#7C5CE0" Offset="0.55"/>
-                                                                    <GradientStop Color="#241F3A" Offset="1"/>
-                                                                </RadialGradientBrush>
-                                                            </Ellipse.Fill>
-                                                            <Ellipse.Effect>
-                                                                <DropShadowEffect Color="#8B5BFF" BlurRadius="26" ShadowDepth="0" Opacity="0.85"/>
-                                                            </Ellipse.Effect>
-                                                        </Ellipse>
-                                                        <!-- glossy top highlight -->
-                                                        <Ellipse Fill="#33FFFFFF" Margin="20,12,20,46"/>
-                                                        <!-- neon rim -->
-                                                        <Ellipse x:Name="OrbRim" Stroke="#C4B0FF" StrokeThickness="2.5"/>
-                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                    </Grid>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="OrbRim" Property="Stroke" Value="#FFFFFF"/>
-                                                        </Trigger>
-                                                        <Trigger Property="IsEnabled" Value="False">
-                                                            <Setter Property="Opacity" Value="0.55"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-                                    </Grid>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Margin="18,0,0,0">
-                                    <Border Background="{StaticResource Panel2}" CornerRadius="8" Padding="18">
-                                        <StackPanel>
-                                            <TextBlock Text="ODDS FOR THIS SPIN" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"/>
-                                            <StackPanel x:Name="OddsPanel"/>
-                                            <TextBlock x:Name="RewardPityText" Text="Legendary guaranteed within 28 spins" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,8,0,4"/>
-                                            <Border Height="6" CornerRadius="3" Background="{StaticResource Panel}" Width="260" HorizontalAlignment="Left">
-                                                <Border x:Name="RewardPityBar" Width="0" CornerRadius="3" HorizontalAlignment="Left" Background="#A78BFA"/>
-                                            </Border>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <DockPanel Margin="0,12,0,0" LastChildFill="False">
-                                        <Button x:Name="BuySpinButton" DockPanel.Dock="Left" Content="Buy a spin" Click="BuySpin_Click" Height="34" Padding="16,0"/>
-                                        <TextBlock x:Name="RewardPremiumText" DockPanel.Dock="Right" Text="" Visibility="Collapsed"
-                                                   Foreground="#FFC53D" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                                    </DockPanel>
-
-                                    <Border x:Name="RewardResultCard" Visibility="Collapsed" Background="{StaticResource Panel2}" CornerRadius="8"
-                                            BorderThickness="2" BorderBrush="#A78BFA" Padding="18" Margin="0,14,0,0"
-                                            RenderTransformOrigin="0.5,0.5">
-                                        <Border.RenderTransform>
-                                            <ScaleTransform x:Name="RewardResultScale" ScaleX="1" ScaleY="1"/>
-                                        </Border.RenderTransform>
-                                        <StackPanel>
-                                            <TextBlock x:Name="RewardUnlockedBadge" Text="&#x2726; UNLOCKED" Visibility="Collapsed"
-                                                       FontSize="11" FontWeight="Bold" Foreground="#A78BFA" Margin="0,0,0,4"
-                                                       RenderTransformOrigin="0,0.5">
-                                                <TextBlock.RenderTransform>
-                                                    <ScaleTransform x:Name="RewardUnlockedScale" ScaleX="1" ScaleY="1"/>
-                                                </TextBlock.RenderTransform>
-                                            </TextBlock>
-                                            <TextBlock x:Name="RewardResultRarity" Text="" FontSize="10" FontWeight="Bold"/>
-                                            <TextBlock x:Name="RewardResultName" Text="" FontSize="20" FontWeight="Black" Foreground="{StaticResource TextBright}" Margin="0,2,0,0"/>
-                                            <TextBlock x:Name="RewardResultSub" Text="Added to your collection" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <TextBlock Text="One spin a day &#x2014; Plus gets two. Keep a daily streak for bonus Shards."
-                                               Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="2,14,0,0"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Border Background="{StaticResource Panel2}" CornerRadius="8" Padding="18" Margin="0,14,0,0">
-                                <StackPanel>
-                                    <DockPanel Margin="0,0,0,10">
-                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="Unlock sound" Foreground="{StaticResource TextMuted}" FontSize="11"
-                                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                            <CheckBox x:Name="UnlockSoundToggle" IsChecked="True" VerticalAlignment="Center"
-                                                      ToolTip="Play a chime when you unlock a cosmetic"
-                                                      Checked="UnlockSound_Toggled" Unchecked="UnlockSound_Toggled"/>
-                                        </StackPanel>
-                                        <TextBlock Text="COLLECTION" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                                    </DockPanel>
-                                    <WrapPanel x:Name="CollectionPanel"/>
-                                    <TextBlock x:Name="RewardEquipStatus" Text="" Visibility="Collapsed" TextWrapping="Wrap"
-                                               Foreground="{StaticResource Accent}" FontSize="11" FontWeight="SemiBold" Margin="2,4,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </DockPanel>
-            </Border>
-        </Grid>
-
         <!-- Sidebar -->
         <Border x:Name="SidebarPanel" Grid.Column="0" Background="{StaticResource Sidebar}">
             <DockPanel Margin="14">
@@ -1444,7 +1237,7 @@
                             Click="NavTrainer_Click"/>
                 </StackPanel>
 
-                <!-- Discord invite, right below the Plus group — where keys are sold
+                <!-- Discord invite, right below the Plus group â€” where keys are sold
                      and the community hangs out. -->
                 <Button x:Name="NavDiscord" Style="{StaticResource DiscordCta}"
                         Margin="6,12,8,6" Click="JoinDiscord_Click"
@@ -1527,7 +1320,7 @@
                             </DockPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                <TextBlock x:Name="OutputRateText" Text="—"
+                                <TextBlock x:Name="OutputRateText" Text="â€”"
                                            FontSize="38" FontWeight="Black"
                                            Foreground="{StaticResource TextBright}"/>
                                 <TextBlock Text="clicks / sec" VerticalAlignment="Bottom"
@@ -1699,7 +1492,7 @@
                                     <TextBlock Style="{StaticResource SliderTick}" Text="1000" HorizontalAlignment="Right"/>
                                 </Grid>
                                 <!-- Clicks actually delivered, not clicks requested. -->
-                                <TextBlock x:Name="MeasuredCpsText" Text="Measured — /s"
+                                <TextBlock x:Name="MeasuredCpsText" Text="Measured â€” /s"
                                            Style="{StaticResource CardHint}" Margin="0,8,0,0"/>
                                 <!-- Only shown while HitFix is overriding the sliders. -->
                                 <TextBlock x:Name="HitFixClampText" Visibility="Collapsed"
@@ -1716,7 +1509,7 @@
                                 </Border>
                                 <StackPanel VerticalAlignment="Center" Margin="11,0,0,0">
                                     <TextBlock Text="Button" Style="{StaticResource CardTitle}"/>
-                                    <TextBlock Text="Which button gets clicked — right for blocks, wheel for scroll-bound actions"
+                                    <TextBlock Text="Which button gets clicked â€” right for blocks, wheel for scroll-bound actions"
                                                Style="{StaticResource CardSubtitle}"/>
                                 </StackPanel>
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
@@ -1878,7 +1671,7 @@
 
                 </StackPanel>
 
-                <!-- Shaky Tracking — its own tab under CLICKER. Free. The engine reads
+                <!-- Shaky Tracking â€” its own tab under CLICKER. Free. The engine reads
                      these through _settings like the other clicker controls. -->
                 <StackPanel x:Name="PageShake" Visibility="Collapsed">
 
@@ -1894,7 +1687,7 @@
                                     <TextBlock Text="Shaky tracking" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 </StackPanel>
                                 <TextBlock x:Name="ShakeStatusText" Margin="0,8,0,0"
-                                           Text="Nudges your aim a little while clicking, like a hand that never sits perfectly still. Only shakes when you start with the AUTOCLICKER + SHAKE hotkey — the plain clicker key never shakes."
+                                           Text="Nudges your aim a little while clicking, like a hand that never sits perfectly still. Only shakes when you start with the AUTOCLICKER + SHAKE hotkey â€” the plain clicker key never shakes."
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
                                            TextWrapping="Wrap"/>
                             </StackPanel>
@@ -2033,7 +1826,7 @@
                             <Grid Margin="0,12,0,0">
                                 <StackPanel Margin="0,0,54,0">
                                     <TextBlock Text="Auto-tune (max hits)" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Locks your rate to the speed measured to land the most hits (~33/s) and keeps it rock-steady so no click drifts past the game's hit window. Clicking faster doesn't land more — it floods the server. Uses a little more CPU."
+                                    <TextBlock Text="Locks your rate to the speed measured to land the most hits (~33/s) and keeps it rock-steady so no click drifts past the game's hit window. Clicking faster doesn't land more â€” it floods the server. Uses a little more CPU."
                                                Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <CheckBox x:Name="AutoTuneToggle" HorizontalAlignment="Right" VerticalAlignment="Top"
@@ -2047,7 +1840,7 @@
                             <Grid>
                                 <StackPanel Margin="0,0,54,0">
                                     <TextBlock Text="Blockhit assist" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Raises your sword block between hits to cut the knockback you take. It needs room to block, so it works at moderate CPS — not at the auto-tune ceiling."
+                                    <TextBlock Text="Raises your sword block between hits to cut the knockback you take. It needs room to block, so it works at moderate CPS â€” not at the auto-tune ceiling."
                                                Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <CheckBox x:Name="BlockHitToggle" HorizontalAlignment="Right" VerticalAlignment="Top"
@@ -2070,7 +1863,7 @@
                                     <TextBlock Style="{StaticResource CardSubtitle}" Text="One-click setting bundles for the situation"/>
                                 </StackPanel>
                             </DockPanel>
-                            <TextBlock Text="The registration ceiling is the same for every sword, so these tune your rate and blocking for the situation — not fake per-weapon speed."
+                            <TextBlock Text="The registration ceiling is the same for every sword, so these tune your rate and blocking for the situation â€” not fake per-weapon speed."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,0,0,12"/>
                             <StackPanel x:Name="CombatProfileRow" Orientation="Horizontal"/>
@@ -2147,10 +1940,10 @@
                                            FontSize="13" FontWeight="Black" VerticalAlignment="Center"/>
                                 <Border DockPanel.Dock="Right" Background="{StaticResource Accent}"
                                         CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
-                                    <TextBlock Text="★ PLUS" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="â˜… PLUS" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                 </Border>
                             </DockPanel>
-                            <TextBlock Text="One switch to stop Windows adding its own latency — disables network throttling and Nagle batching, stops update sharing and background Store apps, and keeps Wi-Fi at full power. All reversible."
+                            <TextBlock Text="One switch to stop Windows adding its own latency â€” disables network throttling and Nagle batching, stops update sharing and background Store apps, and keeps Wi-Fi at full power. All reversible."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -2159,7 +1952,7 @@
                                     HorizontalAlignment="Left" Margin="0,14,0,0"/>
 
                             <TextBlock x:Name="LowerPingStatusText"
-                                       Text="Off. One switch to stop Windows adding latency — fully reversible."
+                                       Text="Off. One switch to stop Windows adding latency â€” fully reversible."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,10,0,0"/>
 
@@ -2237,7 +2030,7 @@
                                                                    Foreground="{StaticResource Accent}"/>
                                                         <TextBlock Text=" CPS" FontSize="11"
                                                                    Foreground="{StaticResource TextMuted}"/>
-                                                        <TextBlock Text="  ·  " FontSize="11"
+                                                        <TextBlock Text="  Â·  " FontSize="11"
                                                                    Foreground="{StaticResource TextMuted}"/>
                                                         <TextBlock Text="{Binding CdcText}" FontSize="11"
                                                                    FontWeight="Bold"
@@ -2617,7 +2410,7 @@
                                         Height="42" MinWidth="96" Padding="16,0" Margin="0"/>
                             </DockPanel>
 
-                            <TextBlock Text="Slot keys are just the number keys Roblox already uses — the switcher presses 1 and 2 exactly as you would. It does not read the screen or the game."
+                            <TextBlock Text="Slot keys are just the number keys Roblox already uses â€” the switcher presses 1 and 2 exactly as you would. It does not read the screen or the game."
                                        Style="{StaticResource CardHint}" Margin="0,14,0,0"/>
                         </StackPanel>
                     </Border>
@@ -2654,10 +2447,10 @@
                                              Checked="AppTargetMode_Checked"/>
                             </UniformGrid>
                             <TextBlock x:Name="AppTargetExplain"
-                                       Text="Off — the clicker clicks everywhere, over any app."
+                                       Text="Off â€” the clicker clicks everywhere, over any app."
                                        Style="{StaticResource CardHint}" TextWrapping="Wrap" Margin="0,12,0,0"/>
                             <Border Background="{StaticResource Sunken}" CornerRadius="8" Padding="12,9" Margin="0,12,0,0">
-                                <TextBlock x:Name="AppTargetPointer" Text="Under the pointer: —"
+                                <TextBlock x:Name="AppTargetPointer" Text="Under the pointer: â€”"
                                            Foreground="{StaticResource TextMuted}" FontSize="12" TextWrapping="Wrap"/>
                             </Border>
                         </StackPanel>
@@ -2678,7 +2471,7 @@
                             </DockPanel>
                             <WrapPanel x:Name="AppTargetChips" Margin="0,10,0,0"/>
                             <TextBlock x:Name="AppTargetEmpty"
-                                       Text="No apps yet — tick a running app below, or type a program file name."
+                                       Text="No apps yet â€” tick a running app below, or type a program file name."
                                        Style="{StaticResource CardHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                             <DockPanel LastChildFill="True" Margin="0,14,0,0">
                                 <Button Content="Add" DockPanel.Dock="Right" Click="AppTargetAdd_Click"
@@ -2719,7 +2512,7 @@
                                 <TextBlock DockPanel.Dock="Left" Text="SOCD cleaner" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="Cleans opposing movement keys so holding both doesn't fight — tap the opposite key and you snap straight to it instead of standing still, like Snap Tap keyboards. Pick WASD to clean both strafe axes, or Custom for one pair you choose. A single key moves you as normal; it's a keyboard input tool and doesn't read the game."
+                            <TextBlock Text="Cleans opposing movement keys so holding both doesn't fight â€” tap the opposite key and you snap straight to it instead of standing still, like Snap Tap keyboards. Pick WASD to clean both strafe axes, or Custom for one pair you choose. A single key moves you as normal; it's a keyboard input tool and doesn't read the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <TextBlock x:Name="SocdLockNote" Visibility="Collapsed"
                                        Text="SOCD is a Plus feature. Unlock it on the PLUS page."
@@ -2911,7 +2704,7 @@
                                 <TextBlock DockPanel.Dock="Left" Text="Send feedback" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="STRAIGHT TO THE DEV" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="Found a bug, want a feature, or have an idea to make Jinxy better? Send it right here — no GitHub, no account, no sign-in."
+                            <TextBlock Text="Found a bug, want a feature, or have an idea to make Jinxy better? Send it right here â€” no GitHub, no account, no sign-in."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
 
                             <TextBlock Text="WHAT'S THIS ABOUT" FontSize="9" FontWeight="Bold" Margin="0,16,0,6" Foreground="{StaticResource TextMuted}"/>
@@ -2925,7 +2718,7 @@
                             </WrapPanel>
 
                             <TextBlock Text="SUMMARY" FontSize="9" FontWeight="Bold" Margin="0,16,0,2" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="One line — what should change?" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBlock Text="One line â€” what should change?" Foreground="{StaticResource TextSoft}" FontSize="11" Margin="0,0,0,6"/>
                             <TextBox x:Name="FeedbackSummary" Style="{StaticResource InputField}" MaxLength="120"
                                      HorizontalAlignment="Stretch" TextChanged="FeedbackText_Changed"/>
 
@@ -2945,7 +2738,7 @@
                             </DockPanel>
 
                             <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
-                            <TextBlock Text="What gets included: your message, the type, and the app version — nothing else. No settings, no profiles, no personal details, and nothing leaves your PC until you press Send."
+                            <TextBlock Text="What gets included: your message, the type, and the app version â€” nothing else. No settings, no profiles, no personal details, and nothing leaves your PC until you press Send."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0"/>
                         </StackPanel>
                     </Border>
@@ -3206,7 +2999,7 @@
                                     </ControlTemplate>
                                 </Button.Template>
                                 <DockPanel LastChildFill="True">
-                                    <TextBlock x:Name="KitListChevron" DockPanel.Dock="Left" Text="▸"
+                                    <TextBlock x:Name="KitListChevron" DockPanel.Dock="Left" Text="â–¸"
                                                Foreground="#A78BFA" FontSize="16"
                                                FontWeight="Bold" Margin="0,0,11,0" VerticalAlignment="Center"/>
                                     <!-- Bright and heavy, not a muted 10px caption. This is
@@ -3227,7 +3020,7 @@
                             </Button>
 
                             <StackPanel x:Name="KitListBody" Visibility="Collapsed">
-                            <TextBlock Text="Tick the kits you want on the wheel. Saved as you go. The list is a starting point — add anything missing, remove anything retired."
+                            <TextBlock Text="Tick the kits you want on the wheel. Saved as you go. The list is a starting point â€” add anything missing, remove anything retired."
                                        Style="{StaticResource CardHint}"/>
 
                             <!-- Search first, because with a hundred and thirteen
@@ -3448,7 +3241,7 @@
                                     </Border>
                                     <TextBlock Text="Make your own" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 </StackPanel>
-                                <TextBlock Text="Pick a shape and colours, then add it — or import your own crosshair image. Each one gets its own size like the rest."
+                                <TextBlock Text="Pick a shape and colours, then add it â€” or import your own crosshair image. Each one gets its own size like the rest."
                                            Style="{StaticResource CardHint}" Margin="0,4,0,0"/>
 
                                 <TextBlock Text="SHAPE" FontSize="9" FontWeight="Bold" Margin="0,12,0,6"
@@ -3486,14 +3279,14 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                                     <Button x:Name="CustomAddButton" Content="+  Add to gallery" Click="CustomAdd_Click"
                                             Style="{StaticResource AccentButton}" Height="36" MinWidth="150" Padding="16,0"/>
-                                    <Button x:Name="CrosshairImportButton" Content="Import image…" Click="CrosshairImport_Click"
+                                    <Button x:Name="CrosshairImportButton" Content="Import imageâ€¦" Click="CrosshairImport_Click"
                                             Height="36" MinWidth="130" Padding="16,0" Margin="10,0,0,0"
                                             ToolTip="Use your own crosshair picture as the cursor. A PNG with a transparent background works best."/>
                                 </StackPanel>
 
                                 <!-- Pro: any colour, glow, and fine-tuning -->
                                 <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,16,0,0"/>
-                                <TextBlock Text="PLUS — ANY COLOUR, GLOW &amp; FINE-TUNE" FontSize="9" FontWeight="Bold"
+                                <TextBlock Text="PLUS â€” ANY COLOUR, GLOW &amp; FINE-TUNE" FontSize="9" FontWeight="Bold"
                                            Margin="0,12,0,0" Foreground="{StaticResource Accent}"/>
                                 <TextBlock x:Name="CrosshairProLockNote" Visibility="Collapsed"
                                            Text="Unlock any colour, a glow, and full fine-tuning on the PLUS page."
@@ -3577,7 +3370,7 @@
                                         </Border>
                                         <TextBlock Text="Server region overlay" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                     </StackPanel>
-                                    <TextBlock Text="Off unless you turn it on. When you join a game, a small banner names the region of the server you're on — read from Roblox's own log, not the game itself."
+                                    <TextBlock Text="Off unless you turn it on. When you join a game, a small banner names the region of the server you're on â€” read from Roblox's own log, not the game itself."
                                                Foreground="{StaticResource TextMuted}" FontSize="11"
                                                TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 </StackPanel>
@@ -3589,7 +3382,7 @@
                                           Unchecked="ServerRegion_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="Roblox routes every server through a relay, so this is the region the server is reached through — accurate to the area, not a claim about the exact building. There is no ping: a real ping to a Roblox server can't be measured from outside the game, and an invented number would be worse than none."
+                            <TextBlock Text="Roblox routes every server through a relay, so this is the region the server is reached through â€” accurate to the area, not a claim about the exact building. There is no ping: a real ping to a Roblox server can't be measured from outside the game, and an invented number would be worse than none."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,14,0,0"/>
                         </StackPanel>
@@ -3640,7 +3433,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="12" FontWeight="Bold"
                                        Margin="0,3,0,0" TextWrapping="Wrap"/>
 
-                            <Button x:Name="ViewGlobeButton" Content="🌐  View my server on the globe"
+                            <Button x:Name="ViewGlobeButton" Content="ðŸŒ  View my server on the globe"
                                     Click="ViewServerGlobe_Click" IsEnabled="False"
                                     Padding="14,9" FontWeight="Bold" HorizontalAlignment="Left"
                                     Margin="0,14,0,0"/>
@@ -3664,7 +3457,7 @@
                                     <TextBlock Text="Windows system tweaks" Style="{StaticResource CardTitle}"/>
                                 </StackPanel>
                             </DockPanel>
-                            <TextBlock Text="Each tweak reads your current setting before changing it, so Revert puts back exactly what you had — not a guessed default."
+                            <TextBlock Text="Each tweak reads your current setting before changing it, so Revert puts back exactly what you had â€” not a guessed default."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -3713,7 +3506,7 @@
                         <StackPanel>
                             <TextBlock Text="GAMING MODE" Foreground="{StaticResource Accent}"
                                        FontSize="13" FontWeight="Black"/>
-                            <TextBlock Text="One switch for the best safe FPS boost. It applies the high-impact performance tweaks, unlocks Roblox's FPS, raises Roblox's priority and frees RAM — all in one go."
+                            <TextBlock Text="One switch for the best safe FPS boost. It applies the high-impact performance tweaks, unlocks Roblox's FPS, raises Roblox's priority and frees RAM â€” all in one go."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -3726,7 +3519,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,10,0,0"/>
 
-                            <TextBlock Text="Everything it changes is reversible — turning it off puts it all back exactly as it was. The two deepest tweaks (keeping CPU cores awake, power throttling) need the app running as administrator; without that it applies the rest."
+                            <TextBlock Text="Everything it changes is reversible â€” turning it off puts it all back exactly as it was. The two deepest tweaks (keeping CPU cores awake, power throttling) need the app running as administrator; without that it applies the rest."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,10,0,0" Opacity="0.85"/>
                         </StackPanel>
@@ -3748,9 +3541,9 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-                            <TextBlock x:Name="ReclaimableText" Text="—" FontSize="30" FontWeight="Bold"
+                            <TextBlock x:Name="ReclaimableText" Text="â€”" FontSize="30" FontWeight="Bold"
                                        Foreground="{StaticResource Accent}" Margin="0,12,0,0"/>
-                            <TextBlock x:Name="ReclaimableHint" Text="Scanning…"
+                            <TextBlock x:Name="ReclaimableHint" Text="Scanningâ€¦"
                                        Foreground="{StaticResource TextMuted}" FontSize="11"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
@@ -3767,9 +3560,9 @@
                         <StackPanel>
                             <TextBlock Text="MEMORY" Foreground="{StaticResource TextMuted}"
                                        FontSize="10" FontWeight="Bold"/>
-                            <TextBlock x:Name="MemoryLine" Text="—" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="MemoryLine" Text="â€”" FontWeight="SemiBold" Margin="0,8,0,0"/>
 
-                            <TextBlock Text="Free RAM trims every process working set. The available figure rises, then Windows pages it straight back in as those apps carry on. It does not raise FPS — unused RAM is cache Windows wants to be using."
+                            <TextBlock Text="Free RAM trims every process working set. The available figure rises, then Windows pages it straight back in as those apps carry on. It does not raise FPS â€” unused RAM is cache Windows wants to be using."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,8,0,0"/>
 
@@ -3871,7 +3664,7 @@
                                       Style="{StaticResource DarkCombo}" SelectionChanged="DisplayRes_Changed"/>
                             <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
                                 <TextBlock Text="Resolution" Foreground="{StaticResource TextBright}" FontSize="13" FontWeight="Bold"/>
-                                <TextBlock Text="Pick a 4:3 size like 1440 × 1080 for stretched. Reverts when Roblox closes."
+                                <TextBlock Text="Pick a 4:3 size like 1440 Ã— 1080 for stretched. Reverts when Roblox closes."
                                            Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
                             </StackPanel>
                         </DockPanel>
@@ -3934,11 +3727,11 @@
                                 <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
                                            Text="&#x2022;  Lower resolutions render fewer pixels, so Roblox pushes more frames."/>
                                 <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
-                                           Text="&#x2022;  Stretched 4:3 / 5:4 sizes blow players and blocks up bigger and widen your view — the classic BedWars edge."/>
+                                           Text="&#x2022;  Stretched 4:3 / 5:4 sizes blow players and blocks up bigger and widen your view â€” the classic BedWars edge."/>
                                 <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"
                                            Text="&#x2022;  A higher refresh rate shows those extra frames, so aim feels smoother."/>
                                 <TextBlock Foreground="{StaticResource TextSoft}" FontSize="11" TextWrapping="Wrap"
-                                           Text="&#x2022;  It all reverts the instant Roblox closes — your desktop is never left stretched."/>
+                                           Text="&#x2022;  It all reverts the instant Roblox closes â€” your desktop is never left stretched."/>
                             </StackPanel>
                             <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,12,0,0"/>
                             <TextBlock Margin="0,12,0,0" Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"
@@ -3946,7 +3739,7 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary — it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
+                    <TextBlock Text="Only modes your monitor reports are offered, and the change is temporary â€” it reverts on Roblox close, on app exit, or if the app stops. Stretched resolutions fill the screen only if your GPU scaling is set to full-screen."
                                Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="2,12,0,0"/>
 
                 </StackPanel>
@@ -4036,42 +3829,42 @@
                             <UniformGrid Columns="4" Margin="0,16,0,0">
                                 <StackPanel Margin="0,0,12,12">
                                     <TextBlock Text="GRAPHICS LEVEL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualGraphicsLevel" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualGraphicsLevel" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,12,12">
                                     <TextBlock Text="FPS CAP" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualFpsCap" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualFpsCap" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,12,12">
                                     <TextBlock Text="TEXTURES" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualTextures" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualTextures" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,0,12">
                                     <TextBlock Text="ANTI-ALIASING" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualAA" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualAA" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,12,0">
                                     <TextBlock Text="DETAIL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualDetail" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualDetail" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,12,0">
                                     <TextBlock Text="GRASS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualGrass" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualGrass" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,12,0">
                                     <TextBlock Text="SKY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualSky" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualSky" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,0,0">
                                     <TextBlock Text="OVERALL LOOK" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
-                                    <TextBlock x:Name="QualArt" Text="—" FontWeight="SemiBold" Margin="0,3,0,3"/>
+                                    <TextBlock x:Name="QualArt" Text="â€”" FontWeight="SemiBold" Margin="0,3,0,3"/>
                                     <Border Height="2" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="40"/>
                                 </StackPanel>
                             </UniformGrid>
@@ -4143,7 +3936,7 @@
                                            VerticalAlignment="Center"/>
                             </DockPanel>
 
-                            <TextBlock Text="Which backend the client renders with. Allowlisted, and applied the moment you choose — no Apply needed. Which one is fastest depends on your GPU and driver, so try them: Vulkan is a large gain on some machines and a loss on others."
+                            <TextBlock Text="Which backend the client renders with. Allowlisted, and applied the moment you choose â€” no Apply needed. Which one is fastest depends on your GPU and driver, so try them: Vulkan is a large gain on some machines and a loss on others."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -4151,7 +3944,7 @@
                                          MaxWidth="440" HorizontalAlignment="Left">
                                 <!-- Deliberately not IsChecked here. A default in the
                                      markup raises Checked during parsing, and the
-                                     handler applies what it is given — which wiped
+                                     handler applies what it is given â€” which wiped
                                      the stored API preference on every launch.
                                      RefreshFlags selects the right one from the file. -->
                                 <RadioButton Content="Default" GroupName="GraphicsApi"
@@ -4260,7 +4053,7 @@
                                     </Border>
                                     <TextBlock Text="Gray sky" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 </StackPanel>
-                                <TextBlock Text="Replaces the sky with a flat gray — clearer sightlines and a little less to render. One tap, no FastFlags to edit. Takes effect next time you launch Roblox. A game that sets its own skybox overrides it."
+                                <TextBlock Text="Replaces the sky with a flat gray â€” clearer sightlines and a little less to render. One tap, no FastFlags to edit. Takes effect next time you launch Roblox. A game that sets its own skybox overrides it."
                                            Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 <TextBlock x:Name="GraySkyStatus" Text="" Foreground="{StaticResource TextMuted}"
                                            FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
@@ -4282,11 +4075,11 @@
                                           Checked="RobloxPriority_Changed" Unchecked="RobloxPriority_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="Raises the Roblox process above normal priority so Windows schedules it ahead of background work. Not a flag and nothing is injected — the same setting Task Manager offers. Reapplied every second, so it survives Roblox restarting."
+                            <TextBlock Text="Raises the Roblox process above normal priority so Windows schedules it ahead of background work. Not a flag and nothing is injected â€” the same setting Task Manager offers. Reapplied every second, so it survives Roblox restarting."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-                            <TextBlock Text="Worth having while clicking — the clicker works your CPU hard, and this makes sure the game still gets its share so it stays smooth."
+                            <TextBlock Text="Worth having while clicking â€” the clicker works your CPU hard, and this makes sure the game still gets its share so it stays smooth."
                                        Foreground="{StaticResource TextDim}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,8,0,0"/>
 
@@ -4419,7 +4212,7 @@
                                 <TextBlock Grid.Column="1" x:Name="MouseSpeedValue" Text="10" HorizontalAlignment="Right" VerticalAlignment="Center"
                                            FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
                             </Grid>
-                            <TextBlock Text="10 is 1:1 (no extra scaling) — what most players want." Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,2,0,0"/>
+                            <TextBlock Text="10 is 1:1 (no extra scaling) â€” what most players want." Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,2,0,0"/>
 
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" MaxWidth="430">
@@ -4474,7 +4267,7 @@
                             <!-- Music -->
                             <DockPanel LastChildFill="False" Margin="0,16,0,0">
                                 <TextBlock DockPanel.Dock="Left" Text="Music" Foreground="{StaticResource TextSoft}" FontSize="12" VerticalAlignment="Center"/>
-                                <Button x:Name="MusicChooseButton" DockPanel.Dock="Left" Content="Choose music…" Style="{StaticResource ChipButton}"
+                                <Button x:Name="MusicChooseButton" DockPanel.Dock="Left" Content="Choose musicâ€¦" Style="{StaticResource ChipButton}"
                                         Padding="12,5" Margin="14,0,0,0" Click="MontagePickMusic_Click"/>
                                 <TextBlock x:Name="MusicChosenText" DockPanel.Dock="Left" Text="None (montage will be silent)"
                                            Foreground="{StaticResource TextMuted}" FontSize="12" VerticalAlignment="Center"
@@ -4508,7 +4301,7 @@
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                     <TextBlock Text="Intro title card" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                    <TextBlock Text="Your text shown for 2s at the start — blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    <TextBlock Text="Your text shown for 2s at the start â€” blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
                                 </StackPanel>
                                 <TextBox x:Name="MontageTitleBox" Style="{StaticResource InputField}" DockPanel.Dock="Right" Width="200" MaxLength="40"
                                          TextChanged="MontageTitle_Changed" VerticalAlignment="Center"/>
@@ -4598,8 +4391,8 @@
                             <WrapPanel Margin="0,0,0,10">
                                 <Button Content="Add clips" Click="EditorAdd_Click" Style="{StaticResource AccentButton}" Height="32" Padding="14,0" Margin="0,0,8,8"/>
                                 <Button x:Name="EditorSplitButton" Content="Split" Click="EditorSplit_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,8,8"/>
-                                <Button x:Name="EditorLeftButton" Content="◀ Move" Click="EditorMoveLeft_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
-                                <Button x:Name="EditorRightButton" Content="Move ▶" Click="EditorMoveRight_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorLeftButton" Content="â—€ Move" Click="EditorMoveLeft_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
+                                <Button x:Name="EditorRightButton" Content="Move â–¶" Click="EditorMoveRight_Click" IsEnabled="False" Height="32" Padding="12,0" Margin="0,0,8,8"/>
                                 <Button x:Name="EditorRemoveButton" Content="Remove" Click="EditorRemove_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,16,8"/>
                                 <Button x:Name="EditorUndoButton" Content="Undo" Click="EditorUndo_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,8,8"/>
                                 <Button x:Name="EditorRedoButton" Content="Redo" Click="EditorRedo_Click" IsEnabled="False" Height="32" Padding="14,0" Margin="0,0,0,8"/>
@@ -4653,7 +4446,7 @@
 
                             <DockPanel Margin="2,16,0,2" LastChildFill="False">
                                 <TextBlock DockPanel.Dock="Left" Text="SPEED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="EditorSpeedText" DockPanel.Dock="Right" Text="1.0×" FontSize="11" Foreground="{StaticResource TextSoft}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="EditorSpeedText" DockPanel.Dock="Right" Text="1.0Ã—" FontSize="11" Foreground="{StaticResource TextSoft}" VerticalAlignment="Center"/>
                             </DockPanel>
                             <Slider x:Name="EditorSpeed" Minimum="0.25" Maximum="3" Value="1" TickFrequency="0.25" IsSnapToTickEnabled="True"
                                     ValueChanged="EditorSpeed_Changed" Thumb.DragStarted="EditorClip_DragStarted"/>
@@ -4690,7 +4483,7 @@
                             <DockPanel LastChildFill="False" Margin="0,14,0,0">
                                 <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                     <TextBlock Text="Intro title" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                    <TextBlock Text="Shown for 2s at the start — blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
+                                    <TextBlock Text="Shown for 2s at the start â€” blank for none" Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
                                 </StackPanel>
                                 <TextBox x:Name="EditorTitleBox" DockPanel.Dock="Right" Width="220" MaxLength="40" VerticalAlignment="Center" Style="{StaticResource InputField}"/>
                             </DockPanel>
@@ -4741,7 +4534,7 @@
                             </StackPanel>
                             <TextBlock x:Name="HistoryTotalText" Text="0s" FontSize="34" FontWeight="Bold"
                                        Foreground="{StaticResource Accent}" Margin="0,6,0,0"/>
-                            <TextBlock Text="Counted only while clicks are actually being sent — not while the app is merely open, and not while hold mode is armed with the key up."
+                            <TextBlock Text="Counted only while clicks are actually being sent â€” not while the app is merely open, and not while hold mode is armed with the key up."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,2,0,0"/>
 
@@ -4755,13 +4548,13 @@
                                 <StackPanel Margin="7,0">
                                     <TextBlock Text="AVERAGE RATE" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="HistoryAverageText" Text="—" FontSize="18"
+                                    <TextBlock x:Name="HistoryAverageText" Text="â€”" FontSize="18"
                                                FontWeight="Bold" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <StackPanel Margin="7,0">
                                     <TextBlock Text="BUSIEST DAY" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="HistoryBusiestText" Text="—" FontSize="18"
+                                    <TextBlock x:Name="HistoryBusiestText" Text="â€”" FontSize="18"
                                                FontWeight="Bold" Margin="0,3,0,0"/>
                                     <TextBlock x:Name="HistoryBusiestDateText" Text="" FontSize="10"
                                                Foreground="{StaticResource TextMuted}" Margin="0,1,0,0"/>
@@ -4805,7 +4598,7 @@
                                 <StackPanel Margin="7,0,0,0">
                                     <TextBlock Text="RATE" Foreground="{StaticResource TextMuted}"
                                                FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="HistorySessionRateText" Text="—" FontSize="18"
+                                    <TextBlock x:Name="HistorySessionRateText" Text="â€”" FontSize="18"
                                                FontWeight="Bold" Margin="0,3,0,0"/>
                                 </StackPanel>
                             </UniformGrid>
@@ -4991,7 +4784,7 @@
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button x:Name="ChooseClipButton" Content="Choose a clip…"
+                                <Button x:Name="ChooseClipButton" Content="Choose a clipâ€¦"
                                         Click="ChooseClip_Click" Height="36" Padding="16,0" Margin="0,0,10,0"/>
                                 <Button x:Name="UploadClipButton" Content="Upload and get link"
                                         Style="{StaticResource AccentButton}" IsEnabled="False"
@@ -5177,10 +4970,10 @@
                                 </Border>
                                 <TextBlock Text="Play" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                             </StackPanel>
-                            <TextBlock Text="Applies your active setup — re-writes your crosshair and FastFlags (Roblox wipes these on update) — then launches straight into your game. Sign into the Roblox app once and it joins automatically."
+                            <TextBlock Text="Applies your active setup â€” re-writes your crosshair and FastFlags (Roblox wipes these on update) â€” then launches straight into your game. Sign into the Roblox app once and it joins automatically."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button x:Name="PlayButton" Content="▶  PLAY" Style="{StaticResource AccentButton}"
+                                <Button x:Name="PlayButton" Content="â–¶  PLAY" Style="{StaticResource AccentButton}"
                                         Padding="26,11" FontWeight="Bold" FontSize="15"
                                         HorizontalAlignment="Left" Click="Play_Click"/>
                                 <Button x:Name="PlayShortcutButton" Content="Make desktop shortcut" Style="{StaticResource ChipButton}"
@@ -5194,7 +4987,7 @@
                                          TextChanged="PlayUrl_Changed"
                                          ToolTip="Paste your BedWars game link OR just its game ID. Blank opens Roblox's games page."/>
                             </DockPanel>
-                            <TextBlock Text="Paste your BedWars game link — or just the game ID number — and Play opens straight to it. Leave blank to open Roblox and pick it yourself."
+                            <TextBlock Text="Paste your BedWars game link â€” or just the game ID number â€” and Play opens straight to it. Leave blank to open Roblox and pick it yourself."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>
@@ -5258,7 +5051,7 @@
                                 <TextBlock Text="Appearance" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                             </StackPanel>
 
-                            <TextBlock Text="Swaps the backgrounds, text and controls. The accent is unaffected — it stays whichever colour is chosen below."
+                            <TextBlock Text="Swaps the backgrounds, text and controls. The accent is unaffected â€” it stays whichever colour is chosen below."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -5541,7 +5334,7 @@
                                        Foreground="{StaticResource TextMuted}" FontSize="12"
                                        TextWrapping="Wrap" Margin="0,10,0,0"/>
                             <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Margin="0,14,0,0"/>
-                            <TextBlock Text="Don't have a key yet? Join the Discord to get one — a one-time $20 for lifetime, or a short pass."
+                            <TextBlock Text="Don't have a key yet? Join the Discord to get one â€” a one-time $20 for lifetime, or a short pass."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,14,0,8"/>
                             <Button Content="Join the Discord" Style="{StaticResource AccentButton}" Padding="16,8"
                                     HorizontalAlignment="Left" Click="JoinDiscord_Click"/>
@@ -5583,7 +5376,7 @@
                                 <TextBlock DockPanel.Dock="Left" Text="Aim trainer" Style="{StaticResource CardTitle}" Margin="11,0,0,0"/>
                                 <TextBlock DockPanel.Dock="Right" Text="PLUS" Foreground="{StaticResource Accent}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock Text="Practise your aim and clicking right here — reaction, flick accuracy, tracking and a CPS test. Nothing touches the game."
+                            <TextBlock Text="Practise your aim and clicking right here â€” reaction, flick accuracy, tracking and a CPS test. Nothing touches the game."
                                        Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
 
                             <StackPanel x:Name="TrainerProPanel" Margin="0,4,0,0">
@@ -5616,15 +5409,15 @@
                                         <TextBlock Text="MISSED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                     <StackPanel>
-                                        <TextBlock x:Name="TrainerAccuracy" Text="—" FontSize="22" FontWeight="Black" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="TrainerAccuracy" Text="â€”" FontSize="22" FontWeight="Black" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"/>
                                         <TextBlock Text="ACCURACY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                     <StackPanel>
-                                        <TextBlock x:Name="TrainerAvg" Text="—" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="TrainerAvg" Text="â€”" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
                                         <TextBlock Text="AVG TIME" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                     <StackPanel>
-                                        <TextBlock x:Name="TrainerTimeLeft" Text="—" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="TrainerTimeLeft" Text="â€”" FontSize="22" FontWeight="Black" Foreground="{StaticResource TextBright}" HorizontalAlignment="Center"/>
                                         <TextBlock Text="TIME LEFT" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </UniformGrid>
@@ -5680,7 +5473,7 @@
                                             HorizontalAlignment="Left">
                                     <TextBlock Text="LIVE READOUT OVER THE GAME" Foreground="{StaticResource TextSoft}"
                                                FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Off unless you turn it on. Shows the clicks per second actually being sent, and how even they are, in the corner of the screen while the clicker runs. It reports what this app sends — it does not read the game, so there is no hit count."
+                                    <TextBlock Text="Off unless you turn it on. Shows the clicks per second actually being sent, and how even they are, in the corner of the screen while the clicker runs. It reports what this app sends â€” it does not read the game, so there is no hit count."
                                                Foreground="{StaticResource TextMuted}" FontSize="11"
                                                TextWrapping="Wrap" Margin="0,3,0,0"/>
                                 </StackPanel>
@@ -5692,7 +5485,7 @@
                                           Unchecked="Overlay_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="The badge appears whenever a macro or the auto switcher is running, and names the keys being sent. It is there so a macro left on does not read as the game misbehaving — several kits bind the same keys."
+                            <TextBlock Text="The badge appears whenever a macro or the auto switcher is running, and names the keys being sent. It is there so a macro left on does not read as the game misbehaving â€” several kits bind the same keys."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,14,0,0"/>
                         </StackPanel>
@@ -5711,7 +5504,7 @@
                                           Checked="HotkeysEnabled_Changed" Unchecked="HotkeysEnabled_Changed"/>
                             </DockPanel>
 
-                            <TextBlock Text="Hotkeys are watched system-wide, so they fire inside a game — and just as readily while you are typing in a browser or a chat box. Turning this off silences the rest without unbinding them."
+                            <TextBlock Text="Hotkeys are watched system-wide, so they fire inside a game â€” and just as readily while you are typing in a browser or a chat box. Turning this off silences the rest without unbinding them."
                                        Foreground="{StaticResource TextMuted}" FontSize="11"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
 
@@ -5777,7 +5570,7 @@
                             -->
                             <DockPanel LastChildFill="False" Margin="0,12,0,0">
                                 <TextBlock x:Name="AutoFpsStatus"
-                                           Text="Not measured. Run this with the game open — an idle PC measures faster than a busy one, and busy is when you record."
+                                           Text="Not measured. Run this with the game open â€” an idle PC measures faster than a busy one, and busy is when you record."
                                            Foreground="{StaticResource TextMuted}" FontSize="11"
                                            TextWrapping="Wrap" VerticalAlignment="Center"
                                            MaxWidth="440"/>
@@ -5840,7 +5633,7 @@
 
             <!-- The shadow lives on its own element behind the card. A bitmap
                  Effect forces everything inside it through an intermediate
-                 surface, which drops ClearType and softens all the text — so the
+                 surface, which drops ClearType and softens all the text â€” so the
                  card itself must not be inside one. -->
             <Border CornerRadius="8" Background="{StaticResource Panel}" MaxWidth="460" Margin="0,0,0,0"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
