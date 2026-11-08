@@ -38,8 +38,14 @@ public partial class MainWindow
     // that sub-tab is showing, send the user to the key page. Called from RefreshLicense.
     private void ApplyLowerPingPro()
     {
-        if (!IsPro && PagePerf_lowerping is { Visibility: Visibility.Visible })
+        // IsVisible, not Visibility: the sub-panel keeps its own Visibility even
+        // when its parent Performance page is collapsed, so a Visibility check
+        // would yank a lapsed user off whatever page they are on, every re-check.
+        if (!IsPro && PagePerf_lowerping is { IsVisible: true })
+        {
+            if (PerfTabOptimizations is not null) PerfTabOptimizations.IsChecked = true;   // back to a free sub-tab
             ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
+        }
     }
 
     private void LoadLowerPing(AppSettings s)

@@ -192,11 +192,16 @@ public sealed class MacroRunner : IDisposable
 {
     private readonly Dictionary<string, CancellationTokenSource> _running = new();
 
+    // Guards _running. The macro thread removes itself on completion while the UI
+    // and poll threads start and stop macros, so every touch of the dictionary is
+    // serialised. Changed is always raised outside the lock.
+    private readonly object _lock = new();
+
     private long _sent;
 
-    public bool IsRunning(string name) => _running.ContainsKey(name);
+    public bool IsRunning(string name) { lock (_lock) return _running.ContainsKey(name); }
 
-    public int RunningCount => _running.Count;
+    public int RunningCount { get { lock (_lock) return _running.Count; } }
 
     /// <summary>How many key presses have actually gone out.</summary>
     /// <remarks>
@@ -259,14 +264,16 @@ public sealed class MacroRunner : IDisposable
         // Refused here rather than only in the UI, so nothing can start a
         // disabled macro by any route — its key, its switch, or a restore on
         // launch. Disabled means it does not run, not that one button is grey.
-        if (!macro.Enabled || !macro.IsUsable || _running.ContainsKey(macro.Name)) return;
+        if (!macro.Enabled || !macro.IsUsable) return;
 
         var cts = new CancellationTokenSource();
-        _running[macro.Name] = cts;
+        lock (_lock)
+        {
+            if (_running.ContainsKey(macro.Name)) return;
+            _running[macro.Name] = cts;
+        }
 
-        CancellationToken token = cts.Token;
-
-        new Thread(() => Loop(macro, token))
+        new Thread(() => Loop(macro, cts))
         {
             IsBackground = true,
             // Matched to the click engine. At default priority this thread was
@@ -296,27 +303,35 @@ public sealed class MacroRunner : IDisposable
 
     public void Stop(string name)
     {
-        if (!_running.TryGetValue(name, out CancellationTokenSource? cts)) return;
+        CancellationTokenSource? cts;
+        lock (_lock)
+        {
+            if (!_running.TryGetValue(name, out cts)) return;
+            _running.Remove(name);
+        }
 
         cts.Cancel();
-        _running.Remove(name);
-
         Changed?.Invoke();
     }
 
     public void StopAll()
     {
-        if (_running.Count == 0) return;
+        CancellationTokenSource[] all;
+        lock (_lock)
+        {
+            if (_running.Count == 0) return;
+            all = _running.Values.ToArray();
+            _running.Clear();
+        }
 
-        foreach (CancellationTokenSource cts in _running.Values) cts.Cancel();
-
-        _running.Clear();
-
+        foreach (CancellationTokenSource cts in all) cts.Cancel();
         Changed?.Invoke();
     }
 
-    private void Loop(KeyMacro macro, CancellationToken token)
+    private void Loop(KeyMacro macro, CancellationTokenSource cts)
     {
+        CancellationToken token = cts.Token;
+
         int at = 0;
         int rotations = 0;
         bool completed = false;
@@ -378,13 +393,20 @@ public sealed class MacroRunner : IDisposable
 
         // Ran out its rotations on its own (rather than being stopped): drop it
         // from the running set so callers see it stop and the UI switch clears.
-        if (completed) CompleteSelf(macro.Name);
+        if (completed) CompleteSelf(macro.Name, cts);
     }
 
-    /// <summary>Removes a macro that finished its rotations by itself.</summary>
-    private void CompleteSelf(string name)
+    /// <summary>Removes a macro that finished its rotations by itself — but only if
+    /// this is still the entry it started as. A stop-then-restart under the same
+    /// name replaces it, and removing that would orphan the new thread.</summary>
+    private void CompleteSelf(string name, CancellationTokenSource cts)
     {
-        _running.Remove(name);
+        lock (_lock)
+        {
+            if (!_running.TryGetValue(name, out CancellationTokenSource? cur) || cur != cts) return;
+            _running.Remove(name);
+        }
+
         Changed?.Invoke();
     }
 

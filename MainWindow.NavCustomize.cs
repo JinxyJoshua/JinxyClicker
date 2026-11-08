@@ -89,14 +89,26 @@ public partial class MainWindow
     private void RenameNav(string id, string? text)
     {
         NavLayout layout = CurrentNavLayoutModel();
-        var labels = new Dictionary<string, string>(layout.Labels);
 
         string def = _navDefaultLabels.GetValueOrDefault(id, id);
         string trimmed = (text ?? "").Trim();
-        if (trimmed.Length == 0 || trimmed == def) labels.Remove(id);
-        else labels[id] = trimmed;
+        string? newLabel = trimmed.Length == 0 || trimmed == def ? null : trimmed;
 
-        SaveNavCustomization(LayoutFromCurrent(new HashSet<string>(layout.Hidden), labels));
+        layout.Labels.TryGetValue(id, out string? currentLabel);
+        if (newLabel == currentLabel) return;   // unchanged: don't save or rebuild
+
+        var labels = new Dictionary<string, string>(layout.Labels);
+        if (newLabel is null) labels.Remove(id); else labels[id] = newLabel;
+
+        // Persist and update the sidebar, but do NOT rebuild the editor here. The
+        // rename fires on LostFocus, which happens synchronously as another button
+        // takes focus on mouse-down — rebuilding (Children.Clear) would remove that
+        // button mid-press and swallow the click. The row's box already shows the
+        // new name; only the sidebar button needs it.
+        _navLayoutJson = NavLayout.Serialize(LayoutFromCurrent(new HashSet<string>(layout.Hidden), labels));
+        _settingsDirty = true;
+        SaveAppSettings();
+        ApplyNavLayout();
     }
 
     private void NavMoveWithinGroup(string id, int dir)

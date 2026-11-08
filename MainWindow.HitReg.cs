@@ -82,8 +82,14 @@ public partial class MainWindow
         _activeCombatProfile = null;
         LightCombatProfile();
 
-        if (PageClk_hitreg is { Visibility: Visibility.Visible })
+        // IsVisible, not Visibility: the sub-panel keeps its own Visibility even
+        // when its parent Clicker page is collapsed, so a Visibility check would
+        // yank a lapsed user off whatever page they are on, every re-check.
+        if (PageClk_hitreg is { IsVisible: true })
+        {
+            if (ClkTabMain is not null) ClkTabMain.IsChecked = true;   // back to the free Clicker sub-tab
             ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
+        }
     }
 
     private void CombatProfile_Click(object sender, RoutedEventArgs e)
