@@ -29,9 +29,6 @@ public partial class MainWindow
     // Lyre's "3x size" preview.
     private const double ShakePreviewZoom = 2.2;
 
-    private void NavShake_Click(object sender, RoutedEventArgs e) =>
-        ShowPage(NavShake, PageShake, "Shaky Tracking", "A little hand-like movement while you click");
-
     private void StartShakePreview()
     {
         if (_shakePreviewTimer != null) return;
@@ -48,9 +45,10 @@ public partial class MainWindow
     {
         if (ShakePreviewCanvas == null || ShakePreviewDot == null) return;
 
-        // No work unless the shake page is actually on screen; drop the trail so
-        // it starts clean next time the page opens.
-        if (PageShake is not { Visibility: Visibility.Visible })
+        // No work unless the Shaky Tracking sub-tab is actually on screen (the
+        // Clicker page shown and that sub-tab selected); drop the trail so it
+        // starts clean next time it opens. IsVisible accounts for the parent page.
+        if (PageClk_shake is not { IsVisible: true })
         {
             if (_previewTrail.Count > 0)
             {

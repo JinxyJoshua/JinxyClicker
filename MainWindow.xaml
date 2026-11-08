@@ -1158,8 +1158,6 @@
                 <StackPanel x:Name="GroupClicking">
                     <Button x:Name="NavClicker" app:NavIcon.Glyph="&#xE7C9;" Content="CLICKER" Style="{StaticResource NavButton}"
                             Tag="Selected" Click="NavClicker_Click"/>
-                    <Button x:Name="NavShake" app:NavIcon.Glyph="&#xEA80;" Content="SHAKY TRACKING" Style="{StaticResource NavButton}"
-                            Click="NavShake_Click"/>
                     <Button x:Name="NavPresets" app:NavIcon.Glyph="&#xE734;" Content="PRESETS" Style="{StaticResource NavButton}"
                             Click="NavPresets_Click"/>
                     <Button x:Name="NavMacros" app:NavIcon.Glyph="&#xE765;" Content="AUTOMATION" Style="{StaticResource NavButton}"
@@ -1210,8 +1208,6 @@
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PLUS"
                         Tag="{Binding ElementName=GroupPro}" Click="NavGroup_Click"/>
                 <StackPanel x:Name="GroupPro">
-                    <Button x:Name="NavHitReg" app:NavIcon.Glyph="&#xE945;" Content="HIT REGISTRATION" Style="{StaticResource NavButton}"
-                            Click="NavHitReg_Click"/>
                     <Button x:Name="NavMusic" app:NavIcon.Glyph="&#xE8D6;" Content="MUSIC" Style="{StaticResource NavButton}"
                             Click="NavMusic_Click"/>
                     <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
@@ -1294,6 +1290,13 @@
             <ScrollViewer x:Name="PageScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden">
               <Grid>
                 <StackPanel x:Name="PageClicker">
+                    <UniformGrid x:Name="PageClkBar" Columns="3" Margin="0,0,0,14">
+                        <RadioButton x:Name="ClkTabMain" Content="Clicker" GroupName="PageClkTab" Tag="PageClk_main" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Shaky Tracking" GroupName="PageClkTab" Tag="PageClk_shake" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton x:Name="ClkTabHitReg" Content="Hit Registration" GroupName="PageClkTab" Tag="PageClk_hitreg" Margin="0" Style="{StaticResource SegmentButton}" Checked="ClkPlusTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PageClk_main">
 
                     <!-- What is actually leaving the app, as opposed to what the
                          sliders were set to. These are routinely not the same
@@ -1661,11 +1664,9 @@
                         </StackPanel>
                     </Border>
 
-                </StackPanel>
+                    </StackPanel>
 
-                <!-- Shaky Tracking â€” its own tab under CLICKER. Free. The engine reads
-                     these through _settings like the other clicker controls. -->
-                <StackPanel x:Name="PageShake" Visibility="Collapsed">
+                    <StackPanel x:Name="PageClk_shake" Visibility="Collapsed">
 
                     <!-- Enable + what it is -->
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
@@ -1793,12 +1794,9 @@
                         </Border>
                     </Grid>
 
-                </StackPanel>
+                    </StackPanel>
 
-                <!-- Hit registration (Plus). Its own tab in the PLUS group. Everything
-                     here is about landing more of the clicks you send; the engine reads
-                     these toggles through _settings like any other clicker control. -->
-                <StackPanel x:Name="PageHitReg" Visibility="Collapsed">
+                    <StackPanel x:Name="PageClk_hitreg" Visibility="Collapsed">
 
                     <Border Background="{StaticResource Panel}" CornerRadius="8"
                             BorderThickness="1" BorderBrush="{StaticResource Outline}"
@@ -1862,6 +1860,7 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Music (Plus). Hosts YouTube Music in an embedded web view, so a

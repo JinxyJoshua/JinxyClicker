@@ -65,13 +65,7 @@ public partial class MainWindow
         }
     }
 
-    private void NavHitReg_Click(object sender, RoutedEventArgs e)
-    {
-        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
-        ShowPage(NavHitReg, PageHitReg, "Hit Registration", "Land more of the clicks you send");
-    }
-
-    /// <summary>
+/// <summary>
     /// Keeps the Plus gate honest: the tab stays visible so Free users can see
     /// it, but a free install (or a lapsed pass) landing on the page is sent to
     /// the key page, and the paid toggles are forced off so the engine cannot
@@ -88,7 +82,7 @@ public partial class MainWindow
         _activeCombatProfile = null;
         LightCombatProfile();
 
-        if (PageHitReg is { Visibility: Visibility.Visible })
+        if (PageClk_hitreg is { Visibility: Visibility.Visible })
             ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
     }
 

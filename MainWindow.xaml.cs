@@ -3701,6 +3701,19 @@ public partial class MainWindow : Window
         RefreshLowerPingTweaks();
     }
 
+    // Hit Registration is Plus, so its sub-tab sends a Free user to the key page
+    // and snaps the Clicker page back to the free Clicker sub-tab.
+    private void ClkPlusTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (!IsPro)
+        {
+            if (ClkTabMain is not null) ClkTabMain.IsChecked = true;
+            NavPro_Click(sender, e);
+            return;
+        }
+        PageTab_Checked(sender, e);
+    }
+
     // ---- temp cleaner ----
 
     private TempScan _lastTempScan;
@@ -5254,14 +5267,14 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavOptimizations,
-        NavMacros, NavAppTargeting, NavHitReg, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
+        NavClicker, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavOptimizations,
+        NavMacros, NavAppTargeting, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageOptimizations,
-        PageMacros, PageAppTargeting, PageHitReg, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
+        PageClicker, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageOptimizations,
+        PageMacros, PageAppTargeting, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----
