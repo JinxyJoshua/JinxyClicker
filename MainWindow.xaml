@@ -5279,11 +5279,12 @@
 
                 <StackPanel x:Name="PageSettings" Visibility="Collapsed">
 
-                    <UniformGrid x:Name="PageSettingsBar" Columns="5" Margin="0,0,0,14">
+                    <UniformGrid x:Name="PageSettingsBar" Columns="6" Margin="0,0,0,14">
                         <RadioButton Content="General" GroupName="PageSettingsTab" Tag="PageSettings_general" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Streaming" GroupName="PageSettingsTab" Tag="PageSettings_streaming" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Hotkeys" GroupName="PageSettingsTab" Tag="PageSettings_hotkeys" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Recording" GroupName="PageSettingsTab" Tag="PageSettings_recording" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Customize" GroupName="PageSettingsTab" Tag="PageSettings_customize" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                         <RadioButton Content="Feedback" GroupName="PageSettingsTab" Tag="PageSettings_feedback" Margin="0" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
                     </UniformGrid>
 
@@ -5468,6 +5469,26 @@
                         </StackPanel>
                     </Border>
 
+                    </StackPanel>
+
+                    <StackPanel x:Name="PageSettings_customize" Visibility="Collapsed">
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE762;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Customize the sidebar"/>
+                                </StackPanel>
+                                <Button x:Name="NavCustomizeReset" DockPanel.Dock="Right" Content="Reset all"
+                                        Click="NavCustomizeReset_Click" Height="34" Padding="14,0" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="Press &#x2013; to hide a tab, the arrows to reorder it within its group, or type over its name to rename it. Hidden tabs come back with +."
+                                       Style="{StaticResource CardHint}" Margin="0,0,0,14"/>
+                            <StackPanel x:Name="NavCustomizeList"/>
+                        </StackPanel>
+                    </Border>
                     </StackPanel>
 
                     <StackPanel x:Name="PageSettings_feedback" Visibility="Collapsed">

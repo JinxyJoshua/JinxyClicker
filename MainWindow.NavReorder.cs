@@ -36,7 +36,9 @@ public partial class MainWindow
         _navReorderInit = true;
 
         BuildNavModel();
+        CaptureNavDefaults();   // default labels + order, before a saved layout is applied
         ApplyNavLayout();
+        BuildNavCustomizeEditor();
 
         NavList.PreviewMouseLeftButtonDown += NavList_PreviewDown;
         NavList.PreviewMouseMove += NavList_PreviewMove;
@@ -91,8 +93,10 @@ public partial class MainWindow
 
     private void ApplyNavLayout()
     {
-        var ordered = NavLayout.Reconcile(NavLayout.Deserialize(_navLayoutJson), CurrentNavStructure());
+        NavLayout? saved = NavLayout.Deserialize(_navLayoutJson);
+        var ordered = NavLayout.Reconcile(saved, CurrentNavStructure());
         ReorderNavTree(ordered);
+        ApplyNavHideAndLabels(saved);
     }
 
     private void ReorderNavTree(List<(string Group, List<string> Items)> ordered)
@@ -130,7 +134,13 @@ public partial class MainWindow
 
     private void CaptureNavLayout()
     {
-        var layout = new NavLayout();
+        // Preserve the hide/rename state (set in Customize, not by dragging).
+        NavLayout? prev = NavLayout.Deserialize(_navLayoutJson);
+        var layout = new NavLayout
+        {
+            Hidden = prev?.Hidden ?? new List<string>(),
+            Labels = prev?.Labels ?? new Dictionary<string, string>(),
+        };
         foreach ((Button _, StackPanel p) in CurrentGroupBlocks())
             layout.Groups.Add(new NavGroupOrder
             {
@@ -141,6 +151,7 @@ public partial class MainWindow
         _navLayoutJson = NavLayout.Serialize(layout);
         _settingsDirty = true;
         SaveAppSettings();
+        BuildNavCustomizeEditor();
     }
 
     // ---- dragging ----

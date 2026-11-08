@@ -9,6 +9,12 @@ public sealed class NavLayout
 {
     public List<NavGroupOrder> Groups { get; set; } = new();
 
+    /// <summary>Nav item ids the user hid from the sidebar (the "–" in Customize).</summary>
+    public List<string> Hidden { get; set; } = new();
+
+    /// <summary>Nav item ids the user renamed, mapped to their custom label.</summary>
+    public Dictionary<string, string> Labels { get; set; } = new();
+
     public static string Serialize(NavLayout layout) => JsonSerializer.Serialize(layout);
 
     public static NavLayout? Deserialize(string? json)
