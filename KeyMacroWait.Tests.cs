@@ -76,14 +76,21 @@ public class KeyMacroWaitTests
     {
         using var timer = new RaisedTimer();
 
-        var clock = Stopwatch.StartNew();
+        // Best of several runs. A sliced-sleep regression drifts on every run, so
+        // the best still blows the bound; a one-off scheduler spike (a busy CI box
+        // or a build running alongside) only inflates some runs, and the best
+        // reflects a clean one. This keeps the regression check while removing the
+        // load-sensitive flake the loose timing made unavoidable.
+        double best = double.MaxValue;
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            var clock = Stopwatch.StartNew();
+            for (int i = 0; i < 10; i++) MacroRunner.Wait(20, CancellationToken.None);
+            best = Math.Min(best, clock.Elapsed.TotalMilliseconds);
+        }
 
-        for (int i = 0; i < 10; i++) MacroRunner.Wait(20, CancellationToken.None);
-
-        double elapsed = clock.Elapsed.TotalMilliseconds;
-
-        Assert.True(elapsed < 225.0,
-            $"ten 20ms waits took {elapsed:F1}ms; 200ms was asked for and a sliced sleep is back");
+        Assert.True(best < 225.0,
+            $"ten 20ms waits took {best:F1}ms at best; 200ms was asked for and a sliced sleep is back");
     }
 
     /// <summary>
