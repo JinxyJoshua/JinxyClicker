@@ -29,7 +29,6 @@ public sealed record RotationChain(
     IReadOnlyList<RotationSlot> Slots,
     SwitchTrigger Trigger,
     int StopAfterRotations,
-    HotkeyBinding Hotkey,
     bool Enabled = true)
 {
     /// <summary>The reserved name the macro engine runs the rotation under.</summary>
@@ -39,7 +38,7 @@ public sealed record RotationChain(
     public const int MinSlots = 2;
 
     public static RotationChain Empty =>
-        new(Array.Empty<RotationSlot>(), SwitchTrigger.Toggle, 0, HotkeyBinding.Unbound);
+        new(Array.Empty<RotationSlot>(), SwitchTrigger.Toggle, 0);
 
     /// <summary>The slots that actually carry a key; blank rows are ignored.</summary>
     public IReadOnlyList<RotationSlot> FilledSlots =>
@@ -79,11 +78,12 @@ public sealed record RotationChain(
         string text = string.Join(", ", filled.Select(s => s.Key.Trim().ToUpperInvariant()));
         int[] holds = filled.Select(s => s.DelayMs).ToArray();
 
+        // No hotkey on the macro itself: the rotation is started and stopped by
+        // the page's global switcher hotkey, not by the macro-hotkey poll.
         return new KeyMacro(
             EngineName, keys, text,
             intervalMs: holds[0],
             holdsMs: holds,
-            hotkey: Hotkey,
             maxRotations: Math.Max(0, StopAfterRotations));
     }
 }
@@ -107,7 +107,6 @@ public static class RotationChainStore
         public List<StoredSlot> Slots { get; set; } = new();
         public string Trigger { get; set; } = "Toggle";
         public int StopAfterRotations { get; set; }
-        public int HotkeyVk { get; set; }
         // Stored as "Disabled" so a file written without the field reads as enabled.
         public bool Disabled { get; set; }
     }
@@ -127,9 +126,6 @@ public static class RotationChainStore
                 s.Slots.Select(x => new RotationSlot(x.Key, x.DelayMs)).ToList(),
                 Enum.TryParse(s.Trigger, out SwitchTrigger t) ? t : SwitchTrigger.Toggle,
                 Math.Max(0, s.StopAfterRotations),
-                s.HotkeyVk == 0
-                    ? HotkeyBinding.Unbound
-                    : new HotkeyBinding(s.HotkeyVk, HotkeyBinding.Describe(s.HotkeyVk)),
                 Enabled: !s.Disabled);
         }
         catch
@@ -147,7 +143,6 @@ public static class RotationChainStore
                 Slots = chain.Slots.Select(s => new StoredSlot { Key = s.Key, DelayMs = s.DelayMs }).ToList(),
                 Trigger = chain.Trigger.ToString(),
                 StopAfterRotations = chain.StopAfterRotations,
-                HotkeyVk = chain.Hotkey.VirtualKey,
                 Disabled = !chain.Enabled
             };
 

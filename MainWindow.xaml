@@ -2177,6 +2177,8 @@
 
                     <!-- Auto Switcher: the same engine, two keys, one purpose. -->
                     <StackPanel x:Name="PageAutomation_switcher" Visibility="Collapsed">
+
+                    <!-- Status + master on/off -->
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
                         <DockPanel LastChildFill="False">
@@ -2184,10 +2186,8 @@
                                 <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8AB;"/>
                             </Border>
                             <StackPanel VerticalAlignment="Center" Margin="11,0,0,0">
-                                <TextBlock Text="Switchers" Style="{StaticResource CardTitle}"/>
-                                <TextBlock x:Name="SwitcherHotkeyKillNote"
-                                           Text="Switch every auto switcher off at once, without losing what it is set to."
-                                           Style="{StaticResource CardSubtitle}"/>
+                                <TextBlock Text="Auto Switcher" Style="{StaticResource CardTitle}"/>
+                                <TextBlock x:Name="RotationStatusText" Text="Idle" Style="{StaticResource CardSubtitle}"/>
                             </StackPanel>
                             <Button x:Name="SwitcherHotkeysOffButton" DockPanel.Dock="Right"
                                     Content="TURN HOTKEYS ON" Visibility="Collapsed"
@@ -2195,142 +2195,64 @@
                                     Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"
                                     Margin="0,0,10,0"
                                     ToolTip="Every hotkey in the app is switched off, from the Settings page. This turns them back on."/>
-                            <Button x:Name="SwitcherHotkeyKill" DockPanel.Dock="Right" Content="DISABLE ALL"
-                                    Click="DisableAllSwitchers_Click" Height="40" MinWidth="170"
+                            <Button x:Name="RotationToggle" DockPanel.Dock="Right" Content="OFF"
+                                    Click="RotationToggle_Click" Height="40" MinWidth="120"
                                     Padding="16,0" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
                     </Border>
 
-                    <!-- One card per saved switcher, built in code: how many
-                         there are is not known until the app runs, the same as
-                         the macro list. -->
-                    <WrapPanel x:Name="SwitcherList" Margin="0,0,0,4"/>
-
-                    <TextBlock x:Name="SwitcherEmptyText" Visibility="Collapsed"
-                               Text="No switchers saved yet. Fill in the boxes below and press Save."
-                               Foreground="{StaticResource TextMuted}" FontSize="11"
-                               Margin="0,0,0,14"/>
-
-                    <TextBlock x:Name="SwitcherCountText" Text=""
-                               Foreground="{StaticResource Accent}" FontSize="11"
-                               FontWeight="Bold" Margin="0,0,0,14"/>
-
+                    <!-- Trigger, stop-after and the hotkey -->
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
                             BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
-                                <Border Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE8AB;"/>
-                                </Border>
-                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Style="{StaticResource CardTitle}" Text="New switcher"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <TextBlock Text="Swaps between two hotbar slots on a timer &#8212; sword and crossbow, or pickaxe and gumdrop. Name it and you can keep as many as you like, and run several at once."
-                                       Style="{StaticResource CardHint}" Margin="0,0,0,14"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="28"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="64"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="64"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="92"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="92"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="92"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="TRIGGER MODE" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RotationTriggerToggle" Content="Toggle" GroupName="RotTrigger" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="RotationTrigger_Changed"/>
+                                    <RadioButton x:Name="RotationTriggerHold" Content="Hold" GroupName="RotTrigger" Margin="0" Style="{StaticResource SegmentButton}" Checked="RotationTrigger_Changed"/>
+                                </StackPanel>
+                            </StackPanel>
 
-                                <StackPanel Grid.Column="0">
-                                    <TextBox x:Name="NewSwitcherName" Style="{StaticResource FieldBox}"/>
-                                    <TextBlock Text="NAME" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBox x:Name="NewSwitcherSlotA" Style="{StaticResource FieldBox}" MaxLength="1" Text="4"/>
-                                    <TextBlock Text="SLOT 1" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="4">
-                                    <TextBox x:Name="NewSwitcherSlotB" Style="{StaticResource FieldBox}" MaxLength="1" Text="1"/>
-                                    <TextBlock Text="SLOT 2" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="6">
-                                    <TextBox x:Name="NewSwitcherHoldA" Style="{StaticResource NumericFieldBox}" Text="21"/>
-                                    <TextBlock Text="HOLD 1 (MS)" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="8">
-                                    <TextBox x:Name="NewSwitcherEquip" Style="{StaticResource NumericFieldBox}" Text="5"/>
-                                    <TextBlock Text="EQUIP (MS)" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="10">
-                                    <TextBox x:Name="NewSwitcherHoldB" Style="{StaticResource NumericFieldBox}" Text="1300"/>
-                                    <TextBlock Text="HOLD 2 (MS)" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="12">
-                                    <DockPanel>
-                                        <Button x:Name="ClearNewSwitcherKey" DockPanel.Dock="Right"
-                                                Style="{StaticResource ClearBindingButton}"
-                                                Visibility="Collapsed"
-                                                Click="ClearNewSwitcherKey_Click"/>
-                                        <Button x:Name="NewSwitcherHotkeyButton" Content="Not set"
-                                                Click="NewSwitcherHotkey_Click"
-                                                Height="34" MinWidth="92" Padding="10,0" FontWeight="Bold"/>
-                                    </DockPanel>
-                                    <TextBlock Text="HOTKEY" Foreground="{StaticResource TextMuted}"
-                                               FontSize="9" FontWeight="Bold" Margin="0,6,0,0"/>
-                                </StackPanel>
-                                <Button Grid.Column="14" Content="+  Save" Click="SaveSwitcher_Click"
-                                        Height="34" MinWidth="92" Padding="14,0" FontWeight="Bold"
-                                        VerticalAlignment="Top"
-                                        Background="{StaticResource Accent}" Foreground="White"/>
-                            </Grid>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="STOP AFTER ROTATIONS" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <TextBox x:Name="RotationStopAfter" Style="{StaticResource NumericFieldBox}" Width="80" HorizontalAlignment="Left" Text="0" TextChanged="RotationStopAfter_Changed"/>
+                                <TextBlock Text="0 = never stop" Foreground="{StaticResource TextMuted}" FontSize="10" Margin="0,4,0,0"/>
+                            </StackPanel>
 
-                            <DockPanel LastChildFill="False" Margin="0,12,0,0">
-                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                                    <TextBlock Text="Start on slot 2" Foreground="{StaticResource TextSoft}" FontSize="12"/>
-                                    <TextBlock Text="Equips the second slot first when the switcher turns on, then alternates." Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <CheckBox x:Name="NewSwitcherStartSecond" DockPanel.Dock="Right" Margin="0" VerticalAlignment="Center"/>
-                            </DockPanel>
-
-                            <TextBlock x:Name="NewSwitcherStatus" Text=""
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,12,0,0"/>
-                        </StackPanel>
+                            <StackPanel Grid.Column="4" HorizontalAlignment="Right">
+                                <TextBlock Text="HOTKEY" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <DockPanel>
+                                    <Button x:Name="ClearSwitcherKey" Tag="Switcher" Style="{StaticResource ClearBindingButton}" Click="ClearBinding_Click" DockPanel.Dock="Right"/>
+                                    <Button x:Name="SwitcherHotkeyButton" Content="Not set" Click="SwitcherHotkey_Click"
+                                            VerticalAlignment="Center" FontSize="15" FontWeight="Bold"
+                                            Height="38" MinWidth="96" Padding="14,0" Margin="0"
+                                            ToolTip="Click, then press a key or a mouse button to start and stop the rotation from in game."/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
+                    <!-- The rotation chain -->
                     <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
                         <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="KEYBIND" Style="{StaticResource CardLabel}"/>
-                                    <TextBlock Text="Turns the switcher on and off from inside the game"
-                                               Style="{StaticResource CardHint}"/>
-                                </StackPanel>
-                                <Button x:Name="ClearSwitcherKey" Tag="Switcher" Style="{StaticResource ClearBindingButton}"
-                                        Click="ClearBinding_Click" DockPanel.Dock="Right"/>
-                                <Button x:Name="SwitcherHotkeyButton" Content="Not set"
-                                        Click="SwitcherHotkey_Click"
-                                        DockPanel.Dock="Right" VerticalAlignment="Center"
-                                        ToolTip="Click, then press a key or a mouse button. Any mouse button works except left, and whichever one the clicker is set to send. Delete unbinds it, Escape leaves it alone. If a button does nothing at all here, your mouse software has taken it over - set it back to a plain mouse button there."
-                                        FontSize="17" FontWeight="Bold"
-                                        Height="42" MinWidth="96" Padding="16,0" Margin="0"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                <TextBlock Text="ROTATION CHAIN" Foreground="{StaticResource TextMuted}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Button x:Name="RotationAddSlot" DockPanel.Dock="Right" Content="+  Slot" Click="RotationAddSlot_Click"
+                                        Height="32" Padding="14,0" FontWeight="Bold"/>
                             </DockPanel>
-
-                            <TextBlock Text="Slot keys are just the number keys Roblox already uses â€” the switcher presses 1 and 2 exactly as you would. It does not read the screen or the game."
-                                       Style="{StaticResource CardHint}" Margin="0,14,0,0"/>
+                            <TextBlock Text="Each slot is a key and how long to hold it. The rotation presses them in order and loops. The keys are the same number keys you press in game."
+                                       Style="{StaticResource CardHint}" Margin="0,0,0,12"/>
+                            <StackPanel x:Name="RotationSlots"/>
+                            <TextBlock x:Name="RotationStatus" Text="" Foreground="{StaticResource Accent}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <TextBlock x:Name="RotationCountText" Text="" Foreground="{StaticResource Accent}" FontSize="11" FontWeight="Bold" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
 

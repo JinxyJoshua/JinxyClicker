@@ -6,7 +6,7 @@ using Xunit;
 public class RotationChainTests
 {
     private static RotationChain Chain(params RotationSlot[] slots) =>
-        new(slots, SwitchTrigger.Toggle, 0, HotkeyBinding.Unbound);
+        new(slots, SwitchTrigger.Toggle, 0);
 
     [Fact]
     public void ToMacro_BuildsKeysAndPerSlotHolds()
@@ -24,7 +24,7 @@ public class RotationChainTests
     {
         KeyMacro? m = new RotationChain(
             new[] { new RotationSlot("1", 100), new RotationSlot("2", 100) },
-            SwitchTrigger.Toggle, 3, HotkeyBinding.Unbound).ToMacro();
+            SwitchTrigger.Toggle, 3).ToMacro();
 
         Assert.Equal(3, m!.MaxRotations);
     }

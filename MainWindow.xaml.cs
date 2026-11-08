@@ -60,7 +60,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HotkeySettings _hotkeySettings = new();
 
-    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, ClickSwitch, Macro, SwitcherProfile }
+    private enum RebindTarget { None, Click, Replay, Record, Combo, Build, Switcher, Master, ClickSwitch, Macro }
     private RebindTarget _rebinding = RebindTarget.None;
 
     /// <summary>
@@ -503,10 +503,10 @@ public partial class MainWindow : Window
                 if (replayDown && !replayWasDown)
                     Dispatcher.InvokeAsync(OnReplayHotkey, DispatcherPriority.Send);
 
-                // Press only, not both edges. The switcher latches — holding
-                // the key down is not a request to keep swapping.
-                if (switcherDown && !switcherWasDown)
-                    Dispatcher.InvokeAsync(OnSwitcherHotkey, DispatcherPriority.Send);
+                // Both edges, so Hold mode can stop the rotation on release. In
+                // Toggle mode OnSwitcherHotkey acts on the press only.
+                if (switcherDown != switcherWasDown)
+                    Dispatcher.InvokeAsync(() => OnSwitcherHotkey(switcherDown), DispatcherPriority.Send);
 
                 // Both edges, so hold mode works the same as the plain click
                 // key. The switcher half only acts on the press.
@@ -537,13 +537,6 @@ public partial class MainWindow : Window
             // Unbound cannot rearm on a stale entry after re-binding to a key.
             KeyMacro[] macrosNow = _macroList.ToArray();
 
-            // Copied for the same reason the macros are: the list is the UI
-            // thread's, and this one only reads a snapshot of it.
-            (string Name, int VirtualKey)[] switchersNow = _switcherList
-                .Where(sw => sw.Enabled && sw.Hotkey.IsValid)
-                .Select(sw => (sw.Name, sw.Hotkey.VirtualKey))
-                .ToArray();
-
             var namesSeen = new HashSet<string>();
 
             foreach (KeyMacro m in macrosNow)
@@ -565,25 +558,6 @@ public partial class MainWindow : Window
                 }
 
                 macroWasDown[m.Name] = down;
-            }
-
-            // The switchers are polled the same way and by the same rules: a
-            // switched-off one is skipped rather than polled and ignored, so
-            // its key is free for anything else to answer.
-            foreach ((string name, int vk) in switchersNow)
-            {
-                namesSeen.Add(name);
-                bool down = IsKeyDown(vk);
-                macroWasDown.TryGetValue(name, out bool wasDown);
-
-                if (s.HotkeysArmed && wasArmed && down && !wasDown)
-                {
-                    string forDispatch = name;
-                    Dispatcher.InvokeAsync(
-                        () => OnSwitcherProfileHotkey(forDispatch), DispatcherPriority.Send);
-                }
-
-                macroWasDown[name] = down;
             }
 
             // Prune entries whose macro is gone or unbound, so re-adding a macro
@@ -946,7 +920,7 @@ public partial class MainWindow : Window
     /// </remarks>
     private void RefreshHotkeyKillButtons()
     {
-        if (MacrosHotkeyKill == null || SwitcherHotkeyKill == null) return;
+        if (MacrosHotkeyKill == null) return;
 
         bool on = HotkeysEnabledToggle?.IsChecked != false;
 
@@ -985,9 +959,7 @@ public partial class MainWindow : Window
             StopAllSwitchers();
         }
 
-        // The switcher cards carry this state, so they are rebuilt rather than
-        // left showing whatever was true when they were made.
-        BuildSwitcherCards();
+        RefreshRotation();
 
         // Each macro card carries its own copy of this state, so they are
         // rebuilt rather than left showing whatever was true when they were made.
@@ -1195,20 +1167,10 @@ public partial class MainWindow : Window
     /// </remarks>
     private void SetSwitcher(bool on)
     {
-        if (!on)
-        {
-            StopAllSwitchers();
-        }
-        else if (HotkeysEnabledToggle?.IsChecked != false)
-        {
-            // ToList first: starting a switcher rebuilds nothing yet, but the
-            // list is rebuilt on every edit and iterating it while the engine
-            // calls back would be reading it as it changed.
-            foreach (SwitcherProfile profile in SwitcherStore.Startable(_switcherList).ToList())
-                StartSwitcher(profile);
-        }
+        if (!on) StopRotation();
+        else if (HotkeysEnabledToggle?.IsChecked != false) StartRotation();
 
-        BuildSwitcherCards();
+        RefreshRotation();
     }
 
     private void BuildHotkey_Click(object sender, RoutedEventArgs e)
@@ -1286,7 +1248,6 @@ public partial class MainWindow : Window
         // and is stashed when the rebind begins. Fall back to HotkeyButton only
         // if the stash is empty, which should not happen in practice.
         RebindTarget.Macro => _rebindingMacroButton ?? HotkeyButton,
-        RebindTarget.SwitcherProfile => _rebindingMacroButton ?? HotkeyButton,
         _ => HotkeyButton
     };
 
@@ -1403,7 +1364,6 @@ public partial class MainWindow : Window
         RebindTarget.Combo => "Combo",
         RebindTarget.Build => "Building",
         RebindTarget.Switcher => "Switcher",
-        RebindTarget.SwitcherProfile => "A switcher",
         RebindTarget.Master => "Master",
         RebindTarget.ClickSwitch => "Click+switch",
         _ => "A macro"
@@ -1465,15 +1425,6 @@ public partial class MainWindow : Window
         {
             if (ReferenceEquals(macro, macroTarget) || !macro.Enabled) continue;
             if (macro.Hotkey.IsValid && macro.Hotkey.VirtualKey == virtualKey) return macro.Name;
-        }
-
-        foreach (SwitcherProfile sw in _switcherList)
-        {
-            if (!sw.Enabled || !sw.Hotkey.IsValid) continue;
-            if (target == RebindTarget.SwitcherProfile
-                && string.Equals(sw.Name, _rebindingSwitcher, StringComparison.OrdinalIgnoreCase)) continue;
-
-            if (sw.Hotkey.VirtualKey == virtualKey) return sw.Name;
         }
 
         // The unsaved NEW MACRO pick is the only holder left it could be.
@@ -1548,7 +1499,6 @@ public partial class MainWindow : Window
         _rebinding = RebindTarget.None;
         _rebindingMacro = null;
         _rebindingMacroButton = null;
-        _rebindingSwitcher = null;
         ApplyHotkeyToUi();
 
         // Re-arms the poll thread, which BeginRebind disarmed.
@@ -1649,11 +1599,6 @@ public partial class MainWindow : Window
         bool clash =
             AllBindings().Any(b => IsLive(b.Target) && CollidesWithFixed(b.Target) && b.Binding.VirtualKey == binding.VirtualKey)
             || _macroList.Any(m => m.Enabled && m.Hotkey.IsValid && CollidesWithMacro(m) && m.Hotkey.VirtualKey == binding.VirtualKey)
-            || _switcherList.Any(sw =>
-                   sw.Enabled && sw.Hotkey.IsValid
-                   && !(target == RebindTarget.SwitcherProfile
-                        && string.Equals(sw.Name, _rebindingSwitcher, StringComparison.OrdinalIgnoreCase))
-                   && sw.Hotkey.VirtualKey == binding.VirtualKey)
             // The NEW MACRO form's pending pick counts too, unless it is the
             // slot being rebound now.
             || (!(target == RebindTarget.Macro && macroTarget == null)
@@ -1752,11 +1697,7 @@ public partial class MainWindow : Window
         // quietly rewrite the replay key.
         if (target == RebindTarget.None) return;
 
-        if (target == RebindTarget.SwitcherProfile)
-        {
-            ApplySwitcherBinding(_rebindingSwitcher, binding);
-        }
-        else if (target == RebindTarget.Macro)
+        if (target == RebindTarget.Macro)
         {
             AssignMacroHotkey(macroTarget, binding);
         }
@@ -5319,7 +5260,7 @@ public partial class MainWindow : Window
     {
         _macroTicker.Tick += (_, _) =>
         {
-            if (!_switcherList.Any(IsSwitcherRunning))
+            if (!IsRotationRunning)
             {
                 _macroTicker.Stop();
                 RefreshSwitcherCount();
@@ -5925,8 +5866,6 @@ public partial class MainWindow : Window
 
     // ---- auto switcher ----
 
-    private void Switcher_Changed(object sender, RoutedEventArgs e) => RefreshSwitcher();
-
     private void SwitcherHotkey_Click(object sender, RoutedEventArgs e)
     {
         if (_rebinding == RebindTarget.Switcher) CancelRebind();
@@ -5952,36 +5891,6 @@ public partial class MainWindow : Window
         HotkeysEnabledToggle.IsChecked = HotkeysEnabledToggle.IsChecked != true;
     }
 
-    private void SwitcherField_Changed(object sender, TextChangedEventArgs e) => RefreshSwitcher();
-
-    /// <summary>
-    /// Rebuilds the switcher from its fields and starts or stops it.
-    /// </summary>
-    /// <summary>
-    /// Re-applies every running switcher after something they depend on changed.
-    /// </summary>
-    /// <remarks>
-    /// Always stopped first. A running thread holds the values it was started
-    /// with, so replacing the thread is the only way an edit takes effect — and
-    /// the first hold depends on the clicker's rate, which changes underneath
-    /// them.
-    /// </remarks>
-    private void RefreshSwitcher()
-    {
-        if (SwitcherList == null) return;
-
-        foreach (SwitcherProfile profile in _switcherList.ToList())
-        {
-            if (!IsSwitcherRunning(profile)) continue;
-
-            StopSwitcher(profile);
-
-            if (SwitcherLive(profile)) StartSwitcher(profile);
-        }
-
-        RefreshSwitcherCount();
-    }
-
     /// <remarks>
     /// Never restored as running. A switcher that starts typing into whatever
     /// happens to be focused the moment the app opens is a nasty surprise, and
@@ -5992,7 +5901,7 @@ public partial class MainWindow : Window
         _switcherDisabled = s.SwitcherDisabled;
         _legacySwitcher = s;
 
-        LoadSwitchers(s);
+        LoadRotation(s);
     }
 
     // ---- Windows tweaks ----

@@ -164,29 +164,6 @@ public class AppSettingsDefaultsTests
     }
 
     /// <summary>
-    /// And the switcher carried into the list comes from what they had, not
-    /// from the defaults — otherwise upgrading would silently retune the
-    /// switcher somebody had already set up.
-    /// </summary>
-    [Fact]
-    public void UpgradingCarriesTheirSwitcherRatherThanTheDefault()
-    {
-        const string theirs = """
-            {"SwitcherSlotA":"7","SwitcherSlotB":"9","SwitcherIntervalMs":300,
-             "SwitcherEquipMs":80,"SwitcherIntervalBMs":250}
-            """;
-
-        AppSettings loaded = JsonSerializer.Deserialize<AppSettings>(theirs)!;
-
-        SwitcherProfile carried = SwitcherStore.FromSingle(loaded, HotkeyBinding.Unbound);
-
-        Assert.Equal("7", carried.SlotA);
-        Assert.Equal(300, carried.HoldFirstMs);
-        Assert.Equal(80, carried.EquipMs);
-        Assert.Equal(250, carried.HoldSecondMs);
-    }
-
-    /// <summary>
     /// Only somebody with no settings file at all gets the tuned defaults.
     /// </summary>
     [Fact]

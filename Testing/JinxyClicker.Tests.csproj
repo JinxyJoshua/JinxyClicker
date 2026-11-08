@@ -98,9 +98,6 @@
     <Compile Include="../CaptureBackend.cs" />
     <Compile Include="../ScreenRecorder.cs" />
     <Compile Include="../CaptureBackend.Tests.cs" />
-    <!-- Pulled in as dependencies of KeyMacro, not tested directly. -->
-    <Compile Include="../SwitcherProfile.cs" />
-    <Compile Include="../SwitcherProfile.Tests.cs" />
     <Compile Include="../Feedback.cs" />
     <Compile Include="../Feedback.Tests.cs" />
     <Compile Include="../KeyNames.cs" />
