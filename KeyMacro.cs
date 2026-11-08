@@ -30,7 +30,7 @@ public sealed class KeyMacro
 
     public KeyMacro(string name, IEnumerable<int> keys, string keysText, int intervalMs,
                     int[]? holdsMs = null, int clicksWanted = 0, int equipMs = DefaultEquipMs,
-                    HotkeyBinding? hotkey = null, bool enabled = true)
+                    HotkeyBinding? hotkey = null, bool enabled = true, int maxRotations = 0)
     {
         Enabled = enabled;
         Name = name;
@@ -44,7 +44,15 @@ public sealed class KeyMacro
         EquipMs = Math.Clamp(equipMs, 0, MaxIntervalMs);
 
         Hotkey = hotkey ?? HotkeyBinding.Unbound;
+        MaxRotations = Math.Max(0, maxRotations);
     }
+
+    /// <summary>
+    /// How many full passes through the key cycle to run before stopping on its
+    /// own. Zero means run until stopped. Used by the auto switcher's "stop after
+    /// N rotations"; an ordinary macro leaves it zero and runs until toggled off.
+    /// </summary>
+    public int MaxRotations { get; }
 
     /// <summary>
     /// Whether this macro may run at all.
@@ -310,6 +318,8 @@ public sealed class MacroRunner : IDisposable
     private void Loop(KeyMacro macro, CancellationToken token)
     {
         int at = 0;
+        int rotations = 0;
+        bool completed = false;
 
         // Same 15.6 ms -> 1 ms move the click loop makes, and for the same
         // reason. Without it a sleep cannot land nearer than a scheduler tick,
@@ -345,6 +355,14 @@ public sealed class MacroRunner : IDisposable
 
                 at = (at + 1) % macro.Keys.Length;
 
+                // A wrap back to the first key is one full rotation. Stop after the
+                // configured count, if any, rather than running until toggled off.
+                if (at == 0 && macro.MaxRotations > 0 && ++rotations >= macro.MaxRotations)
+                {
+                    completed = true;
+                    break;
+                }
+
                 if (firing) WaitForShots(macro, dwell, token);
                 else Wait(dwell, token);
             }
@@ -357,6 +375,17 @@ public sealed class MacroRunner : IDisposable
         {
             if (raisedTimer) TimeEndPeriod(TimerResolutionMs);
         }
+
+        // Ran out its rotations on its own (rather than being stopped): drop it
+        // from the running set so callers see it stop and the UI switch clears.
+        if (completed) CompleteSelf(macro.Name);
+    }
+
+    /// <summary>Removes a macro that finished its rotations by itself.</summary>
+    private void CompleteSelf(string name)
+    {
+        _running.Remove(name);
+        Changed?.Invoke();
     }
 
     /// <summary>Milliseconds of system timer resolution asked for while running.</summary>
