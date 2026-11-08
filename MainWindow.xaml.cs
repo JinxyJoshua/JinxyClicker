@@ -3674,21 +3674,31 @@ public partial class MainWindow : Window
             btn.Content = (show ? "▾" : "▸") + label.Substring(1);
     }
 
-    private void NavTweaks_Click(object sender, RoutedEventArgs e)
-    {
-        // Re-read on entry: a tweak may have been changed outside this app since
-        // the page was last shown.
-        RefreshTweaks();
-        RefreshQualityState();
-        ShowPage(NavTweaks, PageTweaks, "Tweaks", "Windows performance tweaks");
-    }
-
     private void NavOptimizations_Click(object sender, RoutedEventArgs e)
     {
-        ShowPage(NavOptimizations, PageOptimizations, "Optimizations", "Disk, input and memory");
+        // The Performance page: Optimizations (Game Mode / Cleaner / Input &
+        // Network), Tweaks and Lower Ping as sub-tabs. Re-read on entry since a
+        // tweak may have changed outside the app since the page was last shown.
         RefreshTweaks();
+        RefreshQualityState();
         RefreshMemoryLine();
         _ = ScanTempAsync();
+        ShowPage(NavOptimizations, PageOptimizations, "Performance", "Game Mode, tweaks and lower ping");
+    }
+
+    // Lower Ping is Plus, so its sub-tab sends a Free user to the key page and
+    // snaps the Performance page back to the free Optimizations sub-tab, rather
+    // than leaving a selected-but-empty tab.
+    private void PerfPlusTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (!IsPro)
+        {
+            if (PerfTabOptimizations is not null) PerfTabOptimizations.IsChecked = true;
+            NavPro_Click(sender, e);
+            return;
+        }
+        PageTab_Checked(sender, e);
+        RefreshLowerPingTweaks();
     }
 
     // ---- temp cleaner ----
@@ -5244,14 +5254,14 @@ public partial class MainWindow : Window
 
     private Button[] NavButtons => new[]
     {
-        NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavTweaks, NavOptimizations,
-        NavMacros, NavAppTargeting, NavHitReg, NavLowerPing, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
+        NavClicker, NavShake, NavProCorner, NavPresets, NavKitWheel, NavCrosshair, NavMusic, NavServer, NavOptimizations,
+        NavMacros, NavAppTargeting, NavHitReg, NavSocd, NavOverlays, NavScore, NavMod, NavDisplay, NavTrainer, NavRecorder, NavClipStudio, NavEditor, NavHistory, NavSetups, NavTheme, NavSettings
     }.Concat(_extraNav).ToArray();
 
     private UIElement[] Pages => new UIElement[]
     {
-        PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageTweaks, PageOptimizations,
-        PageMacros, PageAppTargeting, PageHitReg, PageLowerPing, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
+        PageClicker, PageShake, PagePro, PagePresets, PageKitWheel, PageCrosshair, PageMusic, PageServer, PageOptimizations,
+        PageMacros, PageAppTargeting, PageHitReg, PageSocd, PageOverlays, PageScore, PageMod, PageDisplay, PageTrainer, PageRecorder, PageClipStudio, PageEditor, PageHistory, PageSetups, PageTheme, PageSettings
     }.Concat(_extraPages).ToArray();
 
     // ---- macros ----

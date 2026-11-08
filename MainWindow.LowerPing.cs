@@ -27,18 +27,18 @@ public partial class MainWindow
     private bool _lowerPingOn;
     private List<string> _lowerPingApplied = new();
 
-    private void NavLowerPing_Click(object sender, RoutedEventArgs e)
+    /// <summary>Refreshes the Lower Ping toggles from live system state. Called
+    /// when the Lower Ping sub-tab of the Performance page is opened.</summary>
+    private void RefreshLowerPingTweaks()
     {
-        if (!IsPro) { NavPro_Click(sender, e); return; }   // gated: send to the key page
-        ShowPage(NavLowerPing, PageLowerPing, "Lower Ping", "Stop Windows adding its own latency");
         foreach (PcTweak tweak in _lowerPingTweaks) tweak.Refresh();
     }
 
-    // The tab stays visible so Free users see it; a free install (or a lapsed
-    // pass) landing on the page is sent to the key page. Called from RefreshLicense.
+    // Lower Ping is a Plus sub-tab of the Performance page. If a pass lapses while
+    // that sub-tab is showing, send the user to the key page. Called from RefreshLicense.
     private void ApplyLowerPingPro()
     {
-        if (!IsPro && PageLowerPing is { Visibility: Visibility.Visible })
+        if (!IsPro && PagePerf_lowerping is { Visibility: Visibility.Visible })
             ShowPage(NavProCorner, PagePro, "Plus", "Unlock the paid features with a key");
     }
 

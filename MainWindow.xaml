@@ -1180,9 +1180,7 @@
                 <Button Style="{StaticResource GroupHeader}" Content="&#x25BE; PERFORMANCE"
                         Tag="{Binding ElementName=GroupPerf}" Click="NavGroup_Click"/>
                 <StackPanel x:Name="GroupPerf">
-                    <Button x:Name="NavTweaks" app:NavIcon.Glyph="&#xE90F;" Content="TWEAKS" Style="{StaticResource NavButton}"
-                            Click="NavTweaks_Click"/>
-                    <Button x:Name="NavOptimizations" app:NavIcon.Glyph="&#xE945;" Content="OPTIMIZATIONS" Style="{StaticResource NavButton}"
+                    <Button x:Name="NavOptimizations" app:NavIcon.Glyph="&#xE945;" Content="PERFORMANCE" Style="{StaticResource NavButton}"
                             Click="NavOptimizations_Click"/>
                 </StackPanel>
 
@@ -1216,8 +1214,6 @@
                             Click="NavHitReg_Click"/>
                     <Button x:Name="NavMusic" app:NavIcon.Glyph="&#xE8D6;" Content="MUSIC" Style="{StaticResource NavButton}"
                             Click="NavMusic_Click"/>
-                    <Button x:Name="NavLowerPing" app:NavIcon.Glyph="&#xE774;" Content="LOWER PING" Style="{StaticResource NavButton}"
-                            Click="NavLowerPing_Click"/>
                     <Button x:Name="NavSocd" app:NavIcon.Glyph="&#xE962;" Content="SOCD" Style="{StaticResource NavButton}"
                             Click="NavSocd_Click"/>
                     <Button x:Name="NavOverlays" app:NavIcon.Glyph="&#xE7F4;" Content="OVERLAYS" Style="{StaticResource NavButton}"
@@ -1899,60 +1895,6 @@
                         </Grid>
                     </Border>
                 </Grid>
-
-                <!-- Lower Ping (Plus). One switch to stop Windows adding latency,
-                     plus the same network tweaks as individual toggles. Same
-                     reversible contract as Gaming Mode. -->
-                <StackPanel x:Name="PageLowerPing" Visibility="Collapsed">
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
-                            BorderBrush="{StaticResource Accent}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="LOWER PING" Foreground="{StaticResource Accent}"
-                                           FontSize="13" FontWeight="Black" VerticalAlignment="Center"/>
-                                <Border DockPanel.Dock="Right" Background="{StaticResource Accent}"
-                                        CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
-                                    <TextBlock Text="â˜… PLUS" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                </Border>
-                            </DockPanel>
-                            <TextBlock Text="One switch to stop Windows adding its own latency â€” disables network throttling and Nagle batching, stops update sharing and background Store apps, and keeps Wi-Fi at full power. All reversible."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <Button x:Name="LowerPingButton" Content="ACTIVATE LOWER PING"
-                                    Click="LowerPing_Click" Padding="16,10" FontWeight="Bold" FontSize="14"
-                                    HorizontalAlignment="Left" Margin="0,14,0,0"/>
-
-                            <TextBlock x:Name="LowerPingStatusText"
-                                       Text="Off. One switch to stop Windows adding latency â€” fully reversible."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
-
-                            <TextBlock Text="Honest: these stop Windows throttling and batching on your own PC. They can't shorten the path to the server, so on an idle connection there's nothing to clear. The machine-wide ones (throttling, Nagle, update sharing) need the app running as administrator; without that it applies the rest."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,10,0,0" Opacity="0.85"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
-                            BorderBrush="{StaticResource Outline}" Padding="18">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False" Margin="0,0,0,10">
-                                <Border Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE774;"/>
-                                </Border>
-                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Style="{StaticResource CardTitle}" Text="Network tweaks"/>
-                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Turn these on individually, or use the switch above"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <ItemsControl x:Name="LowerPingTweakList" Margin="0,8,0,0"
-                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
-                        </StackPanel>
-                    </Border>
-
-                </StackPanel>
 
                 <!-- Remaining pages: same chrome, no components yet. -->
                 <StackPanel x:Name="PagePresets" Visibility="Collapsed">
@@ -3373,56 +3315,15 @@
                     </Border>
 
                 </StackPanel>
-
-                <StackPanel x:Name="PageTweaks" Visibility="Collapsed">
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
-                                <Border Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
-                                </Border>
-                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="Windows system tweaks" Style="{StaticResource CardTitle}"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <TextBlock Text="Each tweak reads your current setting before changing it, so Revert puts back exactly what you had â€” not a guessed default."
-                                       Foreground="{StaticResource TextMuted}" FontSize="11"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button x:Name="RestartAdminButton" Content="Restart as administrator"
-                                        Click="RestartAdmin_Click" Padding="12,6" Margin="0,0,10,0"/>
-                                <Button Content="Revert all" Click="RevertAll_Click"
-                                        Padding="12,6" Margin="0"
-                                        ToolTip="Puts every applied tweak back to its recorded previous value"/>
-                            </StackPanel>
-
-                            <TextBlock x:Name="TweakStatusText" Text="" TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
-                        <StackPanel>
-                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
-                                <Border Style="{StaticResource CardIconChip}">
-                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE945;"/>
-                                </Border>
-                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="Performance" Style="{StaticResource CardTitle}"/>
-                                </StackPanel>
-                            </DockPanel>
-
-                            <ItemsControl x:Name="TweakList" Margin="0,4,0,0"
-                                          ItemTemplate="{StaticResource TweakRow}"/>
-                        </StackPanel>
-                    </Border>
-
-                </StackPanel>
-
                 <StackPanel x:Name="PageOptimizations" Visibility="Collapsed">
 
+                    <UniformGrid x:Name="PagePerfBar" Columns="3" Margin="0,0,0,14">
+                        <RadioButton x:Name="PerfTabOptimizations" Content="Optimizations" GroupName="PagePerfTab" Tag="PagePerf_opt" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton Content="Tweaks" GroupName="PagePerfTab" Tag="PagePerf_tweaks" Style="{StaticResource SegmentButton}" Checked="PageTab_Checked"/>
+                        <RadioButton x:Name="PerfTabLowerPing" Content="Lower Ping" GroupName="PagePerfTab" Tag="PagePerf_lowerping" Margin="0" Style="{StaticResource SegmentButton}" Checked="PerfPlusTab_Checked"/>
+                    </UniformGrid>
+
+                    <StackPanel x:Name="PagePerf_opt">
                     <UniformGrid x:Name="OptTabBar" Columns="3" Margin="0,0,0,14">
                         <RadioButton Content="Game Mode" GroupName="OptTab" Tag="Boost" IsChecked="True" Style="{StaticResource SegmentButton}" Checked="OptTab_Checked"/>
                         <RadioButton Content="Cleaner" GroupName="OptTab" Tag="Cleaner" Style="{StaticResource SegmentButton}" Checked="OptTab_Checked"/>
@@ -3523,6 +3424,106 @@
                     </Border>
 
                     </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel x:Name="PagePerf_tweaks" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE90F;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Windows system tweaks" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock Text="Each tweak reads your current setting before changing it, so Revert puts back exactly what you had â€” not a guessed default."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button x:Name="RestartAdminButton" Content="Restart as administrator"
+                                        Click="RestartAdmin_Click" Padding="12,6" Margin="0,0,10,0"/>
+                                <Button Content="Revert all" Click="RevertAll_Click"
+                                        Padding="12,6" Margin="0"
+                                        ToolTip="Puts every applied tweak back to its recorded previous value"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="TweakStatusText" Text="" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextMuted}" FontSize="11" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE945;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Performance" Style="{StaticResource CardTitle}"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <ItemsControl x:Name="TweakList" Margin="0,4,0,0"
+                                          ItemTemplate="{StaticResource TweakRow}"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+
+                    <StackPanel x:Name="PagePerf_lowerping" Visibility="Collapsed">
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
+                            BorderBrush="{StaticResource Accent}" Padding="18" Margin="0,0,0,14">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="LOWER PING" Foreground="{StaticResource Accent}"
+                                           FontSize="13" FontWeight="Black" VerticalAlignment="Center"/>
+                                <Border DockPanel.Dock="Right" Background="{StaticResource Accent}"
+                                        CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
+                                    <TextBlock Text="â˜… PLUS" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                            </DockPanel>
+                            <TextBlock Text="One switch to stop Windows adding its own latency â€” disables network throttling and Nagle batching, stops update sharing and background Store apps, and keeps Wi-Fi at full power. All reversible."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                            <Button x:Name="LowerPingButton" Content="ACTIVATE LOWER PING"
+                                    Click="LowerPing_Click" Padding="16,10" FontWeight="Bold" FontSize="14"
+                                    HorizontalAlignment="Left" Margin="0,14,0,0"/>
+
+                            <TextBlock x:Name="LowerPingStatusText"
+                                       Text="Off. One switch to stop Windows adding latency â€” fully reversible."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
+
+                            <TextBlock Text="Honest: these stop Windows throttling and batching on your own PC. They can't shorten the path to the server, so on an idle connection there's nothing to clear. The machine-wide ones (throttling, Nagle, update sharing) need the app running as administrator; without that it applies the rest."
+                                       Foreground="{StaticResource TextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,10,0,0" Opacity="0.85"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource Panel}" CornerRadius="8" BorderThickness="1"
+                            BorderBrush="{StaticResource Outline}" Padding="18">
+                        <StackPanel>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,10">
+                                <Border Style="{StaticResource CardIconChip}">
+                                    <TextBlock Style="{StaticResource CardIconGlyph}" Text="&#xE774;"/>
+                                </Border>
+                                <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Network tweaks"/>
+                                    <TextBlock Style="{StaticResource CardSubtitle}" Text="Turn these on individually, or use the switch above"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl x:Name="LowerPingTweakList" Margin="0,8,0,0"
+                                          ItemTemplate="{StaticResource TweakToggleRow}"/>
+                        </StackPanel>
+                    </Border>
+
+                    </StackPanel>
+
 
                 </StackPanel>
 
